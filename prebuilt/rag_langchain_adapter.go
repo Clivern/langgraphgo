@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/tmc/langchaingo/documentloaders"
+	"github.com/tmc/langchaingo/embeddings"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/textsplitter"
 )
@@ -116,4 +117,53 @@ func (s *LangChainTextSplitter) SplitDocuments(documents []Document) ([]Document
 	}
 
 	return result, nil
+}
+
+// LangChainEmbedder adapts langchaingo's embeddings.Embedder to our Embedder interface
+type LangChainEmbedder struct {
+	embedder embeddings.Embedder
+}
+
+// NewLangChainEmbedder creates a new adapter for langchaingo embedders
+func NewLangChainEmbedder(embedder embeddings.Embedder) *LangChainEmbedder {
+	return &LangChainEmbedder{
+		embedder: embedder,
+	}
+}
+
+// EmbedDocuments generates embeddings for multiple documents
+func (e *LangChainEmbedder) EmbedDocuments(ctx context.Context, texts []string) ([][]float64, error) {
+	// Call LangChain embedder (returns [][]float32)
+	embeddings32, err := e.embedder.EmbedDocuments(ctx, texts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert float32 to float64
+	embeddings64 := make([][]float64, len(embeddings32))
+	for i, emb32 := range embeddings32 {
+		embeddings64[i] = make([]float64, len(emb32))
+		for j, val := range emb32 {
+			embeddings64[i][j] = float64(val)
+		}
+	}
+
+	return embeddings64, nil
+}
+
+// EmbedQuery generates an embedding for a single query
+func (e *LangChainEmbedder) EmbedQuery(ctx context.Context, text string) ([]float64, error) {
+	// Call LangChain embedder (returns []float32)
+	embedding32, err := e.embedder.EmbedQuery(ctx, text)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert float32 to float64
+	embedding64 := make([]float64, len(embedding32))
+	for i, val := range embedding32 {
+		embedding64[i] = float64(val)
+	}
+
+	return embedding64, nil
 }
