@@ -1,6 +1,6 @@
 # 更新日志
 
-## [0.2.0] - 2025-12-01
+## [0.3.0] - 2025-12-01
 
 ### 核心运行时 (Core Runtime)
 - **并行执行**: 实现了扇出/扇入 (Fan-out/Fan-in) 执行模型，支持线程安全的状态合并。
@@ -21,12 +21,13 @@
 ### 预构建代理 (Pre-built Agents)
 - **ToolExecutor**: 添加了用于执行工具的专用节点。
 - **ReAct Agent**: 实现了用于创建 ReAct 风格代理的工厂方法。
+- **Create Agent**: 添加了 `CreateAgent` 工厂，支持函数式选项以灵活创建代理。
 - **Supervisor**: 添加了对 Supervisor 代理模式的支持，用于多代理编排。
 
 ### 人机交互 (Human-in-the-loop, HITL)
 - **中断 (Interrupts)**: 实现了 `InterruptBefore` 和 `InterruptAfter` 机制以暂停图的执行。
 - **恢复与命令 (Resume & Command)**: 添加了通过命令恢复执行和更新状态的支持。
-- **时间旅行 (Time Travel)**: 实现了 `UpdateState` API 以修改过去的检查点并分叉执行历史。
+- **时间旅行 (Time Travel)**: 实现了 `GetState` 和 `UpdateState` API 以检查/修改过去的检查点并分叉执行历史。
 
 ### 可视化 (Visualization)
 - **Mermaid 导出**: 改进了图的可视化，优化了条件边和样式的渲染。
@@ -61,6 +62,9 @@
   - **Chroma 向量数据库集成** (新增)
   - **Tavily 搜索工具** (新增)
   - **Exa 搜索工具** (新增)
+  - **Create Agent** (新增)
+  - **Durable Execution** (新增)
+- **通用**: 改进了所有示例的可靠性和正确性。
 
 ## [0.1.0] - 2025-01-02
 

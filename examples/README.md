@@ -33,6 +33,7 @@ This directory contains various examples demonstrating the features of LangGraph
 - **[Dynamic Interrupt](dynamic_interrupt/README.md)**: Pausing execution from within a node using `graph.Interrupt`.
 
 ## Pre-built Agents
+- **[Create Agent](create_agent/README.md)**: Easy way to create an agent with options.
 - **[ReAct Agent](react_agent/README.md)**: Reason and Action agent using tools.
 - **[Supervisor](supervisor/README.md)**: Multi-agent orchestration using a supervisor.
 - **[Swarm](swarm/README.md)**: Multi-agent collaboration using handoffs.

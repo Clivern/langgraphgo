@@ -32,7 +32,7 @@ go get github.com/smallnest/langgraphgo
     - **临时通道**: 管理每步后自动清除的临时状态。
     - **子图**: 通过嵌套图来构建复杂的 Agent。
     - **增强流式传输**: 支持多种模式 (`updates`, `values`, `messages`) 的实时事件流。
-    - **预构建 Agent**: 开箱即用的 `ReAct` 和 `Supervisor` Agent 工厂。
+    - **预构建 Agent**: 开箱即用的 `ReAct`, `CreateAgent` 和 `Supervisor` Agent 工厂。
 
 - **开发者体验**:
     - **可视化**: 支持导出为 Mermaid、DOT 和 ASCII 图表，并支持条件边。
@@ -102,6 +102,7 @@ func main() {
 - **[监听器](./examples/listeners/)** - 进度、指标和日志
 - **[子图](./examples/subgraphs/)** - 嵌套图组合
 - **[Swarm](./examples/swarm/)** - 多 Agent 协作
+- **[Create Agent](./examples/create_agent/)** - 使用选项灵活创建 Agent (新增!)
 - **[State Schema](./examples/state_schema/)** - 使用 Reducer 进行复杂状态管理
 - **[智能消息](./examples/smart_messages/)** - 智能消息合并 (Upserts)
 - **[Command API](./examples/command_api/)** - 动态流控制
@@ -147,6 +148,9 @@ runnable.InvokeWithConfig(ctx, state, resumeConfig)
 // 创建 ReAct Agent
 agent, err := prebuilt.CreateReactAgent(model, tools)
 
+// 使用选项创建 Agent
+agent, err := prebuilt.CreateAgent(model, tools, prebuilt.WithSystemMessage("System prompt"))
+
 // 创建 Supervisor Agent
 supervisor, err := prebuilt.CreateSupervisor(model, agents)
 ```
@@ -173,7 +177,7 @@ go test ./... -v
 
 ## 🤝 贡献
 
-本项目欢迎贡献！请查看 `TASKS.md` 了解路线图，查看 `TODOs.md` 了解具体事项。
+本项目欢迎贡献！请首选创建feature issues，然后提交PR。
 
 ## 📄 许可证
 

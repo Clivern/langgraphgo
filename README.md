@@ -32,7 +32,7 @@ go get github.com/smallnest/langgraphgo
     - **Ephemeral Channels**: Temporary state values that clear automatically after each step.
     - **Subgraphs**: Compose complex agents by nesting graphs within graphs.
     - **Enhanced Streaming**: Real-time event streaming with multiple modes (`updates`, `values`, `messages`).
-    - **Pre-built Agents**: Ready-to-use `ReAct` and `Supervisor` agent factories.
+    - **Pre-built Agents**: Ready-to-use `ReAct`, `CreateAgent`, and `Supervisor` agent factories.
 
 - **Developer Experience**:
     - **Visualization**: Export graphs to Mermaid, DOT, and ASCII with conditional edge support.
@@ -102,6 +102,7 @@ func main() {
 - **[Listeners](./examples/listeners/)** - Progress, metrics, and logging
 - **[Subgraphs](./examples/subgraphs/)** - Nested graph composition
 - **[Swarm](./examples/swarm/)** - Multi-agent collaboration
+- **[Create Agent](./examples/create_agent/)** - Flexible agent creation with options (New!)
 - **[State Schema](./examples/state_schema/)** - Complex state management with Reducers
 - **[Smart Messages](./examples/smart_messages/)** - Intelligent message merging (Upserts)
 - **[Command API](./examples/command_api/)** - Dynamic control flow
@@ -147,6 +148,9 @@ Quickly create complex agents using factory functions.
 // Create a ReAct agent
 agent, err := prebuilt.CreateReactAgent(model, tools)
 
+// Create an agent with options
+agent, err := prebuilt.CreateAgent(model, tools, prebuilt.WithSystemMessage("System prompt"))
+
 // Create a Supervisor agent
 supervisor, err := prebuilt.CreateSupervisor(model, agents)
 ```
@@ -173,7 +177,7 @@ go test ./... -v
 
 ## 🤝 Contributing
 
-This project is open for contributions! Please check `TASKS.md` for the roadmap and `TODOs.md` for specific items.
+This project is open for contributions! Please create feature issues first, then submit PRs.
 
 ## 📄 License
 

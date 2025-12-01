@@ -33,6 +33,7 @@
 - **[动态中断 (Dynamic Interrupt)](dynamic_interrupt/README_CN.md)**: 使用 `graph.Interrupt` 在节点内部暂停执行。
 
 ## 预构建代理 (Pre-built Agents)
+- **[Create Agent](create_agent/README_CN.md)**: 使用选项轻松创建代理。
 - **[ReAct Agent](react_agent/README_CN.md)**: 使用工具的推理与行动 (Reason and Action) 代理。
 - **[Supervisor](supervisor/README_CN.md)**: 使用 Supervisor 进行多代理编排。
 - **[Swarm](swarm/README_CN.md)**: 使用切换 (handoffs) 的多代理协作。
