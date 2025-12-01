@@ -30,12 +30,20 @@
 - **Swarm Patterns**: Added prototypes for multi-agent collaboration using subgraphs (`examples/swarm`).
 - **Channels RFC**: Added `RFC_CHANNELS.md` proposing a channel-based architecture for future improvements.
 
+### LangChain Integration
+- **VectorStore Adapter**: Added `LangChainVectorStore` adapter to integrate any langchaingo vectorstore implementation.
+- **Supported Backends**: Full support for Chroma, Weaviate, Pinecone, Qdrant, Milvus, PGVector, and any other langchaingo vectorstore.
+- **Unified Interface**: Seamless integration with RAG pipelines through standard `AddDocuments`, `SimilaritySearch`, and `SimilaritySearchWithScore` methods.
+- **Complete Adapters**: Now includes adapters for DocumentLoaders, TextSplitters, Embedders, and VectorStores from langchaingo.
+
 ### Examples
 - Added comprehensive examples for:
   - Checkpointing (Postgres, SQLite, Redis)
   - Human-in-the-loop workflows
   - Swarm multi-agent patterns
   - Subgraphs
+  - **LangChain VectorStore integration** (new)
+  - **Chroma vector database integration** (new)
 
 ## [0.1.0] - 2025-01-02
 

@@ -15,10 +15,7 @@ func main() {
 	ctx := context.Background()
 
 	// Initialize LLM
-	llm, err := openai.New(
-		openai.WithModel("deepseek-v3"),
-		openai.WithBaseURL("https://api.deepseek.com"),
-	)
+	llm, err := openai.New()
 	if err != nil {
 		log.Fatalf("Failed to create LLM: %v", err)
 	}

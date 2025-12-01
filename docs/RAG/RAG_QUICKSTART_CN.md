@@ -46,10 +46,7 @@ retriever := prebuilt.NewVectorStoreRetriever(vectorStore, 2)
 
 ```go
 // 初始化 LLM
-llm, _ := openai.New(
-    openai.WithModel("deepseek-v3"),
-    openai.WithBaseURL("https://api.deepseek.com"),
-)
+llm, _ := openai.New()
 
 // 配置 RAG
 config := prebuilt.DefaultRAGConfig()

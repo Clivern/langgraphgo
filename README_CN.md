@@ -85,13 +85,16 @@ func main() {
 
 - **[基础 LLM](./examples/basic_llm/)** - 简单的 LangChain 集成
 - **[RAG 流程](./examples/rag_pipeline/)** - 完整的检索增强生成
+- **[RAG 与 LangChain](./examples/rag_with_langchain/)** - LangChain 组件集成
+- **[RAG 与 VectorStores](./examples/rag_langchain_vectorstore_example/)** - LangChain VectorStore 集成 (新增!)
+- **[RAG 与 Chroma](./examples/rag_chroma_example/)** - Chroma 向量数据库集成 (新增!)
 - **[流式传输](./examples/streaming_pipeline/)** - 实时进度更新
 - **[条件路由](./examples/conditional_routing/)** - 动态路径选择
 - **[Checkpointing](./examples/checkpointing/)** - 保存和恢复状态
 - **[可视化](./examples/visualization/)** - 导出图表
 - **[监听器](./examples/listeners/)** - 进度、指标和日志
 - **[子图](./examples/subgraph/)** - 嵌套图组合
-- **[Swarm](./examples/swarm/)** - 多 Agent 协作 (新增!)
+- **[Swarm](./examples/swarm/)** - 多 Agent 协作
 
 ## 🔧 核心概念
 

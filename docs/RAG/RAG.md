@@ -363,20 +363,268 @@ See the examples directory for complete implementations:
 
 ## Integration with LangChain
 
-LangGraphGo RAG interfaces are compatible with LangChain Go components:
+LangGraphGo provides seamless integration with the [langchaingo](https://github.com/tmc/langchaingo) ecosystem through adapter layers. This allows you to use any LangChain component with LangGraphGo's RAG pipeline.
+
+### LangChain Adapters
+
+LangGraphGo includes adapters for the following LangChain components:
+
+#### 1. Document Loaders
+
+Wrap any langchaingo document loader:
+
+```go
+import (
+    "github.com/tmc/langchaingo/documentloaders"
+    "github.com/smallnest/langgraphgo/prebuilt"
+)
+
+// Create LangChain loader
+textLoader := documentloaders.NewText(reader)
+
+// Wrap with adapter
+loader := prebuilt.NewLangChainDocumentLoader(textLoader)
+
+// Use in RAG pipeline
+docs, err := loader.Load(ctx)
+```
+
+**Supported Loaders**:
+- Text files
+- CSV files
+- PDF documents
+- HTML pages
+- Markdown files
+- And more from langchaingo
+
+#### 2. Text Splitters
+
+Wrap any langchaingo text splitter:
+
+```go
+import (
+    "github.com/tmc/langchaingo/textsplitter"
+    "github.com/smallnest/langgraphgo/prebuilt"
+)
+
+// Create LangChain splitter
+lcSplitter := textsplitter.NewRecursiveCharacter(
+    textsplitter.WithChunkSize(500),
+    textsplitter.WithChunkOverlap(50),
+)
+
+// Wrap with adapter
+splitter := prebuilt.NewLangChainTextSplitter(lcSplitter)
+
+// Use in RAG pipeline
+chunks, err := splitter.SplitDocuments(documents)
+```
+
+**Supported Splitters**:
+- RecursiveCharacter
+- Token-based
+- Markdown
+- Code splitters
+
+#### 3. Embeddings
+
+Wrap any langchaingo embedder:
 
 ```go
 import (
     "github.com/tmc/langchaingo/embeddings"
-    "github.com/tmc/langchaingo/vectorstores"
+    "github.com/tmc/langchaingo/llms/openai"
+    "github.com/smallnest/langgraphgo/prebuilt"
 )
 
-// Use LangChain embeddings
-embedder := embeddings.NewOpenAI()
+// Create LLM
+llm, err := openai.New()
 
-// Use LangChain vector stores
-vectorStore := vectorstores.NewChroma(...)
+// Create LangChain embedder
+lcEmbedder, err := embeddings.NewEmbedder(llm)
+
+// Wrap with adapter
+embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
+
+// Use in RAG pipeline
+embeddings, err := embedder.EmbedDocuments(ctx, texts)
 ```
+
+**Supported Embedders**:
+- OpenAI
+- Cohere
+- HuggingFace
+- Local models
+
+#### 4. Vector Stores
+
+**NEW**: Wrap any langchaingo vector store:
+
+```go
+import (
+    "github.com/tmc/langchaingo/vectorstores/chroma"
+    "github.com/smallnest/langgraphgo/prebuilt"
+)
+
+// Create LangChain vector store
+chromaStore, err := chroma.New(
+    chroma.WithChromaURL("http://localhost:8000"),
+    chroma.WithEmbedder(embedder),
+    chroma.WithDistanceFunction("cosine"),
+)
+
+// Wrap with adapter
+vectorStore := prebuilt.NewLangChainVectorStore(chromaStore)
+
+// Use in RAG pipeline
+err = vectorStore.AddDocuments(ctx, documents, embeddings)
+results, err := vectorStore.SimilaritySearch(ctx, query, k)
+```
+
+**Supported Vector Stores**:
+- **Chroma**: Open-source embedding database
+- **Weaviate**: Cloud-native vector database
+- **Pinecone**: Managed vector database service
+- **Qdrant**: Vector similarity search engine
+- **Milvus**: Distributed vector database
+- **PGVector**: PostgreSQL extension for vectors
+- And any other langchaingo vectorstore implementation
+
+### Complete Integration Example
+
+Here's a complete example using LangChain components:
+
+```go
+package main
+
+import (
+    "context"
+    "github.com/smallnest/langgraphgo/prebuilt"
+    "github.com/tmc/langchaingo/documentloaders"
+    "github.com/tmc/langchaingo/embeddings"
+    "github.com/tmc/langchaingo/llms/openai"
+    "github.com/tmc/langchaingo/textsplitter"
+    "github.com/tmc/langchaingo/vectorstores/chroma"
+)
+
+func main() {
+    ctx := context.Background()
+    
+    // 1. Create LLM
+    llm, _ := openai.New(
+        openai.WithModel("gpt-4"),
+    )
+    
+    // 2. Load documents with LangChain loader
+    textLoader := documentloaders.NewText(reader)
+    loader := prebuilt.NewLangChainDocumentLoader(textLoader)
+    
+    // 3. Split with LangChain splitter
+    splitter := textsplitter.NewRecursiveCharacter(
+        textsplitter.WithChunkSize(500),
+        textsplitter.WithChunkOverlap(50),
+    )
+    chunks, _ := loader.LoadAndSplit(ctx, splitter)
+    
+    // 4. Create embedder
+    lcEmbedder, _ := embeddings.NewEmbedder(llm)
+    embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
+    
+    // 5. Create vector store
+    chromaStore, _ := chroma.New(
+        chroma.WithChromaURL("http://localhost:8000"),
+        chroma.WithEmbedder(lcEmbedder),
+    )
+    vectorStore := prebuilt.NewLangChainVectorStore(chromaStore)
+    
+    // 6. Add documents
+    texts := make([]string, len(chunks))
+    for i, chunk := range chunks {
+        texts[i] = chunk.PageContent
+    }
+    embeddings, _ := embedder.EmbedDocuments(ctx, texts)
+    vectorStore.AddDocuments(ctx, chunks, embeddings)
+    
+    // 7. Build RAG pipeline
+    retriever := prebuilt.NewVectorStoreRetriever(vectorStore, 3)
+    
+    config := prebuilt.DefaultRAGConfig()
+    config.Retriever = retriever
+    config.LLM = llm
+    
+    pipeline := prebuilt.NewRAGPipeline(config)
+    pipeline.BuildBasicRAG()
+    runnable, _ := pipeline.Compile()
+    
+    // 8. Query
+    result, _ := runnable.Invoke(ctx, prebuilt.RAGState{
+        Query: "What is the main topic?",
+    })
+}
+```
+
+### Vector Store Setup Guides
+
+#### Chroma
+
+```bash
+# Start Chroma server
+docker run -p 8000:8000 chromadb/chroma
+
+# Use in code
+chromaStore, err := chroma.New(
+    chroma.WithChromaURL("http://localhost:8000"),
+    chroma.WithEmbedder(embedder),
+)
+```
+
+#### Weaviate
+
+```bash
+# Start Weaviate
+docker run -d \
+  -p 8080:8080 \
+  -e AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true \
+  semitechnologies/weaviate:latest
+
+# Use in code
+weaviateStore, err := weaviate.New(
+    weaviate.WithScheme("http"),
+    weaviate.WithHost("localhost:8080"),
+    weaviate.WithEmbedder(embedder),
+)
+```
+
+#### Pinecone
+
+```bash
+# Set API key
+export PINECONE_API_KEY="your-api-key"
+
+# Use in code
+pineconeStore, err := pinecone.New(
+    pinecone.WithAPIKey(os.Getenv("PINECONE_API_KEY")),
+    pinecone.WithEnvironment("us-west1-gcp"),
+    pinecone.WithIndexName("my-index"),
+    pinecone.WithEmbedder(embedder),
+)
+```
+
+### Benefits of LangChain Integration
+
+1. **Ecosystem Access**: Use any component from the langchaingo ecosystem
+2. **Production Ready**: Battle-tested vector databases and embedders
+3. **Flexibility**: Easy to swap components without changing pipeline code
+4. **Community Support**: Leverage the LangChain community and documentation
+5. **Future Proof**: Automatically get new features from langchaingo updates
+
+### Examples
+
+See these examples for complete implementations:
+
+- `examples/rag_with_langchain/` - Basic LangChain integration
+- `examples/rag_langchain_vectorstore_example/` - VectorStore integration with multiple backends
+- `examples/rag_chroma_example/` - Chroma-specific example
 
 ## Future Enhancements
 

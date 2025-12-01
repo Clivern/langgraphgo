@@ -7,6 +7,7 @@ import (
 	"github.com/tmc/langchaingo/embeddings"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/textsplitter"
+	"github.com/tmc/langchaingo/vectorstores"
 )
 
 // LangChainDocumentLoader adapts langchaingo's documentloaders.Loader to our DocumentLoader interface
@@ -166,4 +167,85 @@ func (e *LangChainEmbedder) EmbedQuery(ctx context.Context, text string) ([]floa
 	}
 
 	return embedding64, nil
+}
+
+// LangChainVectorStore adapts langchaingo's vectorstores.VectorStore to our VectorStore interface
+type LangChainVectorStore struct {
+	store vectorstores.VectorStore
+}
+
+// NewLangChainVectorStore creates a new adapter for langchaingo vector stores
+func NewLangChainVectorStore(store vectorstores.VectorStore) *LangChainVectorStore {
+	return &LangChainVectorStore{
+		store: store,
+	}
+}
+
+// AddDocuments adds documents to the vector store
+func (s *LangChainVectorStore) AddDocuments(ctx context.Context, documents []Document, embeddings [][]float64) error {
+	// Convert to langchaingo schema.Document
+	schemaDocs := convertToSchemaDocuments(documents)
+
+	// Note: langchaingo's AddDocuments typically handles embedding generation internally if an embedder is set,
+	// or we might need to use a specific method if we want to provide pre-computed embeddings.
+	// However, the standard vectorstores.VectorStore interface in langchaingo usually takes documents and adds them.
+	// Some implementations might re-embed.
+	// If the interface provided by langchaingo vectorstores allows passing embeddings, we should use it.
+	// Most langchaingo vectorstores AddDocuments method signature is: AddDocuments(ctx context.Context, docs []schema.Document, options ...Option) ([]string, error)
+
+	// For now, we will just pass the documents. If the underlying store needs an embedder, it should be configured with one.
+	// The `embeddings` argument here is ignored because langchaingo stores typically manage their own embedding or expect the embedder to be part of the store configuration.
+	// If we strictly need to pass pre-computed embeddings, we might need a more specific adapter or check if the specific store supports it.
+
+	_, err := s.store.AddDocuments(ctx, schemaDocs)
+	return err
+}
+
+// SimilaritySearch searches for similar documents
+func (s *LangChainVectorStore) SimilaritySearch(ctx context.Context, query string, k int) ([]Document, error) {
+	// Call LangChain store
+	schemaDocs, err := s.store.SimilaritySearch(ctx, query, k)
+	if err != nil {
+		return nil, err
+	}
+
+	return convertSchemaDocuments(schemaDocs), nil
+}
+
+// SimilaritySearchWithScore searches for similar documents and returns them with scores
+func (s *LangChainVectorStore) SimilaritySearchWithScore(ctx context.Context, query string, k int) ([]DocumentWithScore, error) {
+	// Call LangChain store
+	// Note: Not all langchaingo vectorstores support SimilaritySearchWithScore directly in the main interface,
+	// but usually SimilaritySearch returns documents which might contain scores in metadata or the implementation might have a specific method.
+	// However, the standard interface `vectorstores.VectorStore` has `SimilaritySearch`.
+	// Some stores implement `SimilaritySearchWithScore`.
+	// We will check if the store implements a specific interface or just use SimilaritySearch and extract scores if available.
+
+	// Ideally, we should check if s.store implements an interface with SimilaritySearchWithScore.
+	// For now, let's try to use the standard SimilaritySearch and see if we can get scores.
+	// Many langchaingo implementations return scores in the document metadata or struct.
+
+	// If the underlying store supports returning scores, we can try to cast or use a specific method.
+	// Since `vectorstores.VectorStore` interface in langchaingo (v0.1.13) mainly has `SimilaritySearch`,
+	// we might need to rely on the returned documents having scores.
+
+	schemaDocs, err := s.store.SimilaritySearch(ctx, query, k)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []DocumentWithScore
+	for _, schemaDoc := range schemaDocs {
+		doc := Document{
+			PageContent: schemaDoc.PageContent,
+			Metadata:    schemaDoc.Metadata,
+		}
+		score := float64(schemaDoc.Score)
+		result = append(result, DocumentWithScore{
+			Document: doc,
+			Score:    score,
+		})
+	}
+
+	return result, nil
 }

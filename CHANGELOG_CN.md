@@ -30,12 +30,20 @@
 - **Swarm 模式**: 使用子图 (`examples/swarm`) 添加了多代理协作的原型。
 - **Channels RFC**: 添加了 `RFC_CHANNELS.md`，提议在未来改进中采用基于 Channel 的架构。
 
+### LangChain 集成 (LangChain Integration)
+- **VectorStore 适配器**: 添加了 `LangChainVectorStore` 适配器，可集成任何 langchaingo vectorstore 实现。
+- **支持的后端**: 完整支持 Chroma、Weaviate、Pinecone、Qdrant、Milvus、PGVector 以及任何其他 langchaingo vectorstore。
+- **统一接口**: 通过标准的 `AddDocuments`、`SimilaritySearch` 和 `SimilaritySearchWithScore` 方法与 RAG 管道无缝集成。
+- **完整适配器**: 现在包含 langchaingo 的 DocumentLoaders、TextSplitters、Embedders 和 VectorStores 适配器。
+
 ### 示例 (Examples)
 - 添加了涵盖以下内容的综合示例：
   - 检查点 (Postgres, SQLite, Redis)
   - 人机交互工作流
   - Swarm 多代理模式
   - 子图
+  - **LangChain VectorStore 集成** (新增)
+  - **Chroma 向量数据库集成** (新增)
 
 ## [0.1.0] - 2025-01-02
 

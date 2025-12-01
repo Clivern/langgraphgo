@@ -85,13 +85,16 @@ func main() {
 
 - **[Basic LLM](./examples/basic_llm/)** - Simple LangChain integration
 - **[RAG Pipeline](./examples/rag_pipeline/)** - Complete retrieval-augmented generation
+- **[RAG with LangChain](./examples/rag_with_langchain/)** - LangChain components integration
+- **[RAG with VectorStores](./examples/rag_langchain_vectorstore_example/)** - LangChain VectorStore integration (New!)
+- **[RAG with Chroma](./examples/rag_chroma_example/)** - Chroma vector database integration (New!)
 - **[Streaming](./examples/streaming_pipeline/)** - Real-time progress updates
 - **[Conditional Routing](./examples/conditional_routing/)** - Dynamic path selection
 - **[Checkpointing](./examples/checkpointing/)** - Save and resume state
 - **[Visualization](./examples/visualization/)** - Export graph diagrams
 - **[Listeners](./examples/listeners/)** - Progress, metrics, and logging
 - **[Subgraphs](./examples/subgraph/)** - Nested graph composition
-- **[Swarm](./examples/swarm/)** - Multi-agent collaboration (New!)
+- **[Swarm](./examples/swarm/)** - Multi-agent collaboration
 
 ## 🔧 Key Concepts
 
