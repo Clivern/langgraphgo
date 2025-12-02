@@ -1,2 +1,5 @@
 coverage.out
 lint-ci.sh
+
+deerflow
+!deerflow/

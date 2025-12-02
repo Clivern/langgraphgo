@@ -9,10 +9,27 @@ import (
 	"github.com/tmc/langchaingo/llms/openai"
 )
 
+type logKey struct{}
+
+func logf(ctx context.Context, format string, args ...interface{}) {
+	msg := fmt.Sprintf(format, args...)
+	// Always print to stdout
+	fmt.Print(msg)
+
+	// If log channel exists in context, send it there too
+	if ch, ok := ctx.Value(logKey{}).(chan string); ok {
+		// Non-blocking send to avoid stalling if channel is full or no one listening
+		select {
+		case ch <- msg:
+		default:
+		}
+	}
+}
+
 // PlannerNode generates a research plan based on the query.
 func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 	s := state.(*State)
-	fmt.Printf("--- Planner Node: Planning for query '%s' ---\n", s.Request.Query)
+	logf(ctx, "--- Planner Node: Planning for query '%s' ---\n", s.Request.Query)
 
 	llm, err := getLLM()
 	if err != nil {
@@ -35,7 +52,8 @@ func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 		}
 	}
 	s.Plan = plan
-	fmt.Printf("Generated Plan: %v\n", s.Plan)
+	s.Plan = plan
+	logf(ctx, "Generated Plan: %v\n", s.Plan)
 
 	return s, nil
 }
@@ -43,7 +61,7 @@ func PlannerNode(ctx context.Context, state interface{}) (interface{}, error) {
 // ResearcherNode executes the research plan.
 func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error) {
 	s := state.(*State)
-	fmt.Printf("--- Researcher Node: Executing plan ---\n")
+	logf(ctx, "--- Researcher Node: Executing plan ---\n")
 
 	// In a real implementation, we would use a search tool here.
 	// For this showcase, we will simulate research or use the LLM to "hallucinate"/generate info if no tool is available.
@@ -56,7 +74,7 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 
 	var results []string
 	for _, step := range s.Plan {
-		fmt.Printf("Researching step: %s\n", step)
+		logf(ctx, "Researching step: %s\n", step)
 		prompt := fmt.Sprintf("You are a researcher. Find detailed information for this research step: %s. Provide a summary of findings.", step)
 		completion, err := llm.Call(ctx, prompt)
 		if err != nil {
@@ -72,7 +90,7 @@ func ResearcherNode(ctx context.Context, state interface{}) (interface{}, error)
 // ReporterNode compiles the final report.
 func ReporterNode(ctx context.Context, state interface{}) (interface{}, error) {
 	s := state.(*State)
-	fmt.Printf("--- Reporter Node: Generating final report ---\n")
+	logf(ctx, "--- Reporter Node: Generating final report ---\n")
 
 	llm, err := getLLM()
 	if err != nil {
@@ -88,7 +106,8 @@ func ReporterNode(ctx context.Context, state interface{}) (interface{}, error) {
 	}
 
 	s.FinalReport = completion
-	fmt.Printf("Final Report Generated.\n")
+	s.FinalReport = completion
+	logf(ctx, "Final Report Generated.\n")
 	return s, nil
 }
 
