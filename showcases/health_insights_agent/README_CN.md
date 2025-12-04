@@ -11,6 +11,7 @@
 
 - ✅ **智能代理架构** - 基于 LangGraph 的多步骤分析工作流
 - ✅ **多模型支持** - 支持 OpenAI GPT-4、GPT-3.5 等多种模型
+- ✅ **PDF 文件支持** - 自动提取 PDF 文档中的文本内容
 - ✅ **血液报告分析** - 自动提取和分析血液检查参数
 - ✅ **风险评估** - 识别潜在健康风险并分级
 - ✅ **个性化建议** - 提供饮食、生活方式和医疗建议
@@ -71,6 +72,9 @@ export LLM_MAX_TOKENS="4000"             # 最大 token 数
 # 分析文本文件
 ./health-insights-agent -file examples/sample_report.txt -verbose
 
+# 分析PDF文件
+./health-insights-agent -file your_report.pdf -verbose
+
 # 查看帮助
 ./health-insights-agent -cmd help
 ```
@@ -86,7 +90,7 @@ export LLM_MAX_TOKENS="4000"             # 最大 token 数
   -cmd help       显示帮助信息
 
 选项:
-  -file <路径>           输入文件路径（文本格式）
+  -file <路径>           输入文件路径（支持 .txt 和 .pdf 格式）
   -text "<文本>"         直接输入报告文本
   -output <路径>         输出文件路径（JSON格式）
   -verbose              显示详细日志
@@ -95,6 +99,10 @@ export LLM_MAX_TOKENS="4000"             # 最大 token 数
   -model <模型>         指定LLM模型
   -temperature <值>     模型温度参数 0.0-2.0
   -max-tokens <数量>    最大token数
+
+支持的文件格式:
+  .txt, .text          纯文本文件
+  .pdf                 PDF文档（自动提取文本）
 ```
 
 ### 使用示例
@@ -146,8 +154,11 @@ export LLM_MAX_TOKENS="4000"             # 最大 token 数
 #### 2. 分析自己的报告
 
 ```bash
-# 从文件读取
+# 从文本文件读取
 ./health-insights-agent -file my_report.txt -verbose
+
+# 从PDF文件读取
+./health-insights-agent -file my_report.pdf -verbose
 
 # 直接输入文本
 ./health-insights-agent -text "血常规：WBC: 8.5..." -verbose
@@ -328,6 +339,10 @@ graph LR
 2. **隐私保护**: 请勿在生产环境中存储敏感医疗数据
 3. **准确性限制**: AI 可能产生错误，请务必咨询医疗专业人员
 4. **紧急情况**: 如有严重健康问题，请立即就医
+5. **PDF 限制**:
+   - 仅支持可提取文本的 PDF（非扫描版）
+   - 扫描版 PDF 需要先用 OCR 工具转换
+   - 建议 PDF 文件大小不超过 20MB
 
 ## 🔧 开发指南
 

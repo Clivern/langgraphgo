@@ -5,7 +5,7 @@ go 1.25.0
 replace github.com/smallnest/langgraphgo => ../..
 
 require (
-	github.com/ledongthuc/pdf v0.0.0-20220302134840-0c2507a12d80
+	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 	github.com/smallnest/langgraphgo v0.0.0
 	github.com/tmc/langchaingo v0.1.14
 )
