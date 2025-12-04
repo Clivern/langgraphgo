@@ -45,7 +45,7 @@ func main() {
 	g.SetCheckpointConfig(config)
 
 	// Add processing nodes
-	g.AddNode("step1", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("step1", "step1", func(ctx context.Context, state interface{}) (interface{}, error) {
 		s := state.(ProcessState)
 		s.Step = 1
 		s.Data = s.Data + " → Step1"
@@ -55,7 +55,7 @@ func main() {
 		return s, nil
 	})
 
-	g.AddNode("step2", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("step2", "step2", func(ctx context.Context, state interface{}) (interface{}, error) {
 		s := state.(ProcessState)
 		s.Step = 2
 		s.Data = s.Data + " → Step2"
@@ -65,7 +65,7 @@ func main() {
 		return s, nil
 	})
 
-	g.AddNode("step3", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("step3", "step3", func(ctx context.Context, state interface{}) (interface{}, error) {
 		s := state.(ProcessState)
 		s.Step = 3
 		s.Data = s.Data + " → Step3"

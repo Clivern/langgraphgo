@@ -55,11 +55,12 @@ func NewStateGraph() *StateGraph {
 	}
 }
 
-// AddNode adds a new node to the state graph with the given name and function
-func (g *StateGraph) AddNode(name string, fn func(ctx context.Context, state interface{}) (interface{}, error)) {
+// AddNode adds a new node to the state graph with the given name, description and function
+func (g *StateGraph) AddNode(name string, description string, fn func(ctx context.Context, state interface{}) (interface{}, error)) {
 	g.nodes[name] = Node{
-		Name:     name,
-		Function: fn,
+		Name:        name,
+		Description: description,
+		Function:    fn,
 	}
 }
 

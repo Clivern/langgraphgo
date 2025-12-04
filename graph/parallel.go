@@ -95,7 +95,7 @@ func (g *MessageGraph) AddParallelNodes(groupName string, nodes map[string]func(
 
 	// Add as a single parallel node
 	parallelNode := NewParallelNode(groupName, parallelNodes...)
-	g.AddNode(groupName, parallelNode.Execute)
+	g.AddNode(groupName, "Parallel execution group: "+groupName, parallelNode.Execute)
 }
 
 // MapReduceNode executes nodes in parallel and reduces results
@@ -148,7 +148,7 @@ func (g *MessageGraph) AddMapReduceNode(
 
 	// Create and add map-reduce node
 	mrNode := NewMapReduceNode(name, reducer, mapNodes...)
-	g.AddNode(name, mrNode.Execute)
+	g.AddNode(name, "Map-reduce node: "+name, mrNode.Execute)
 }
 
 // FanOutFanIn creates a fan-out/fan-in pattern
@@ -163,7 +163,7 @@ func (g *MessageGraph) FanOutFanIn(
 	g.AddParallelNodes(source+"_workers", workerFuncs)
 
 	// Add collector node
-	g.AddNode(collector, func(_ context.Context, state interface{}) (interface{}, error) {
+	g.AddNode(collector, "Collector node: "+collector, func(_ context.Context, state interface{}) (interface{}, error) {
 		// State should be array of results from parallel workers
 		if results, ok := state.([]interface{}); ok {
 			return collectFunc(results)

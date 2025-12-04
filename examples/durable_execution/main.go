@@ -109,14 +109,14 @@ func main() {
 	})
 
 	// Step 1
-	g.AddNode("step_1", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("step_1", "step_1", func(ctx context.Context, state interface{}) (interface{}, error) {
 		fmt.Println("Executing Step 1...")
 		time.Sleep(500 * time.Millisecond)
 		return map[string]interface{}{"steps": []string{"Step 1 Completed"}}, nil
 	})
 
 	// Step 2 (Simulate Crash)
-	g.AddNode("step_2", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("step_2", "step_2", func(ctx context.Context, state interface{}) (interface{}, error) {
 		fmt.Println("Executing Step 2...")
 		time.Sleep(500 * time.Millisecond)
 
@@ -131,7 +131,7 @@ func main() {
 	})
 
 	// Step 3
-	g.AddNode("step_3", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("step_3", "step_3", func(ctx context.Context, state interface{}) (interface{}, error) {
 		fmt.Println("Executing Step 3...")
 		time.Sleep(500 * time.Millisecond)
 		return map[string]interface{}{"steps": []string{"Step 3 Completed"}}, nil

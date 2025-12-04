@@ -22,8 +22,7 @@ func TestRetryNode(t *testing.T) {
 		g := graph.NewMessageGraph()
 		callCount := int32(0)
 
-		g.AddNodeWithRetry("retry_node",
-			func(ctx context.Context, state interface{}) (interface{}, error) {
+		g.AddNodeWithRetry("retry_node", "retry_node", func(ctx context.Context, state interface{}) (interface{}, error) {
 				atomic.AddInt32(&callCount, 1)
 				return successResult, nil
 			},
@@ -60,8 +59,7 @@ func TestRetryNode(t *testing.T) {
 		g := graph.NewMessageGraph()
 		callCount := int32(0)
 
-		g.AddNodeWithRetry("retry_node",
-			func(ctx context.Context, state interface{}) (interface{}, error) {
+		g.AddNodeWithRetry("retry_node", "retry_node", func(ctx context.Context, state interface{}) (interface{}, error) {
 				count := atomic.AddInt32(&callCount, 1)
 				if count < 3 {
 					return nil, errors.New("transient error")
@@ -101,8 +99,7 @@ func TestRetryNode(t *testing.T) {
 		g := graph.NewMessageGraph()
 		callCount := int32(0)
 
-		g.AddNodeWithRetry("retry_node",
-			func(ctx context.Context, state interface{}) (interface{}, error) {
+		g.AddNodeWithRetry("retry_node", "retry_node", func(ctx context.Context, state interface{}) (interface{}, error) {
 				atomic.AddInt32(&callCount, 1)
 				return nil, errors.New("persistent error")
 			},
@@ -135,8 +132,7 @@ func TestRetryNode(t *testing.T) {
 		g := graph.NewMessageGraph()
 		callCount := int32(0)
 
-		g.AddNodeWithRetry("retry_node",
-			func(ctx context.Context, state interface{}) (interface{}, error) {
+		g.AddNodeWithRetry("retry_node", "retry_node", func(ctx context.Context, state interface{}) (interface{}, error) {
 				atomic.AddInt32(&callCount, 1)
 				return nil, errors.New("critical error")
 			},
@@ -177,8 +173,7 @@ func TestTimeoutNode(t *testing.T) {
 	t.Run("SuccessWithinTimeout", func(t *testing.T) {
 		g := graph.NewMessageGraph()
 
-		g.AddNodeWithTimeout("timeout_node",
-			func(ctx context.Context, state interface{}) (interface{}, error) {
+		g.AddNodeWithTimeout("timeout_node", "timeout_node", func(ctx context.Context, state interface{}) (interface{}, error) {
 				time.Sleep(10 * time.Millisecond)
 				return successResult, nil
 			},
@@ -206,8 +201,7 @@ func TestTimeoutNode(t *testing.T) {
 	t.Run("TimeoutExceeded", func(t *testing.T) {
 		g := graph.NewMessageGraph()
 
-		g.AddNodeWithTimeout("timeout_node",
-			func(ctx context.Context, state interface{}) (interface{}, error) {
+		g.AddNodeWithTimeout("timeout_node", "timeout_node", func(ctx context.Context, state interface{}) (interface{}, error) {
 				time.Sleep(100 * time.Millisecond)
 				return successResult, nil
 			},
@@ -231,8 +225,7 @@ func TestTimeoutNode(t *testing.T) {
 	t.Run("RespectContextCancellation", func(t *testing.T) {
 		g := graph.NewMessageGraph()
 
-		g.AddNodeWithTimeout("timeout_node",
-			func(ctx context.Context, _ interface{}) (interface{}, error) {
+		g.AddNodeWithTimeout("timeout_node", "timeout_node", func(ctx context.Context, _ interface{}) (interface{}, error) {
 				select {
 				case <-ctx.Done():
 					return nil, ctx.Err()
@@ -268,8 +261,7 @@ func TestCircuitBreaker(t *testing.T) {
 		g := graph.NewMessageGraph()
 		callCount := int32(0)
 
-		g.AddNodeWithCircuitBreaker("cb_node",
-			func(ctx context.Context, state interface{}) (interface{}, error) {
+		g.AddNodeWithCircuitBreaker("cb_node", "cb_node", func(ctx context.Context, state interface{}) (interface{}, error) {
 				atomic.AddInt32(&callCount, 1)
 				return nil, errors.New("service unavailable")
 			},
@@ -311,8 +303,7 @@ func TestCircuitBreaker(t *testing.T) {
 		g := graph.NewMessageGraph()
 		callCount := int32(0)
 
-		g.AddNodeWithCircuitBreaker("cb_node",
-			func(ctx context.Context, state interface{}) (interface{}, error) {
+		g.AddNodeWithCircuitBreaker("cb_node", "cb_node", func(ctx context.Context, state interface{}) (interface{}, error) {
 				count := atomic.AddInt32(&callCount, 1)
 				// Fail first 2 calls, succeed afterwards
 				if count <= 2 {
@@ -363,8 +354,7 @@ func TestRateLimiter(t *testing.T) {
 		g := graph.NewMessageGraph()
 		callCount := int32(0)
 
-		g.AddNodeWithRateLimit("rate_limited",
-			func(ctx context.Context, state interface{}) (interface{}, error) {
+		g.AddNodeWithRateLimit("rate_limited", "rate_limited", func(ctx context.Context, state interface{}) (interface{}, error) {
 				atomic.AddInt32(&callCount, 1)
 				return successResult, nil
 			},
@@ -400,8 +390,7 @@ func TestRateLimiter(t *testing.T) {
 		g := graph.NewMessageGraph()
 		callCount := int32(0)
 
-		g.AddNodeWithRateLimit("rate_limited",
-			func(ctx context.Context, state interface{}) (interface{}, error) {
+		g.AddNodeWithRateLimit("rate_limited", "rate_limited", func(ctx context.Context, state interface{}) (interface{}, error) {
 				atomic.AddInt32(&callCount, 1)
 				return successResult, nil
 			},
@@ -436,8 +425,7 @@ func TestRateLimiter(t *testing.T) {
 		g := graph.NewMessageGraph()
 		callCount := int32(0)
 
-		g.AddNodeWithRateLimit("rate_limited",
-			func(ctx context.Context, state interface{}) (interface{}, error) {
+		g.AddNodeWithRateLimit("rate_limited", "rate_limited", func(ctx context.Context, state interface{}) (interface{}, error) {
 				atomic.AddInt32(&callCount, 1)
 				return successResult, nil
 			},

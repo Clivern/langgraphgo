@@ -97,15 +97,17 @@ func (rn *RetryNode) Execute(ctx context.Context, state interface{}) (interface{
 // AddNodeWithRetry adds a node with retry logic
 func (g *MessageGraph) AddNodeWithRetry(
 	name string,
+	description string,
 	fn func(context.Context, interface{}) (interface{}, error),
 	config *RetryConfig,
 ) {
 	node := Node{
-		Name:     name,
-		Function: fn,
+		Name:        name,
+		Description: description,
+		Function:    fn,
 	}
 	retryNode := NewRetryNode(node, config)
-	g.AddNode(name, retryNode.Execute)
+	g.AddNode(name, description, retryNode.Execute)
 }
 
 // TimeoutNode wraps a node with timeout logic
@@ -153,15 +155,17 @@ func (tn *TimeoutNode) Execute(ctx context.Context, state interface{}) (interfac
 // AddNodeWithTimeout adds a node with timeout
 func (g *MessageGraph) AddNodeWithTimeout(
 	name string,
+	description string,
 	fn func(context.Context, interface{}) (interface{}, error),
 	timeout time.Duration,
 ) {
 	node := Node{
-		Name:     name,
-		Function: fn,
+		Name:        name,
+		Description: description,
+		Function:    fn,
 	}
 	timeoutNode := NewTimeoutNode(node, timeout)
-	g.AddNode(name, timeoutNode.Execute)
+	g.AddNode(name, description, timeoutNode.Execute)
 }
 
 // CircuitBreakerConfig configures circuit breaker behavior
@@ -254,15 +258,17 @@ func (cb *CircuitBreaker) Execute(ctx context.Context, state interface{}) (inter
 // AddNodeWithCircuitBreaker adds a node with circuit breaker
 func (g *MessageGraph) AddNodeWithCircuitBreaker(
 	name string,
+	description string,
 	fn func(context.Context, interface{}) (interface{}, error),
 	config CircuitBreakerConfig,
 ) {
 	node := Node{
-		Name:     name,
-		Function: fn,
+		Name:        name,
+		Description: description,
+		Function:    fn,
 	}
 	cb := NewCircuitBreaker(node, config)
-	g.AddNode(name, cb.Execute)
+	g.AddNode(name, description, cb.Execute)
 }
 
 // RateLimiter implements rate limiting for nodes
@@ -314,16 +320,18 @@ func (rl *RateLimiter) Execute(ctx context.Context, state interface{}) (interfac
 // AddNodeWithRateLimit adds a node with rate limiting
 func (g *MessageGraph) AddNodeWithRateLimit(
 	name string,
+	description string,
 	fn func(context.Context, interface{}) (interface{}, error),
 	maxCalls int,
 	window time.Duration,
 ) {
 	node := Node{
-		Name:     name,
-		Function: fn,
+		Name:        name,
+		Description: description,
+		Function:    fn,
 	}
 	rl := NewRateLimiter(node, maxCalls, window)
-	g.AddNode(name, rl.Execute)
+	g.AddNode(name, description, rl.Execute)
 }
 
 // ExponentialBackoffRetry implements exponential backoff with jitter

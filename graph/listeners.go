@@ -199,16 +199,17 @@ func NewListenableMessageGraph() *ListenableMessageGraph {
 }
 
 // AddNode adds a node with listener capabilities
-func (g *ListenableMessageGraph) AddNode(name string, fn func(ctx context.Context, state interface{}) (interface{}, error)) *ListenableNode {
+func (g *ListenableMessageGraph) AddNode(name string, description string, fn func(ctx context.Context, state interface{}) (interface{}, error)) *ListenableNode {
 	node := Node{
-		Name:     name,
-		Function: fn,
+		Name:        name,
+		Description: description,
+		Function:    fn,
 	}
 
 	listenableNode := NewListenableNode(node)
 
 	// Add to both the base graph and our listenable nodes map
-	g.MessageGraph.AddNode(name, fn)
+	g.MessageGraph.AddNode(name, description, fn)
 	g.listenableNodes[name] = listenableNode
 
 	return listenableNode

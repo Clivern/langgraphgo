@@ -19,7 +19,7 @@ func main() {
 	g := graph.NewMessageGraph()
 
 	// Add node that uses LangChain LLM
-	g.AddNode("generate", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("generate", "generate", func(ctx context.Context, state interface{}) (interface{}, error) {
 		messages := state.([]llms.MessageContent)
 
 		// Use LangChain to generate response

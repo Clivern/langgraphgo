@@ -17,14 +17,14 @@ func main() {
 	g := graph.NewMessageGraph()
 
 	// Router node - analyzes the task
-	g.AddNode("router", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("router", "router", func(ctx context.Context, state interface{}) (interface{}, error) {
 		task := state.(Task)
 		fmt.Printf("Routing task with priority: %s\n", task.Priority)
 		return task, nil
 	})
 
 	// High priority handler
-	g.AddNode("urgent_handler", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("urgent_handler", "urgent_handler", func(ctx context.Context, state interface{}) (interface{}, error) {
 		task := state.(Task)
 		task.Result = fmt.Sprintf("URGENT: Handled %s immediately", task.Content)
 		fmt.Println("→ Handled by urgent handler")
@@ -32,7 +32,7 @@ func main() {
 	})
 
 	// Normal priority handler
-	g.AddNode("normal_handler", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("normal_handler", "normal_handler", func(ctx context.Context, state interface{}) (interface{}, error) {
 		task := state.(Task)
 		task.Result = fmt.Sprintf("Normal: Processed %s in queue", task.Content)
 		fmt.Println("→ Handled by normal handler")
@@ -40,7 +40,7 @@ func main() {
 	})
 
 	// Low priority handler
-	g.AddNode("batch_handler", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("batch_handler", "batch_handler", func(ctx context.Context, state interface{}) (interface{}, error) {
 		task := state.(Task)
 		task.Result = fmt.Sprintf("Batch: Queued %s for later", task.Content)
 		fmt.Println("→ Handled by batch handler")

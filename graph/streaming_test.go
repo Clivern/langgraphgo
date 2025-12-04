@@ -11,10 +11,10 @@ func TestStreamingModes(t *testing.T) {
 	g := NewStreamingMessageGraph()
 
 	// Setup simple graph
-	g.AddNode("A", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("A", "A", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return "A", nil
 	})
-	g.AddNode("B", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("B", "B", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return "B", nil
 	})
 	g.SetEntryPoint("A")

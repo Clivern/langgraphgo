@@ -216,7 +216,7 @@ func TestListenableMessageGraph_AddNode(t *testing.T) {
 	g := graph.NewListenableMessageGraph()
 
 	// Add a node
-	node := g.AddNode(testNode, func(ctx context.Context, state interface{}) (interface{}, error) {
+	node := g.AddNode(testNode, testNode, func(ctx context.Context, state interface{}) (interface{}, error) {
 		return resultValue, nil
 	})
 
@@ -242,11 +242,11 @@ func TestListenableMessageGraph_GlobalListeners(t *testing.T) {
 	g := graph.NewListenableMessageGraph()
 
 	// Add multiple nodes
-	node1 := g.AddNode("node1", func(ctx context.Context, state interface{}) (interface{}, error) {
+	node1 := g.AddNode("node1", "node1", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return "result1", nil
 	})
 
-	node2 := g.AddNode("node2", func(ctx context.Context, state interface{}) (interface{}, error) {
+	node2 := g.AddNode("node2", "node2", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return "result2", nil
 	})
 
@@ -294,11 +294,11 @@ func TestListenableRunnable_Invoke(t *testing.T) {
 	g := graph.NewListenableMessageGraph()
 
 	// Create a simple pipeline
-	node1 := g.AddNode("node1", func(ctx context.Context, state interface{}) (interface{}, error) {
+	node1 := g.AddNode("node1", "node1", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return fmt.Sprintf("step1_%v", state), nil
 	})
 
-	node2 := g.AddNode("node2", func(ctx context.Context, state interface{}) (interface{}, error) {
+	node2 := g.AddNode("node2", "node2", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return fmt.Sprintf("step2_%v", state), nil
 	})
 
@@ -486,7 +486,7 @@ func BenchmarkListenableNode_Execute(b *testing.B) {
 func BenchmarkListenableRunnable_Invoke(b *testing.B) {
 	g := graph.NewListenableMessageGraph()
 
-	node := g.AddNode("node", func(ctx context.Context, state interface{}) (interface{}, error) {
+	node := g.AddNode("node", "node", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return state, nil
 	})
 

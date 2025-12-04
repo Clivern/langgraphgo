@@ -26,13 +26,13 @@ func main() {
 	g.SetSchema(schema)
 
 	// Node A: Adds 1
-	g.AddNode("A", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("A", "A", func(ctx context.Context, state interface{}) (interface{}, error) {
 		fmt.Println("Node A executing...")
 		return map[string]interface{}{"count": 1}, nil
 	})
 
 	// Node B: Adds 10
-	g.AddNode("B", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("B", "B", func(ctx context.Context, state interface{}) (interface{}, error) {
 		fmt.Println("Node B executing...")
 		return map[string]interface{}{"count": 10}, nil
 	})

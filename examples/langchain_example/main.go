@@ -30,7 +30,7 @@ func OpenAIExample() {
 	// Create a graph that uses the LLM
 	g := graph.NewMessageGraph()
 
-	g.AddNode("chat", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("chat", "chat", func(ctx context.Context, state interface{}) (interface{}, error) {
 		messages := state.([]llms.MessageContent)
 
 		// Use LangChain's GenerateContent method
@@ -90,7 +90,7 @@ func GoogleAIExample() {
 	// Create a streaming graph with Google AI
 	g := graph.NewListenableMessageGraph()
 
-	node := g.AddNode("gemini", func(ctx context.Context, state interface{}) (interface{}, error) {
+	node := g.AddNode("gemini", "gemini", func(ctx context.Context, state interface{}) (interface{}, error) {
 		messages := state.([]llms.MessageContent)
 
 		// Use LangChain's GenerateContent with Google AI
@@ -165,7 +165,7 @@ func MultiStepReasoningExample() {
 	g := graph.NewCheckpointableMessageGraph()
 
 	// Step 1: Analyze the problem
-	g.AddNode("analyze", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("analyze", "analyze", func(ctx context.Context, state interface{}) (interface{}, error) {
 		data := state.(map[string]interface{})
 		messages := []llms.MessageContent{
 			llms.TextParts("system", "You are a helpful assistant that breaks down problems step by step."),
@@ -184,7 +184,7 @@ func MultiStepReasoningExample() {
 	})
 
 	// Step 2: Generate solution
-	g.AddNode("solve", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("solve", "solve", func(ctx context.Context, state interface{}) (interface{}, error) {
 		data := state.(map[string]interface{})
 		messages := []llms.MessageContent{
 			llms.TextParts("system", "Based on the analysis, provide a clear solution."),
@@ -206,7 +206,7 @@ func MultiStepReasoningExample() {
 	})
 
 	// Step 3: Verify solution
-	g.AddNode("verify", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("verify", "verify", func(ctx context.Context, state interface{}) (interface{}, error) {
 		data := state.(map[string]interface{})
 		messages := []llms.MessageContent{
 			llms.TextParts("system", "Verify if the solution is correct and complete."),

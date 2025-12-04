@@ -48,7 +48,7 @@ func CreateDeepResearcherGraph(config *Configuration) (*graph.StateRunnable, err
 	workflow.SetSchema(schema)
 
 	// Initialize research node - creates research brief
-	workflow.AddNode("init_research", func(ctx context.Context, state interface{}) (interface{}, error) {
+	workflow.AddNode("init_research", "init_research", func(ctx context.Context, state interface{}) (interface{}, error) {
 		mState := state.(map[string]interface{})
 		messages, ok := mState["messages"].([]llms.MessageContent)
 		if !ok || len(messages) == 0 {
@@ -83,7 +83,7 @@ func CreateDeepResearcherGraph(config *Configuration) (*graph.StateRunnable, err
 	})
 
 	// Supervisor subgraph node
-	workflow.AddNode("supervisor", func(ctx context.Context, state interface{}) (interface{}, error) {
+	workflow.AddNode("supervisor", "supervisor", func(ctx context.Context, state interface{}) (interface{}, error) {
 		mState := state.(map[string]interface{})
 
 		// Compile supervisor graph
@@ -118,7 +118,7 @@ func CreateDeepResearcherGraph(config *Configuration) (*graph.StateRunnable, err
 	})
 
 	// Final report generation node
-	workflow.AddNode("final_report", func(ctx context.Context, state interface{}) (interface{}, error) {
+	workflow.AddNode("final_report", "final_report", func(ctx context.Context, state interface{}) (interface{}, error) {
 		mState := state.(map[string]interface{})
 
 		researchBrief, _ := mState["research_brief"].(string)

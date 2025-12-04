@@ -24,7 +24,7 @@ func runBasicExample() {
 
 	g := graph.NewMessageGraph()
 
-	g.AddNode("process", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("process", "process", func(ctx context.Context, state interface{}) (interface{}, error) {
 		input := state.(string)
 		return fmt.Sprintf("processed_%s", input), nil
 	})
@@ -43,7 +43,7 @@ func runStreamingExample() {
 
 	g := graph.NewListenableMessageGraph()
 
-	node := g.AddNode("stream_process", func(ctx context.Context, state interface{}) (interface{}, error) {
+	node := g.AddNode("stream_process", "stream_process", func(ctx context.Context, state interface{}) (interface{}, error) {
 		time.Sleep(100 * time.Millisecond) // Simulate work
 		return fmt.Sprintf("streamed_%v", state), nil
 	})
@@ -67,13 +67,13 @@ func runCheckpointingExample() {
 
 	g := graph.NewCheckpointableMessageGraph()
 
-	g.AddNode("checkpoint_step1", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("checkpoint_step1", "checkpoint_step1", func(ctx context.Context, state interface{}) (interface{}, error) {
 		data := state.(map[string]interface{})
 		data["step1"] = "completed"
 		return data, nil
 	})
 
-	g.AddNode("checkpoint_step2", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("checkpoint_step2", "checkpoint_step2", func(ctx context.Context, state interface{}) (interface{}, error) {
 		data := state.(map[string]interface{})
 		data["step2"] = "completed"
 		return data, nil
@@ -112,11 +112,11 @@ func runVisualizationExample() {
 
 	g := graph.NewMessageGraph()
 
-	g.AddNode("visualize_step1", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("visualize_step1", "visualize_step1", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return state, nil
 	})
 
-	g.AddNode("visualize_step2", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("visualize_step2", "visualize_step2", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return state, nil
 	})
 

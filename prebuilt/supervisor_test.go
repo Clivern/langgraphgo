@@ -63,7 +63,7 @@ func TestCreateSupervisor(t *testing.T) {
 
 	// Setup Mock Agents
 	agent1Graph := graph.NewStateGraph()
-	agent1Graph.AddNode("run", func(ctx context.Context, state interface{}) (interface{}, error) {
+	agent1Graph.AddNode("run", "run", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return map[string]interface{}{
 			"messages": []llms.MessageContent{
 				llms.TextParts(llms.ChatMessageTypeAI, "Agent1 done"),
@@ -76,7 +76,7 @@ func TestCreateSupervisor(t *testing.T) {
 	assert.NoError(t, err)
 
 	agent2Graph := graph.NewStateGraph()
-	agent2Graph.AddNode("run", func(ctx context.Context, state interface{}) (interface{}, error) {
+	agent2Graph.AddNode("run", "run", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return map[string]interface{}{
 			"messages": []llms.MessageContent{
 				llms.TextParts(llms.ChatMessageTypeAI, "Agent2 done"),

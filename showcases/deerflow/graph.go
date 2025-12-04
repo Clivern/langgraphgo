@@ -29,10 +29,10 @@ func NewGraph() (*graph.StateRunnable, error) {
 	workflow := graph.NewStateGraph()
 
 	// Add nodes
-	workflow.AddNode("planner", PlannerNode)
-	workflow.AddNode("researcher", ResearcherNode)
-	workflow.AddNode("reporter", ReporterNode)
-	workflow.AddNode("podcast", PodcastNode)
+	workflow.AddNode("planner", "Research planning node", PlannerNode)
+	workflow.AddNode("researcher", "Research execution node", ResearcherNode)
+	workflow.AddNode("reporter", "Report generation node", ReporterNode)
+	workflow.AddNode("podcast", "Podcast script generation node", PodcastNode)
 
 	// Add edges
 	// Start -> Planner

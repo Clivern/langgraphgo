@@ -11,7 +11,7 @@ func TestRuntimeConfiguration(t *testing.T) {
 	g := NewMessageGraph()
 
 	// Define a node that reads config from context
-	g.AddNode("reader", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("reader", "reader", func(ctx context.Context, state interface{}) (interface{}, error) {
 		config := GetConfig(ctx)
 		if config == nil {
 			return "no config", nil
@@ -49,7 +49,7 @@ func TestRuntimeConfiguration(t *testing.T) {
 func TestStateGraph_RuntimeConfiguration(t *testing.T) {
 	g := NewStateGraph()
 
-	g.AddNode("reader", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("reader", "reader", func(ctx context.Context, state interface{}) (interface{}, error) {
 		config := GetConfig(ctx)
 		if config == nil {
 			return "no config", nil

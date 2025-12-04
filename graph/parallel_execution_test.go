@@ -26,14 +26,14 @@ func TestParallelExecution_FanOut(t *testing.T) {
 	g := NewMessageGraph()
 
 	// Node A: Entry point
-	g.AddNode("A", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("A", "A", func(ctx context.Context, state interface{}) (interface{}, error) {
 		s := state.(*State)
 		visit(s, "A")
 		return s, nil
 	})
 
 	// Node B: Branch 1
-	g.AddNode("B", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("B", "B", func(ctx context.Context, state interface{}) (interface{}, error) {
 		s := state.(*State)
 		visit(s, "B")
 		time.Sleep(10 * time.Millisecond) // Simulate work
@@ -41,7 +41,7 @@ func TestParallelExecution_FanOut(t *testing.T) {
 	})
 
 	// Node C: Branch 2
-	g.AddNode("C", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("C", "C", func(ctx context.Context, state interface{}) (interface{}, error) {
 		s := state.(*State)
 		visit(s, "C")
 		time.Sleep(10 * time.Millisecond) // Simulate work
@@ -49,7 +49,7 @@ func TestParallelExecution_FanOut(t *testing.T) {
 	})
 
 	// Node D: Join point
-	g.AddNode("D", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("D", "D", func(ctx context.Context, state interface{}) (interface{}, error) {
 		s := state.(*State)
 		visit(s, "D")
 		return s, nil
@@ -131,7 +131,7 @@ func TestStateGraph_ParallelExecution(t *testing.T) {
 	}
 	g.SetStateMerger(merger)
 
-	g.AddNode("A", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("A", "A", func(ctx context.Context, state interface{}) (interface{}, error) {
 		s := make(State)
 		for k, v := range state.(State) {
 			s[k] = v
@@ -140,7 +140,7 @@ func TestStateGraph_ParallelExecution(t *testing.T) {
 		return s, nil
 	})
 
-	g.AddNode("B", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("B", "B", func(ctx context.Context, state interface{}) (interface{}, error) {
 		s := make(State)
 		for k, v := range state.(State) {
 			s[k] = v
@@ -150,7 +150,7 @@ func TestStateGraph_ParallelExecution(t *testing.T) {
 		return s, nil
 	})
 
-	g.AddNode("C", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("C", "C", func(ctx context.Context, state interface{}) (interface{}, error) {
 		s := make(State)
 		for k, v := range state.(State) {
 			s[k] = v

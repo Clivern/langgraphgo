@@ -20,14 +20,14 @@ func main() {
 	g.SetSchema(schema)
 
 	// Define Nodes
-	g.AddNode("start", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("start", "start", func(ctx context.Context, state interface{}) (interface{}, error) {
 		fmt.Println("[Start] Starting execution...")
 		return map[string]interface{}{
 			"status": "started",
 		}, nil
 	})
 
-	g.AddNode("branch_a", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("branch_a", "branch_a", func(ctx context.Context, state interface{}) (interface{}, error) {
 		fmt.Println("  [Branch A] Working...")
 		time.Sleep(100 * time.Millisecond)
 		return map[string]interface{}{
@@ -35,7 +35,7 @@ func main() {
 		}, nil
 	})
 
-	g.AddNode("branch_b", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("branch_b", "branch_b", func(ctx context.Context, state interface{}) (interface{}, error) {
 		fmt.Println("  [Branch B] Working...")
 		time.Sleep(200 * time.Millisecond)
 		return map[string]interface{}{
@@ -43,7 +43,7 @@ func main() {
 		}, nil
 	})
 
-	g.AddNode("branch_c", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("branch_c", "branch_c", func(ctx context.Context, state interface{}) (interface{}, error) {
 		fmt.Println("  [Branch C] Working...")
 		time.Sleep(150 * time.Millisecond)
 		return map[string]interface{}{
@@ -51,7 +51,7 @@ func main() {
 		}, nil
 	})
 
-	g.AddNode("aggregator", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("aggregator", "aggregator", func(ctx context.Context, state interface{}) (interface{}, error) {
 		mState := state.(map[string]interface{})
 		results := mState["results"].([]string)
 		fmt.Printf("[Aggregator] Collected %d results: %v\n", len(results), results)

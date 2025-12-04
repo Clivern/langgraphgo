@@ -9,13 +9,13 @@ import (
 
 func TestGraphInterrupt(t *testing.T) {
 	g := NewMessageGraph()
-	g.AddNode("A", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("A", "A", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return state.(string) + "A", nil
 	})
-	g.AddNode("B", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("B", "B", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return state.(string) + "B", nil
 	})
-	g.AddNode("C", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("C", "C", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return state.(string) + "C", nil
 	})
 

@@ -22,7 +22,7 @@ func main() {
 	g.SetSchema(schema)
 
 	// Node A: Produces temporary data
-	g.AddNode("producer", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("producer", "producer", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return map[string]interface{}{
 			"temp_data": "secret_code_123",
 			"history":   []string{"producer_ran"},
@@ -36,7 +36,7 @@ func main() {
 	// In LangGraph, a "step" usually corresponds to a super-step (parallel execution of nodes).
 	// If A -> B, A runs in Step 1. Step 1 ends. Cleanup happens. B runs in Step 2.
 	// So B should NOT see "temp_data".
-	g.AddNode("consumer", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("consumer", "consumer", func(ctx context.Context, state interface{}) (interface{}, error) {
 		m := state.(map[string]interface{})
 
 		temp, ok := m["temp_data"]

@@ -20,7 +20,7 @@ func TestUpdateState(t *testing.T) {
 	})
 	g.SetSchema(schema)
 
-	g.AddNode("A", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("A", "A", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return map[string]interface{}{"count": 1}, nil
 	})
 	g.SetEntryPoint("A")

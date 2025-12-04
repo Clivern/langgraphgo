@@ -14,7 +14,7 @@ func main() {
 	g := graph.NewMessageGraph()
 
 	// Define a node that uses dynamic interrupt
-	g.AddNode("ask_name", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("ask_name", "ask_name", func(ctx context.Context, state interface{}) (interface{}, error) {
 		fmt.Println("-> Node 'ask_name' executing...")
 
 		// Call Interrupt to pause execution and wait for input.

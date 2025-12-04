@@ -129,7 +129,7 @@ func TestFanOutFanIn(t *testing.T) {
 	g := graph.NewMessageGraph()
 
 	// Source node
-	g.AddNode("source", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("source", "source", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return state, nil
 	})
 
@@ -318,7 +318,7 @@ func BenchmarkSequentialVsParallel(b *testing.B) {
 		// Chain nodes sequentially
 		for i := 0; i < 5; i++ {
 			nodeName := fmt.Sprintf("node_%d", i)
-			g.AddNode(nodeName, workFunc)
+			g.AddNode(nodeName, nodeName, workFunc)
 			if i > 0 {
 				prevNode := fmt.Sprintf("node_%d", i-1)
 				g.AddEdge(prevNode, nodeName)

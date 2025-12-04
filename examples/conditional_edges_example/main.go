@@ -34,28 +34,28 @@ func SimpleIntentRouter() {
 	g := graph.NewMessageGraph()
 
 	// Entry point - analyze intent
-	g.AddNode("analyze_intent", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("analyze_intent", "analyze_intent", func(ctx context.Context, state interface{}) (interface{}, error) {
 		messages := state.([]llms.MessageContent)
 		fmt.Printf("   Analyzing: %s\n", messages[0].Parts[0].(llms.TextContent).Text)
 		return messages, nil
 	})
 
 	// Different handlers for different intents
-	g.AddNode("handle_question", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("handle_question", "handle_question", func(ctx context.Context, state interface{}) (interface{}, error) {
 		messages := state.([]llms.MessageContent)
 		response := "I'll help answer your question about that."
 		fmt.Printf("   ❓ Question Handler: %s\n", response)
 		return append(messages, llms.TextParts("ai", response)), nil
 	})
 
-	g.AddNode("handle_command", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("handle_command", "handle_command", func(ctx context.Context, state interface{}) (interface{}, error) {
 		messages := state.([]llms.MessageContent)
 		response := "Executing your command..."
 		fmt.Printf("   ⚡ Command Handler: %s\n", response)
 		return append(messages, llms.TextParts("ai", response)), nil
 	})
 
-	g.AddNode("handle_feedback", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("handle_feedback", "handle_feedback", func(ctx context.Context, state interface{}) (interface{}, error) {
 		messages := state.([]llms.MessageContent)
 		response := "Thank you for your feedback!"
 		fmt.Printf("   💬 Feedback Handler: %s\n", response)
@@ -124,7 +124,7 @@ func MultiStepWorkflow() {
 	g := graph.NewMessageGraph()
 
 	// Data validation step
-	g.AddNode("validate", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("validate", "validate", func(ctx context.Context, state interface{}) (interface{}, error) {
 		data := state.(map[string]interface{})
 		fmt.Printf("   Validating data: %v\n", data)
 
@@ -138,7 +138,7 @@ func MultiStepWorkflow() {
 	})
 
 	// Process valid data
-	g.AddNode("process", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("process", "process", func(ctx context.Context, state interface{}) (interface{}, error) {
 		data := state.(map[string]interface{})
 		fmt.Println("   ✅ Processing valid data...")
 		data["result"] = data["value"].(int) * 2
@@ -147,7 +147,7 @@ func MultiStepWorkflow() {
 	})
 
 	// Handle invalid data
-	g.AddNode("handle_error", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("handle_error", "handle_error", func(ctx context.Context, state interface{}) (interface{}, error) {
 		data := state.(map[string]interface{})
 		fmt.Println("   ❌ Handling invalid data...")
 		data["status"] = "error"
@@ -156,7 +156,7 @@ func MultiStepWorkflow() {
 	})
 
 	// Store results
-	g.AddNode("store", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("store", "store", func(ctx context.Context, state interface{}) (interface{}, error) {
 		data := state.(map[string]interface{})
 		fmt.Printf("   💾 Storing result: %v\n", data["result"])
 		return data, nil
@@ -216,32 +216,32 @@ func DynamicToolSelection() {
 	g := graph.NewMessageGraph()
 
 	// Analyze task requirements
-	g.AddNode("analyze_task", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("analyze_task", "analyze_task", func(ctx context.Context, state interface{}) (interface{}, error) {
 		task := state.(string)
 		fmt.Printf("   Analyzing task: %s\n", task)
 		return task, nil
 	})
 
 	// Different tools
-	g.AddNode("calculator", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("calculator", "calculator", func(ctx context.Context, state interface{}) (interface{}, error) {
 		task := state.(string)
 		fmt.Println("   🧮 Using Calculator Tool")
 		return task + " -> Result: 42", nil
 	})
 
-	g.AddNode("web_search", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("web_search", "web_search", func(ctx context.Context, state interface{}) (interface{}, error) {
 		task := state.(string)
 		fmt.Println("   🔍 Using Web Search Tool")
 		return task + " -> Found 10 relevant results", nil
 	})
 
-	g.AddNode("code_generator", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("code_generator", "code_generator", func(ctx context.Context, state interface{}) (interface{}, error) {
 		task := state.(string)
 		fmt.Println("   💻 Using Code Generator Tool")
 		return task + " -> Generated code snippet", nil
 	})
 
-	g.AddNode("translator", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("translator", "translator", func(ctx context.Context, state interface{}) (interface{}, error) {
 		task := state.(string)
 		fmt.Println("   🌐 Using Translator Tool")
 		return task + " -> Translated to target language", nil

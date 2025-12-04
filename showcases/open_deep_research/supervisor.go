@@ -22,7 +22,7 @@ func CreateSupervisorGraph(config *Configuration, model llms.Model, researcherGr
 	workflow.SetSchema(schema)
 
 	// Supervisor node - delegates research tasks
-	workflow.AddNode("supervisor", func(ctx context.Context, state interface{}) (interface{}, error) {
+	workflow.AddNode("supervisor", "supervisor", func(ctx context.Context, state interface{}) (interface{}, error) {
 		mState, ok := state.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid state type")
@@ -157,7 +157,7 @@ func CreateSupervisorGraph(config *Configuration, model llms.Model, researcherGr
 	})
 
 	// Supervisor tools node - executes research delegation
-	workflow.AddNode("supervisor_tools", func(ctx context.Context, state interface{}) (interface{}, error) {
+	workflow.AddNode("supervisor_tools", "supervisor_tools", func(ctx context.Context, state interface{}) (interface{}, error) {
 		mState := state.(map[string]interface{})
 		messages := mState["supervisor_messages"].([]llms.MessageContent)
 		lastMsg := messages[len(messages)-1]

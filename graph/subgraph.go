@@ -42,7 +42,7 @@ func (g *MessageGraph) AddSubgraph(name string, subgraph *MessageGraph) error {
 		return err
 	}
 
-	g.AddNode(name, sg.Execute)
+	g.AddNode(name, "Subgraph: "+name, sg.Execute)
 	return nil
 }
 
@@ -83,7 +83,7 @@ func (cg *CompositeGraph) Connect(
 	// Create a bridge node that transforms state between graphs
 	bridgeName := fmt.Sprintf("%s_%s_to_%s_%s", fromGraph, fromNode, toGraph, toNode)
 
-	cg.main.AddNode(bridgeName, func(_ context.Context, state interface{}) (interface{}, error) {
+	cg.main.AddNode(bridgeName, "Bridge: "+bridgeName, func(_ context.Context, state interface{}) (interface{}, error) {
 		if transform != nil {
 			return transform(state), nil
 		}
@@ -167,7 +167,7 @@ func (g *MessageGraph) AddRecursiveSubgraph(
 ) {
 	rs := NewRecursiveSubgraph(name, maxDepth, condition)
 	builder(rs.graph)
-	g.AddNode(name, rs.Execute)
+	g.AddNode(name, "Recursive subgraph: "+name, rs.Execute)
 }
 
 // NestedConditionalSubgraph creates a subgraph with its own conditional routing
@@ -177,7 +177,7 @@ func (g *MessageGraph) AddNestedConditionalSubgraph(
 	subgraphs map[string]*MessageGraph,
 ) error {
 	// Create a wrapper node that routes to different subgraphs
-	g.AddNode(name, func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode(name, "Nested conditional subgraph: "+name, func(ctx context.Context, state interface{}) (interface{}, error) {
 		// Determine which subgraph to use
 		subgraphName := router(state)
 

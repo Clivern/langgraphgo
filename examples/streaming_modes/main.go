@@ -15,12 +15,12 @@ import (
 func main() {
 	g := graph.NewStreamingMessageGraph()
 
-	g.AddNode("step_1", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("step_1", "step_1", func(ctx context.Context, state interface{}) (interface{}, error) {
 		time.Sleep(500 * time.Millisecond) // Simulate work
 		return "Result from Step 1", nil
 	})
 
-	g.AddNode("step_2", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("step_2", "step_2", func(ctx context.Context, state interface{}) (interface{}, error) {
 		time.Sleep(500 * time.Millisecond)
 		return "Result from Step 2", nil
 	})

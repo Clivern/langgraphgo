@@ -14,7 +14,7 @@ import (
 func main() {
 	// 1. Define Child Graph
 	child := graph.NewMessageGraph()
-	child.AddNode("child_process", func(ctx context.Context, state interface{}) (interface{}, error) {
+	child.AddNode("child_process", "child_process", func(ctx context.Context, state interface{}) (interface{}, error) {
 		m := state.(map[string]interface{})
 		m["child_trace"] = "visited"
 		return m, nil
@@ -24,7 +24,7 @@ func main() {
 
 	// 2. Define Parent Graph
 	parent := graph.NewMessageGraph()
-	parent.AddNode("start", func(ctx context.Context, state interface{}) (interface{}, error) {
+	parent.AddNode("start", "start", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return map[string]interface{}{"parent_trace": "started"}, nil
 	})
 
@@ -33,7 +33,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	parent.AddNode("end", func(ctx context.Context, state interface{}) (interface{}, error) {
+	parent.AddNode("end", "end", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return map[string]interface{}{"parent_trace": "ended"}, nil
 	})
 

@@ -21,7 +21,7 @@ func TestCommandGoto(t *testing.T) {
 	g.SetSchema(schema)
 
 	// Node A: Returns Command to update count and go to C (skipping B)
-	g.AddNode("A", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("A", "A", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return &Command{
 			Update: map[string]interface{}{"count": 1},
 			Goto:   "C",
@@ -29,12 +29,12 @@ func TestCommandGoto(t *testing.T) {
 	})
 
 	// Node B: Should be skipped
-	g.AddNode("B", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("B", "B", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return map[string]interface{}{"count": 10}, nil
 	})
 
 	// Node C: Final node
-	g.AddNode("C", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("C", "C", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return map[string]interface{}{"count": 100}, nil
 	})
 

@@ -41,7 +41,7 @@ func main() {
 	g.SetSchema(schema)
 
 	// 3. Define Nodes
-	g.AddNode("node_a", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("node_a", "node_a", func(ctx context.Context, state interface{}) (interface{}, error) {
 		fmt.Println("Executing Node A")
 		// Return partial state update
 		return map[string]interface{}{
@@ -51,7 +51,7 @@ func main() {
 		}, nil
 	})
 
-	g.AddNode("node_b", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("node_b", "node_b", func(ctx context.Context, state interface{}) (interface{}, error) {
 		fmt.Println("Executing Node B")
 		return map[string]interface{}{
 			"count":  2,
@@ -60,7 +60,7 @@ func main() {
 		}, nil
 	})
 
-	g.AddNode("node_c", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("node_c", "node_c", func(ctx context.Context, state interface{}) (interface{}, error) {
 		fmt.Println("Executing Node C")
 		return map[string]interface{}{
 			"count":  3,

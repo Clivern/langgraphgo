@@ -22,7 +22,7 @@ func TestEphemeralChannel(t *testing.T) {
 	g.SetSchema(schema)
 
 	// Node A: Sets temp=1, count=1
-	g.AddNode("A", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("A", "A", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return map[string]interface{}{
 			"temp":  1,
 			"count": 1,
@@ -40,7 +40,7 @@ func TestEphemeralChannel(t *testing.T) {
 	// "Ephemeral values are cleared after the step."
 	// So if A runs, then step ends. Temp is cleared. B runs. B sees no temp.
 
-	g.AddNode("B", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("B", "B", func(ctx context.Context, state interface{}) (interface{}, error) {
 		mState := state.(map[string]interface{})
 		// temp should be missing or nil
 		if _, ok := mState["temp"]; ok {

@@ -50,19 +50,19 @@ func main() {
 	g.SetSchema(schema)
 
 	// Define Nodes
-	g.AddNode("start", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("start", "start", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return map[string]interface{}{
 			"tags": []string{"initial"},
 		}, nil
 	})
 
-	g.AddNode("tagger_a", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("tagger_a", "tagger_a", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return map[string]interface{}{
 			"tags": []string{"go", "langgraph"},
 		}, nil
 	})
 
-	g.AddNode("tagger_b", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("tagger_b", "tagger_b", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return map[string]interface{}{
 			"tags": []string{"ai", "agent", "go"}, // "go" is duplicate
 		}, nil

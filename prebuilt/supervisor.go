@@ -27,7 +27,7 @@ func CreateSupervisor(model llms.Model, members map[string]*graph.StateRunnable)
 	}
 
 	// Define supervisor node
-	workflow.AddNode("supervisor", func(ctx context.Context, state interface{}) (interface{}, error) {
+	workflow.AddNode("supervisor", "Supervisor orchestration node", func(ctx context.Context, state interface{}) (interface{}, error) {
 		mState, ok := state.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid state type")
@@ -112,7 +112,7 @@ func CreateSupervisor(model llms.Model, members map[string]*graph.StateRunnable)
 		agentName := name
 		agentRunnable := agent
 
-		workflow.AddNode(agentName, func(ctx context.Context, state interface{}) (interface{}, error) {
+		workflow.AddNode(agentName, "Agent: "+agentName, func(ctx context.Context, state interface{}) (interface{}, error) {
 			// Invoke agent
 			// We pass the full state
 			res, err := agentRunnable.Invoke(ctx, state)

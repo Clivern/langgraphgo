@@ -132,10 +132,10 @@ func (p *RAGPipeline) BuildBasicRAG() error {
 	}
 
 	// Add retrieval node
-	p.graph.AddNode("retrieve", p.retrieveNode)
+	p.graph.AddNode("retrieve", "Document retrieval node", p.retrieveNode)
 
 	// Add generation node
-	p.graph.AddNode("generate", p.generateNode)
+	p.graph.AddNode("generate", "Answer generation node", p.generateNode)
 
 	// Build pipeline
 	p.graph.SetEntryPoint("retrieve")
@@ -155,19 +155,19 @@ func (p *RAGPipeline) BuildAdvancedRAG() error {
 	}
 
 	// Add retrieval node
-	p.graph.AddNode("retrieve", p.retrieveNode)
+	p.graph.AddNode("retrieve", "Document retrieval node", p.retrieveNode)
 
 	// Add reranking node if enabled
 	if p.config.UseReranking && p.config.Reranker != nil {
-		p.graph.AddNode("rerank", p.rerankNode)
+		p.graph.AddNode("rerank", "Document reranking node", p.rerankNode)
 	}
 
 	// Add generation node
-	p.graph.AddNode("generate", p.generateNode)
+	p.graph.AddNode("generate", "Answer generation node", p.generateNode)
 
 	// Add citation formatting node if enabled
 	if p.config.IncludeCitations {
-		p.graph.AddNode("format_citations", p.formatCitationsNode)
+		p.graph.AddNode("format_citations", "Citation formatting node", p.formatCitationsNode)
 	}
 
 	// Build pipeline
@@ -200,22 +200,22 @@ func (p *RAGPipeline) BuildConditionalRAG() error {
 	}
 
 	// Add retrieval node
-	p.graph.AddNode("retrieve", p.retrieveNode)
+	p.graph.AddNode("retrieve", "Document retrieval node", p.retrieveNode)
 
 	// Add reranking node
-	p.graph.AddNode("rerank", p.rerankNode)
+	p.graph.AddNode("rerank", "Document reranking node", p.rerankNode)
 
 	// Add fallback search node if enabled
 	if p.config.UseFallback {
-		p.graph.AddNode("fallback_search", p.fallbackSearchNode)
+		p.graph.AddNode("fallback_search", "Fallback search node", p.fallbackSearchNode)
 	}
 
 	// Add generation node
-	p.graph.AddNode("generate", p.generateNode)
+	p.graph.AddNode("generate", "Answer generation node", p.generateNode)
 
 	// Add citation formatting node
 	if p.config.IncludeCitations {
-		p.graph.AddNode("format_citations", p.formatCitationsNode)
+		p.graph.AddNode("format_citations", "Citation formatting node", p.formatCitationsNode)
 	}
 
 	// Build pipeline with conditional routing

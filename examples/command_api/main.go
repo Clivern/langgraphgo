@@ -20,7 +20,7 @@ func main() {
 	g.SetSchema(schema)
 
 	// Node A: Decides where to go based on state
-	g.AddNode("router", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("router", "router", func(ctx context.Context, state interface{}) (interface{}, error) {
 		m := state.(map[string]interface{})
 		count := m["count"].(int)
 
@@ -39,12 +39,12 @@ func main() {
 		}, nil
 	})
 
-	g.AddNode("process", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("process", "process", func(ctx context.Context, state interface{}) (interface{}, error) {
 		fmt.Println("Executing Process Node")
 		return map[string]interface{}{"processed": true}, nil
 	})
 
-	g.AddNode("end_high", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("end_high", "end_high", func(ctx context.Context, state interface{}) (interface{}, error) {
 		fmt.Println("Executing End High Node")
 		return map[string]interface{}{"final": "high value"}, nil
 	})

@@ -44,11 +44,11 @@ func main() {
 	workflow := graph.NewStateGraph()
 
 	// Add nodes
-	workflow.AddNode("query_engine", query_engine.QueryEngineNode)
-	workflow.AddNode("media_engine", media_engine.MediaEngineNode)
-	workflow.AddNode("insight_engine", insight_engine.InsightEngineNode)
-	workflow.AddNode("forum_engine", forum_engine.ForumEngineNode)
-	workflow.AddNode("report_engine", report_engine.ReportEngineNode)
+	workflow.AddNode("query_engine", "Query analysis engine", query_engine.QueryEngineNode)
+	workflow.AddNode("media_engine", "Media search engine", media_engine.MediaEngineNode)
+	workflow.AddNode("insight_engine", "Insight generation engine", insight_engine.InsightEngineNode)
+	workflow.AddNode("forum_engine", "Forum search engine", forum_engine.ForumEngineNode)
+	workflow.AddNode("report_engine", "Report generation engine", report_engine.ReportEngineNode)
 
 	// Add edges (Sequential for now)
 	workflow.SetEntryPoint("query_engine")

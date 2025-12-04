@@ -24,7 +24,7 @@ func CreateResearcherGraph(config *Configuration, model llms.Model) (*graph.Mess
 	thinkTool := &ThinkToolImpl{}
 
 	// Researcher node - conducts research using search tools
-	workflow.AddNode("researcher", func(ctx context.Context, state interface{}) (interface{}, error) {
+	workflow.AddNode("researcher", "researcher", func(ctx context.Context, state interface{}) (interface{}, error) {
 		mState, ok := state.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid state type")
@@ -119,7 +119,7 @@ func CreateResearcherGraph(config *Configuration, model llms.Model) (*graph.Mess
 	})
 
 	// Researcher tools node - executes tool calls
-	workflow.AddNode("researcher_tools", func(ctx context.Context, state interface{}) (interface{}, error) {
+	workflow.AddNode("researcher_tools", "researcher_tools", func(ctx context.Context, state interface{}) (interface{}, error) {
 		mState, ok := state.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid state type")
@@ -170,7 +170,7 @@ func CreateResearcherGraph(config *Configuration, model llms.Model) (*graph.Mess
 	})
 
 	// Compress research node - summarizes findings
-	workflow.AddNode("compress_research", func(ctx context.Context, state interface{}) (interface{}, error) {
+	workflow.AddNode("compress_research", "compress_research", func(ctx context.Context, state interface{}) (interface{}, error) {
 		mState := state.(map[string]interface{})
 
 		researchTopic, _ := mState["research_topic"].(string)

@@ -36,7 +36,7 @@ func TestEmptyGraph(t *testing.T) {
 			name: "Graph with nodes but no entry point",
 			buildGraph: func() *graph.MessageGraph {
 				g := graph.NewMessageGraph()
-				g.AddNode("node1", func(ctx context.Context, state interface{}) (interface{}, error) {
+				g.AddNode("node1", "node1", func(ctx context.Context, state interface{}) (interface{}, error) {
 					return state, nil
 				})
 				return g
@@ -48,7 +48,7 @@ func TestEmptyGraph(t *testing.T) {
 			name: "Graph with self-referencing node",
 			buildGraph: func() *graph.MessageGraph {
 				g := graph.NewMessageGraph()
-				g.AddNode("node1", func(ctx context.Context, state interface{}) (interface{}, error) {
+				g.AddNode("node1", "node1", func(ctx context.Context, state interface{}) (interface{}, error) {
 					return state, nil
 				})
 				g.AddEdge("node1", "node1") // Self-loop
@@ -88,7 +88,7 @@ func TestLargeGraph(t *testing.T) {
 	nodeCount := 1000
 	for i := 0; i < nodeCount; i++ {
 		nodeName := fmt.Sprintf("node_%d", i)
-		g.AddNode(nodeName, func(ctx context.Context, state interface{}) (interface{}, error) {
+		g.AddNode(nodeName, nodeName, func(ctx context.Context, state interface{}) (interface{}, error) {
 			counter := state.(int)
 			return counter + 1, nil
 		})
@@ -130,7 +130,7 @@ func TestConcurrentExecution(t *testing.T) {
 	g := graph.NewMessageGraph()
 
 	var counter int32
-	g.AddNode("increment", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("increment", "increment", func(ctx context.Context, state interface{}) (interface{}, error) {
 		atomic.AddInt32(&counter, 1)
 		return state, nil
 	})
@@ -182,7 +182,7 @@ func TestContextCancellation(t *testing.T) {
 	g := graph.NewMessageGraph()
 
 	// Add a slow node
-	g.AddNode("slow_node", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("slow_node", "slow_node", func(ctx context.Context, state interface{}) (interface{}, error) {
 		select {
 		case <-time.After(5 * time.Second):
 			return state, nil
@@ -222,7 +222,7 @@ func TestPanicRecovery(t *testing.T) {
 
 	g := graph.NewMessageGraph()
 
-	g.AddNode("panic_node", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("panic_node", "panic_node", func(ctx context.Context, state interface{}) (interface{}, error) {
 		panic("intentional panic")
 	})
 
@@ -252,35 +252,35 @@ func TestComplexConditionalRouting(t *testing.T) {
 	g := graph.NewMessageGraph()
 
 	// Create a decision tree with multiple levels
-	g.AddNode("root", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("root", "root", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return state, nil
 	})
 
-	g.AddNode("branch_a", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("branch_a", "branch_a", func(ctx context.Context, state interface{}) (interface{}, error) {
 		m := state.(map[string]interface{})
 		m["path"] = append(m["path"].([]string), "A")
 		return m, nil
 	})
 
-	g.AddNode("branch_b", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("branch_b", "branch_b", func(ctx context.Context, state interface{}) (interface{}, error) {
 		m := state.(map[string]interface{})
 		m["path"] = append(m["path"].([]string), "B")
 		return m, nil
 	})
 
-	g.AddNode("leaf_a1", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("leaf_a1", "leaf_a1", func(ctx context.Context, state interface{}) (interface{}, error) {
 		m := state.(map[string]interface{})
 		m["path"] = append(m["path"].([]string), "A1")
 		return m, nil
 	})
 
-	g.AddNode("leaf_a2", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("leaf_a2", "leaf_a2", func(ctx context.Context, state interface{}) (interface{}, error) {
 		m := state.(map[string]interface{})
 		m["path"] = append(m["path"].([]string), "A2")
 		return m, nil
 	})
 
-	g.AddNode("leaf_b1", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("leaf_b1", "leaf_b1", func(ctx context.Context, state interface{}) (interface{}, error) {
 		m := state.(map[string]interface{})
 		m["path"] = append(m["path"].([]string), "B1")
 		return m, nil
@@ -389,7 +389,7 @@ func TestStateModification(t *testing.T) {
 			name: "Accumulator pattern",
 			buildGraph: func() *graph.MessageGraph {
 				g := graph.NewMessageGraph()
-				g.AddNode("accumulate", func(ctx context.Context, state interface{}) (interface{}, error) {
+				g.AddNode("accumulate", "accumulate", func(ctx context.Context, state interface{}) (interface{}, error) {
 					acc := state.([]int)
 					return append(acc, len(acc)+1), nil
 				})
@@ -410,7 +410,7 @@ func TestStateModification(t *testing.T) {
 			name: "Map transformation",
 			buildGraph: func() *graph.MessageGraph {
 				g := graph.NewMessageGraph()
-				g.AddNode("transform", func(ctx context.Context, state interface{}) (interface{}, error) {
+				g.AddNode("transform", "transform", func(ctx context.Context, state interface{}) (interface{}, error) {
 					m := state.(map[string]interface{})
 					// Transform each value
 					for k, v := range m {
@@ -483,15 +483,15 @@ func TestErrorPropagation(t *testing.T) {
 
 	g := graph.NewMessageGraph()
 
-	g.AddNode("node1", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("node1", "node1", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return "step1", nil
 	})
 
-	g.AddNode("node2", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("node2", "node2", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return nil, errors.New("deliberate error in node2")
 	})
 
-	g.AddNode("node3", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("node3", "node3", func(ctx context.Context, state interface{}) (interface{}, error) {
 		t.Error("node3 should not be executed after error in node2")
 		return state, nil
 	})
@@ -590,7 +590,7 @@ func TestMessageContentEdgeCases(t *testing.T) {
 			t.Parallel()
 
 			g := graph.NewMessageGraph()
-			g.AddNode("process", func(ctx context.Context, state interface{}) (interface{}, error) {
+			g.AddNode("process", "process", func(ctx context.Context, state interface{}) (interface{}, error) {
 				msgs := state.([]llms.MessageContent)
 				return tt.transform(msgs), nil
 			})
@@ -617,13 +617,13 @@ func BenchmarkConditionalEdges(b *testing.B) {
 	g := graph.NewMessageGraph()
 
 	// Create a graph with conditional routing
-	g.AddNode("router", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("router", "router", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return state, nil
 	})
 
 	for i := 0; i < 10; i++ {
 		nodeName := fmt.Sprintf("node_%d", i)
-		g.AddNode(nodeName, func(ctx context.Context, state interface{}) (interface{}, error) {
+		g.AddNode(nodeName, nodeName, func(ctx context.Context, state interface{}) (interface{}, error) {
 			n := state.(int)
 			return n + 1, nil
 		})
@@ -658,13 +658,13 @@ func BenchmarkLargeStateTransfer(b *testing.B) {
 	g := graph.NewMessageGraph()
 
 	// Create nodes that pass large state
-	g.AddNode("node1", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("node1", "node1", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return state, nil
 	})
-	g.AddNode("node2", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("node2", "node2", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return state, nil
 	})
-	g.AddNode("node3", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("node3", "node3", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return state, nil
 	})
 

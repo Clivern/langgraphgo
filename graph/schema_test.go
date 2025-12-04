@@ -60,13 +60,13 @@ func TestStateGraph_Schema(t *testing.T) {
 	schema.RegisterReducer("messages", AppendReducer)
 	g.SetSchema(schema)
 
-	g.AddNode("A", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("A", "A", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return map[string]interface{}{
 			"messages": []string{"A"},
 		}, nil
 	})
 
-	g.AddNode("B", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("B", "B", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return map[string]interface{}{
 			"messages": []string{"B"},
 		}, nil

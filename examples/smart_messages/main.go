@@ -19,7 +19,7 @@ func main() {
 
 	// 2. Define nodes
 	// Node A: Simulates a user message
-	g.AddNode("user_input", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("user_input", "user_input", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return map[string]interface{}{
 			"messages": []llms.MessageContent{
 				{Role: llms.ChatMessageTypeHuman, Parts: []llms.ContentPart{llms.TextPart("Hello, AI!")}},
@@ -28,7 +28,7 @@ func main() {
 	})
 
 	// Node B: Simulates an AI response (initially a placeholder)
-	g.AddNode("ai_response", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("ai_response", "ai_response", func(ctx context.Context, state interface{}) (interface{}, error) {
 		// We use a map with "id" to demonstrate upsert capability
 		return map[string]interface{}{
 			"messages": []map[string]interface{}{
@@ -42,7 +42,7 @@ func main() {
 	})
 
 	// Node C: Simulates updating the previous AI response (Upsert)
-	g.AddNode("ai_update", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("ai_update", "ai_update", func(ctx context.Context, state interface{}) (interface{}, error) {
 		// Same ID "msg_123", different content. This should REPLACE the previous message.
 		return map[string]interface{}{
 			"messages": []map[string]interface{}{

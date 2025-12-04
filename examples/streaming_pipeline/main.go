@@ -13,12 +13,12 @@ func main() {
 	g := graph.NewStreamingMessageGraph()
 
 	// Add nodes with listeners
-	analyze := g.AddNode("analyze", func(ctx context.Context, state interface{}) (interface{}, error) {
+	analyze := g.AddNode("analyze", "analyze", func(ctx context.Context, state interface{}) (interface{}, error) {
 		time.Sleep(100 * time.Millisecond) // Simulate processing
 		return fmt.Sprintf("analyzed_%v", state), nil
 	})
 
-	enhance := g.AddNode("enhance", func(ctx context.Context, state interface{}) (interface{}, error) {
+	enhance := g.AddNode("enhance", "enhance", func(ctx context.Context, state interface{}) (interface{}, error) {
 		time.Sleep(200 * time.Millisecond) // Simulate processing
 		return fmt.Sprintf("enhanced_%v", state), nil
 	})

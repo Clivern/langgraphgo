@@ -20,7 +20,7 @@ func main() {
 	g := graph.NewMessageGraph()
 
 	// Define a node that uses the configuration
-	g.AddNode("process", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("process", "process", func(ctx context.Context, state interface{}) (interface{}, error) {
 		// Retrieve config from context
 		config := graph.GetConfig(ctx)
 

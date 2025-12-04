@@ -81,7 +81,7 @@ func CreateAgent(model llms.Model, inputTools []tools.Tool, opts ...CreateAgentO
 
 	// Define the skill selection node if skillDir is provided
 	if options.skillDir != "" {
-		workflow.AddNode("skill", func(ctx context.Context, state interface{}) (interface{}, error) {
+		workflow.AddNode("skill", "Skill discovery and selection node", func(ctx context.Context, state interface{}) (interface{}, error) {
 			mState, ok := state.(map[string]interface{})
 			if !ok {
 				return nil, fmt.Errorf("invalid state type: %T", state)
@@ -171,7 +171,7 @@ func CreateAgent(model llms.Model, inputTools []tools.Tool, opts ...CreateAgentO
 	}
 
 	// Define the agent node
-	workflow.AddNode("agent", func(ctx context.Context, state interface{}) (interface{}, error) {
+	workflow.AddNode("agent", "Agent decision node with LLM", func(ctx context.Context, state interface{}) (interface{}, error) {
 		mState, ok := state.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid state type: %T", state)
@@ -295,7 +295,7 @@ func CreateAgent(model llms.Model, inputTools []tools.Tool, opts ...CreateAgentO
 	})
 
 	// Define the tools node
-	workflow.AddNode("tools", func(ctx context.Context, state interface{}) (interface{}, error) {
+	workflow.AddNode("tools", "Tool execution node", func(ctx context.Context, state interface{}) (interface{}, error) {
 		mState, ok := state.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid state")

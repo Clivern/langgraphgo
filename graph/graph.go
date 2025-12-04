@@ -54,6 +54,9 @@ type Node struct {
 	// Name is the unique identifier for the node.
 	Name string
 
+	// Description describes the functionality of the node.
+	Description string
+
 	// Function is the function associated with the node.
 	// It takes a context and any state as input and returns the updated state and an error.
 	Function func(ctx context.Context, state interface{}) (interface{}, error)
@@ -100,11 +103,12 @@ func NewMessageGraph() *MessageGraph {
 	}
 }
 
-// AddNode adds a new node to the message graph with the given name and function.
-func (g *MessageGraph) AddNode(name string, fn func(ctx context.Context, state interface{}) (interface{}, error)) {
+// AddNode adds a new node to the message graph with the given name, description and function.
+func (g *MessageGraph) AddNode(name string, description string, fn func(ctx context.Context, state interface{}) (interface{}, error)) {
 	g.nodes[name] = Node{
-		Name:     name,
-		Function: fn,
+		Name:        name,
+		Description: description,
+		Function:    fn,
 	}
 }
 

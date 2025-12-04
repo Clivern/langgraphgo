@@ -12,31 +12,31 @@ func main() {
 	g := graph.NewMessageGraph()
 
 	// Add nodes representing different processing stages
-	g.AddNode("validate_input", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("validate_input", "validate_input", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return fmt.Sprintf("%v → validated", state), nil
 	})
 
-	g.AddNode("fetch_data", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("fetch_data", "fetch_data", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return fmt.Sprintf("%v → fetched", state), nil
 	})
 
-	g.AddNode("transform", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("transform", "transform", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return fmt.Sprintf("%v → transformed", state), nil
 	})
 
-	g.AddNode("enrich", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("enrich", "enrich", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return fmt.Sprintf("%v → enriched", state), nil
 	})
 
-	g.AddNode("validate_output", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("validate_output", "validate_output", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return fmt.Sprintf("%v → output_validated", state), nil
 	})
 
-	g.AddNode("save", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("save", "save", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return fmt.Sprintf("%v → saved", state), nil
 	})
 
-	g.AddNode("notify", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("notify", "notify", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return fmt.Sprintf("%v → notified", state), nil
 	})
 

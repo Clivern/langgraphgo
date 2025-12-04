@@ -25,7 +25,7 @@ func CreateReactAgent(model llms.Model, inputTools []tools.Tool) (*graph.StateRu
 	workflow.SetSchema(agentSchema)
 
 	// Define the agent node
-	workflow.AddNode("agent", func(ctx context.Context, state interface{}) (interface{}, error) {
+	workflow.AddNode("agent", "ReAct agent decision maker", func(ctx context.Context, state interface{}) (interface{}, error) {
 		mState, ok := state.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid state type: %T", state)
@@ -94,7 +94,7 @@ func CreateReactAgent(model llms.Model, inputTools []tools.Tool) (*graph.StateRu
 	})
 
 	// Define the tools node
-	workflow.AddNode("tools", func(ctx context.Context, state interface{}) (interface{}, error) {
+	workflow.AddNode("tools", "Tool execution node", func(ctx context.Context, state interface{}) (interface{}, error) {
 		mState, ok := state.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid state")

@@ -64,7 +64,7 @@ func main() {
 	workflow.SetSchema(schema)
 
 	// Researcher Agent Node
-	workflow.AddNode("Researcher", func(ctx context.Context, state interface{}) (interface{}, error) {
+	workflow.AddNode("Researcher", "Researcher", func(ctx context.Context, state interface{}) (interface{}, error) {
 		mState := state.(map[string]interface{})
 		messages := mState["messages"].([]llms.MessageContent)
 
@@ -132,7 +132,7 @@ func main() {
 	})
 
 	// Writer Agent Node
-	workflow.AddNode("Writer", func(ctx context.Context, state interface{}) (interface{}, error) {
+	workflow.AddNode("Writer", "Writer", func(ctx context.Context, state interface{}) (interface{}, error) {
 		mState := state.(map[string]interface{})
 		messages := mState["messages"].([]llms.MessageContent)
 

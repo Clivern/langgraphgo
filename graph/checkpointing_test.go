@@ -265,11 +265,11 @@ func TestCheckpointableRunnable_Basic(t *testing.T) {
 	// Create graph
 	g := graph.NewListenableMessageGraph()
 
-	g.AddNode("step1", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("step1", "step1", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return "step1_result", nil
 	})
 
-	g.AddNode("step2", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("step2", "step2", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return "step2_result", nil
 	})
 
@@ -331,7 +331,7 @@ func TestCheckpointableRunnable_ManualCheckpoint(t *testing.T) {
 	t.Parallel()
 
 	g := graph.NewListenableMessageGraph()
-	g.AddNode(testNode, func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode(testNode, testNode, func(ctx context.Context, state interface{}) (interface{}, error) {
 		return testResult, nil
 	})
 	g.AddEdge(testNode, graph.END)
@@ -376,7 +376,7 @@ func TestCheckpointableRunnable_LoadCheckpoint(t *testing.T) {
 	t.Parallel()
 
 	g := graph.NewListenableMessageGraph()
-	g.AddNode(testNode, func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode(testNode, testNode, func(ctx context.Context, state interface{}) (interface{}, error) {
 		return testResult, nil
 	})
 	g.AddEdge(testNode, graph.END)
@@ -424,7 +424,7 @@ func TestCheckpointableRunnable_ClearCheckpoints(t *testing.T) {
 	t.Parallel()
 
 	g := graph.NewListenableMessageGraph()
-	g.AddNode(testNode, func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode(testNode, testNode, func(ctx context.Context, state interface{}) (interface{}, error) {
 		return testResult, nil
 	})
 	g.AddEdge(testNode, graph.END)
@@ -483,7 +483,7 @@ func TestCheckpointableMessageGraph_CompileCheckpointable(t *testing.T) {
 
 	g := graph.NewCheckpointableMessageGraph()
 
-	g.AddNode(testNode, func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode(testNode, testNode, func(ctx context.Context, state interface{}) (interface{}, error) {
 		return testResult, nil
 	})
 	g.AddEdge(testNode, graph.END)
@@ -543,19 +543,19 @@ func TestCheckpointing_Integration(t *testing.T) {
 	g := graph.NewCheckpointableMessageGraph()
 
 	// Build a multi-step pipeline
-	g.AddNode("analyze", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("analyze", "analyze", func(ctx context.Context, state interface{}) (interface{}, error) {
 		data := state.(map[string]interface{})
 		data["analyzed"] = true
 		return data, nil
 	})
 
-	g.AddNode("process", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("process", "process", func(ctx context.Context, state interface{}) (interface{}, error) {
 		data := state.(map[string]interface{})
 		data["processed"] = true
 		return data, nil
 	})
 
-	g.AddNode("finalize", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("finalize", "finalize", func(ctx context.Context, state interface{}) (interface{}, error) {
 		data := state.(map[string]interface{})
 		data["finalized"] = true
 		return data, nil
@@ -651,7 +651,7 @@ func TestCheckpointListener_ErrorHandling(t *testing.T) {
 	g := graph.NewListenableMessageGraph()
 
 	// Node that will fail
-	g.AddNode("failing_node", func(ctx context.Context, state interface{}) (interface{}, error) {
+	g.AddNode("failing_node", "failing_node", func(ctx context.Context, state interface{}) (interface{}, error) {
 		return nil, fmt.Errorf("simulated failure")
 	})
 
