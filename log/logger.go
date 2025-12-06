@@ -114,8 +114,8 @@ func (l LogLevel) String() string {
 	}
 }
 
-// Package-level logger (default is NoOpLogger for zero overhead)
-var defaultLogger Logger = &NoOpLogger{}
+// Package-level logger (default is DefaultLogger with info level)
+var defaultLogger Logger = NewDefaultLogger(LogLevelInfo)
 
 // SetDefaultLogger sets the package-level logger
 // This allows users to enable logging globally without passing logger objects around
