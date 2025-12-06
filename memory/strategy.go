@@ -17,9 +17,9 @@ type Message struct {
 	TokenCount int                   // Approximate token count
 }
 
-// Strategy defines the interface for memory management strategies
+// Memory defines the interface for memory management strategies
 // All memory strategies must implement these methods
-type Strategy interface {
+type Memory interface {
 	// AddMessage adds a new message to memory
 	AddMessage(ctx context.Context, msg *Message) error
 

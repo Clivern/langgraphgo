@@ -8,8 +8,8 @@ import (
 	"github.com/tmc/langchaingo/schema"
 )
 
-// Memory is the interface for conversation memory management in langgraphgo
-type Memory interface {
+// ChatMemory is the interface for conversation memory management in langgraphgo
+type ChatMemory interface {
 	// SaveContext saves the context from this conversation to buffer
 	SaveContext(ctx context.Context, inputValues map[string]any, outputValues map[string]any) error
 	// LoadMemoryVariables loads memory variables
@@ -20,7 +20,7 @@ type Memory interface {
 	GetMessages(ctx context.Context) ([]llms.ChatMessage, error)
 }
 
-// LangChainMemory adapts langchaingo's memory implementations to our Memory interface
+// LangChainMemory adapts langchaingo's memory implementations to our ChatMemory interface
 type LangChainMemory struct {
 	buffer schema.Memory
 }

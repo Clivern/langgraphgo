@@ -293,10 +293,10 @@ fmt.Printf("Cached pages: %d\n", info["cached_pages"])
 
 ## Interface
 
-All strategies implement the `Strategy` interface:
+All strategies implement the `Memory` interface:
 
 ```go
-type Strategy interface {
+type Memory interface {
     // Add a message to memory
     AddMessage(ctx context.Context, msg *Message) error
 

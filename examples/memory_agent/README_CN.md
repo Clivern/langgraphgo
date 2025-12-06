@@ -166,7 +166,7 @@ go run main.go interactive
 
 ```go
 type ChatAgent struct {
-    memory   memory.Strategy  // 内存策略
+    memory   memory.Memory    // 内存策略
     strategy string            // 策略名称
     ctx      context.Context
 }

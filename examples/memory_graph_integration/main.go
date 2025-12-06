@@ -16,7 +16,7 @@ type ConversationState struct {
 	Intent         string
 	Context        []*memory.Message
 	Response       string
-	Memory         memory.Strategy
+	Memory         memory.Memory
 	ConversationID string
 	TurnCount      int
 }

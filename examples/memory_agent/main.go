@@ -22,7 +22,7 @@ type AgentState struct {
 
 // ChatAgent is a simple agent that uses memory strategies
 type ChatAgent struct {
-	memory   memory.Strategy
+	memory   memory.Memory
 	strategy string
 	ctx      context.Context
 }
@@ -30,7 +30,7 @@ type ChatAgent struct {
 // NewChatAgent creates a new chat agent with specified memory strategy
 func NewChatAgent(strategyName string) *ChatAgent {
 	ctx := context.Background()
-	var mem memory.Strategy
+	var mem memory.Memory
 
 	switch strategyName {
 	case "sequential":

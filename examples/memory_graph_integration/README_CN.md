@@ -21,7 +21,7 @@ type ConversationState struct {
     Intent         string              // 分类的意图
     Context        []*memory.Message   // 从内存检索的上下文
     Response       string              // 生成的响应
-    Memory         memory.Strategy     // 内存策略（存在于 state 中！）
+    Memory         memory.Memory       // 内存策略（存在于 state 中！）
     ConversationID string              // 对话标识符
     TurnCount      int                 // 轮次数
 }
@@ -171,7 +171,7 @@ workflow := graph.NewGraph(stateSchema)
 
 ```go
 func processNode(state graph.State) (graph.State, error) {
-    mem := state["memory"].(memory.Strategy)
+    mem := state["memory"].(memory.Memory)
     userInput := state["user_input"].(string)
 
     // 从内存获取上下文

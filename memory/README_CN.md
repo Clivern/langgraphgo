@@ -293,10 +293,10 @@ fmt.Printf("缓存页数: %d\n", info["cached_pages"])
 
 ## 接口
 
-所有策略都实现 `Strategy` 接口：
+所有策略都实现 `Memory` 接口：
 
 ```go
-type Strategy interface {
+type Memory interface {
     // 添加消息到内存
     AddMessage(ctx context.Context, msg *Message) error
 

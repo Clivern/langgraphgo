@@ -21,7 +21,7 @@ type ConversationState struct {
     Intent         string              // Classified intent
     Context        []*memory.Message   // Retrieved context from memory
     Response       string              // Generated response
-    Memory         memory.Strategy     // Memory strategy (lives in state!)
+    Memory         memory.Memory       // Memory strategy (lives in state!)
     ConversationID string              // Conversation identifier
     TurnCount      int                 // Number of turns
 }
@@ -171,7 +171,7 @@ workflow := graph.NewGraph(stateSchema)
 
 ```go
 func processNode(state graph.State) (graph.State, error) {
-    mem := state["memory"].(memory.Strategy)
+    mem := state["memory"].(memory.Memory)
     userInput := state["user_input"].(string)
 
     // Get context from memory

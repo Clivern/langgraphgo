@@ -166,7 +166,7 @@ The core agent class that integrates memory:
 
 ```go
 type ChatAgent struct {
-    memory   memory.Strategy  // Memory strategy
+    memory   memory.Memory    // Memory strategy
     strategy string            // Strategy name
     ctx      context.Context
 }
