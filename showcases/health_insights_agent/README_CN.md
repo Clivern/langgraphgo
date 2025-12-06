@@ -684,7 +684,6 @@ model, err := ollama.New(opts...)     // 本地 Ollama
 - 原始项目: [harshhh28/hia](https://github.com/harshhh28/hia)
 - LangGraph Go: [smallnest/langgraphgo](https://github.com/smallnest/langgraphgo)
 - LangChain Go: [tmc/langchaingo](https://github.com/tmc/langchaingo)
-- OpenAI: GPT 模型支持
 
 ## 📧 联系方式
 
@@ -694,6 +693,6 @@ model, err := ollama.New(opts...)     // 本地 Ollama
 
 **⚕️ 健康第一，科技赋能！**
 
-**构建时间**: 2024-12-04
+**构建时间**: 2025-12-04
 **版本**: v1.0.0
 **作者**: LangGraph Go Showcases Team
