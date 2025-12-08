@@ -42,7 +42,7 @@ func main() {
 		fmt.Print(char)
 		time.Sleep(20 * time.Millisecond) // Simulate typing effect
 	}
-	fmt.Println("\n")
+	fmt.Println("")
 
 	// Demo 2: Word-by-word streaming with AsyncChatWithChunks
 	fmt.Println("--- Demo 2: Word-by-Word Streaming ---")
@@ -58,7 +58,7 @@ func main() {
 		fmt.Print(word)
 		time.Sleep(100 * time.Millisecond) // Simulate thinking/typing
 	}
-	fmt.Println("\n")
+	fmt.Println("")
 
 	// Demo 3: Collecting full response
 	fmt.Println("--- Demo 3: Collecting Full Response ---")
