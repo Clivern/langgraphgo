@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/smallnest/langgraphgo/graph"
+	"github.com/smallnest/langgraphgo/log"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/tools"
 )
@@ -80,7 +81,7 @@ func CreatePlanningAgent(model llms.Model, nodes []*graph.Node, inputTools []too
 		planningMessages = append(planningMessages, messages...)
 
 		if options.Verbose {
-			fmt.Println("🤔 Planning workflow...")
+			log.Info("planning workflow...")
 		}
 
 		// Call LLM to generate the plan
@@ -91,7 +92,7 @@ func CreatePlanningAgent(model llms.Model, nodes []*graph.Node, inputTools []too
 
 		planText := resp.Choices[0].Content
 		if options.Verbose {
-			fmt.Printf("📋 Generated plan:\n%s\n\n", planText)
+			log.Info("generated plan:\n%s\n", planText)
 		}
 
 		// Parse the workflow plan
@@ -125,7 +126,7 @@ func CreatePlanningAgent(model llms.Model, nodes []*graph.Node, inputTools []too
 		}
 
 		if options.Verbose {
-			fmt.Println("🚀 Executing planned workflow...")
+			log.Info("executing planned workflow...")
 		}
 
 		// Build the dynamic workflow
@@ -149,7 +150,7 @@ func CreatePlanningAgent(model llms.Model, nodes []*graph.Node, inputTools []too
 			dynamicWorkflow.AddNode(actualNode.Name, actualNode.Description, actualNode.Function)
 
 			if options.Verbose {
-				fmt.Printf("  ✓ Added node: %s\n", actualNode.Name)
+				log.Info("added node: %s", actualNode.Name)
 			}
 		}
 
@@ -181,7 +182,7 @@ func CreatePlanningAgent(model llms.Model, nodes []*graph.Node, inputTools []too
 			}
 
 			if options.Verbose {
-				fmt.Printf("  ✓ Added edge: %s -> %s\n", edge.From, edge.To)
+				log.Info("  added edge: %s -> %s", edge.From, edge.To)
 			}
 		}
 
@@ -189,7 +190,7 @@ func CreatePlanningAgent(model llms.Model, nodes []*graph.Node, inputTools []too
 		for nodeName := range endNodes {
 			dynamicWorkflow.AddEdge(nodeName, graph.END)
 			if options.Verbose {
-				fmt.Printf("  ✓ Added edge: %s -> END\n", nodeName)
+				log.Info("  added edge: %s -> END", nodeName)
 			}
 		}
 
@@ -212,7 +213,7 @@ func CreatePlanningAgent(model llms.Model, nodes []*graph.Node, inputTools []too
 		}
 
 		if options.Verbose {
-			fmt.Println("✅ Workflow execution completed")
+			log.Info("workflow execution completed")
 		}
 
 		return result, nil

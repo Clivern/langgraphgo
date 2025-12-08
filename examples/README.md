@@ -40,6 +40,7 @@ This directory contains various examples demonstrating the features of LangGraph
 - **[Planning Agent](planning_agent/README.md)**: Intelligent agent that dynamically creates workflow plans based on user requests.
 - **[PEV Agent](pev_agent/README.md)**: Plan-Execute-Verify agent with self-correction and error recovery for reliable task execution.
 - **[Reflection Agent](reflection_agent/README.md)**: Iterative improvement agent that refines responses through self-reflection.
+- **[Tree of Thoughts](tree_of_thoughts/README.md)**: Search-based reasoning agent that explores multiple solution paths through a tree structure.
 - **[Supervisor](supervisor/README.md)**: Multi-agent orchestration using a supervisor.
 - **[Swarm](swarm/README.md)**: Multi-agent collaboration using handoffs.
 - **[Chat Agent](chat_agent/README.md)**: Multi-turn conversation agent with automatic session management.

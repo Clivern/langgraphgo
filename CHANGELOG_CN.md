@@ -3,6 +3,28 @@
 ## [未发布] - 2025-12-08
 
 ### 示例与模式
+- **[思维树 (Tree of Thoughts)](./examples/tree_of_thoughts/)**: 使用搜索树探索的高级推理框架
+  - 实现系统的多路径问题求解方法
+  - 五个关键阶段：分解、思维生成、状态评估、剪枝与扩展、解决方案
+  - 可配置的搜索策略，支持生成器和评估器接口
+  - 可视化搜索树表示与路径跟踪
+  - 全面的文档，解释 ToT 架构和用例
+
+### 预构建代理
+- **[PEV Agent](./examples/pev_agent/)**: 问题-证据-验证代理 (#38)
+  - 结构化问题求解与证据收集
+  - 解决方案验证机制
+  - 支持 https://profile.rpcx.io 项目个人资料生成展示
+
+### 错误修复与改进
+- 修复并行执行场景中的 duration_execution 错误
+- 增强了 GitHub Actions CI/CD，更新了 golangci-lint 版本
+- 提高单元测试可靠性
+- 添加 CONTRIBUTING.md 开发指南
+
+## [0.6.0] - 2025-12-08
+
+### 示例与模式
 - **[复杂并行执行 (Complex Parallel Execution)](./examples/complex_parallel_execution/)**: 高级并行执行模式 (#36)
   - 演示不同长度分支的扇出/扇入模式
   - 三种实现版本：基础版、智能聚合器版、同步版

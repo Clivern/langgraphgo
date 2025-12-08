@@ -10,6 +10,7 @@ import (
 	"github.com/smallnest/goskills"
 	adapter "github.com/smallnest/langgraphgo/adapter/goskills"
 	"github.com/smallnest/langgraphgo/graph"
+	"github.com/smallnest/langgraphgo/log"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/tools"
 )
@@ -114,7 +115,7 @@ func CreateAgent(model llms.Model, inputTools []tools.Tool, opts ...CreateAgentO
 
 			// --- STEP 1: SKILL DISCOVERY ---
 			if options.Verbose {
-				fmt.Printf("🔎 Discovering available skills in %s...\n", options.skillDir)
+				log.Info("discovering available skills in %s...", options.skillDir)
 			}
 			availableSkills, err := discoverSkills(options.skillDir)
 			if err != nil {
@@ -122,17 +123,17 @@ func CreateAgent(model llms.Model, inputTools []tools.Tool, opts ...CreateAgentO
 			}
 			if len(availableSkills) == 0 {
 				if options.Verbose {
-					fmt.Println("⚠️ No skills found.")
+					log.Warn("no skills found.")
 				}
 				return nil, nil
 			}
 			if options.Verbose {
-				fmt.Printf("✅ Found %d skills.\n\n", len(availableSkills))
+				log.Info("found %d skills.\n", len(availableSkills))
 			}
 
 			// --- STEP 2: SKILL SELECTION ---
 			if options.Verbose {
-				fmt.Println("🧠 Asking LLM to select the best skill...")
+				log.Info("asking LLM to select the best skill...")
 			}
 			selectedSkillName, err := selectSkill(ctx, model, userPrompt, availableSkills)
 			if err != nil {
@@ -141,7 +142,7 @@ func CreateAgent(model llms.Model, inputTools []tools.Tool, opts ...CreateAgentO
 
 			if selectedSkillName == "" {
 				if options.Verbose {
-					fmt.Println("🤷 LLM did not select any skill.")
+					log.Info("LLM did not select any skill.")
 				}
 				return nil, nil
 			}
@@ -150,12 +151,12 @@ func CreateAgent(model llms.Model, inputTools []tools.Tool, opts ...CreateAgentO
 			if !ok {
 				// LLM hallucinated a skill name
 				if options.Verbose {
-					fmt.Printf("⚠️ LLM selected a non-existent skill '%s'. Ignoring.\n", selectedSkillName)
+					log.Warn("LLM selected a non-existent skill '%s'. ignoring.", selectedSkillName)
 				}
 				return nil, nil
 			}
 			if options.Verbose {
-				fmt.Printf("✅ LLM selected skill: %s\n\n", selectedSkillName)
+				log.Info("LLM selected skill: %s\n", selectedSkillName)
 			}
 
 			// Convert skill to tools

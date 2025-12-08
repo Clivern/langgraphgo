@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/smallnest/langgraphgo/graph"
+	"github.com/smallnest/langgraphgo/log"
 	"github.com/tmc/langchaingo/llms"
 )
 
@@ -122,7 +123,7 @@ func generateNode(ctx context.Context, state interface{}, model llms.Model, syst
 	if iteration == 0 {
 		// First generation
 		if verbose {
-			fmt.Println("🎨 Generating initial response...")
+			log.Info("generating initial response...")
 		}
 
 		promptMessages = []llms.MessageContent{
@@ -142,7 +143,7 @@ func generateNode(ctx context.Context, state interface{}, model llms.Model, syst
 		previousDraft, _ := mState["draft"].(string)
 
 		if verbose {
-			fmt.Printf("🔄 Revising response (iteration %d)...\n", iteration)
+			log.Info("revising response (iteration %d)...", iteration)
 		}
 
 		// Construct revision prompt
@@ -181,7 +182,7 @@ Generate an improved response that addresses the issues raised in the reflection
 	draft := resp.Choices[0].Content
 
 	if verbose {
-		fmt.Printf("📝 Draft generated (%d chars)\n", len(draft))
+		log.Info("draft generated (%d chars)", len(draft))
 	}
 
 	// Create AI message
@@ -214,7 +215,7 @@ func reflectNode(ctx context.Context, state interface{}, model llms.Model, refle
 	originalRequest := getOriginalRequest(messages)
 
 	if verbose {
-		fmt.Println("🤔 Reflecting on the response...")
+		log.Info("reflecting on the response...")
 	}
 
 	// Build reflection prompt
@@ -246,7 +247,7 @@ Provide a critical reflection on this response.`, originalRequest, draft)),
 	reflection := resp.Choices[0].Content
 
 	if verbose {
-		fmt.Printf("💭 Reflection:\n%s\n\n", reflection)
+		log.Info("reflection:\n%s\n", reflection)
 	}
 
 	// Determine if response is satisfactory
@@ -272,7 +273,7 @@ func shouldContinueAfterGenerate(state interface{}, maxIterations int, verbose b
 	// If we've reached max iterations, stop
 	if iteration >= maxIterations {
 		if verbose {
-			fmt.Println("✅ Max iterations reached, finalizing response")
+			log.Info("max iterations reached, finalizing response")
 		}
 		return graph.END
 	}
@@ -281,7 +282,7 @@ func shouldContinueAfterGenerate(state interface{}, maxIterations int, verbose b
 	isSatisfactory, _ := mState["is_satisfactory"].(bool)
 	if isSatisfactory {
 		if verbose {
-			fmt.Println("✅ Response is satisfactory, finalizing")
+			log.Info("response is satisfactory, finalizing")
 		}
 		return graph.END
 	}
@@ -298,7 +299,7 @@ func shouldContinueAfterReflect(state interface{}, verbose bool) string {
 
 	if isSatisfactory {
 		if verbose {
-			fmt.Println("✅ Reflection indicates response is satisfactory")
+			log.Info("reflection indicates response is satisfactory")
 		}
 		return graph.END
 	}

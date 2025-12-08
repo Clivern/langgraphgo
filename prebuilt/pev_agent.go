@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/smallnest/langgraphgo/graph"
+	"github.com/smallnest/langgraphgo/log"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/tools"
 )
@@ -140,9 +141,9 @@ func plannerNode(ctx context.Context, state interface{}, model llms.Model, syste
 
 	if verbose {
 		if retries == 0 {
-			fmt.Println("📋 Planning execution steps...")
+			log.Info("planning execution steps...")
 		} else {
-			fmt.Printf("📋 Re-planning (attempt %d)...\n", retries+1)
+			log.Info("re-planning (attempt %d)...", retries+1)
 		}
 	}
 
@@ -201,11 +202,11 @@ Create a new plan that addresses the issues identified.`,
 	steps := parsePlanSteps(planText)
 
 	if verbose {
-		fmt.Printf("✅ Plan created with %d steps\n", len(steps))
+		log.Info("plan created with %d steps", len(steps))
 		for i, step := range steps {
-			fmt.Printf("  %d. %s\n", i+1, step)
+			log.Info("  %d. %s", i+1, step)
 		}
-		fmt.Println()
+		log.Info("")
 	}
 
 	return map[string]interface{}{
@@ -231,7 +232,7 @@ func executorNode(ctx context.Context, state interface{}, toolExecutor *ToolExec
 	stepDescription := plan[currentStep]
 
 	if verbose {
-		fmt.Printf("⚙️  Executing step %d/%d: %s\n", currentStep+1, len(plan), stepDescription)
+		log.Info("executing step %d/%d: %s", currentStep+1, len(plan), stepDescription)
 	}
 
 	// Use LLM to decide which tool to call
@@ -241,7 +242,7 @@ func executorNode(ctx context.Context, state interface{}, toolExecutor *ToolExec
 	}
 
 	if verbose {
-		fmt.Printf("📤 Result: %s\n\n", truncateString(result, 200))
+		log.Info("result: %s\n", truncateString(result, 200))
 	}
 
 	return map[string]interface{}{
@@ -264,7 +265,7 @@ func verifierNode(ctx context.Context, state interface{}, model llms.Model, veri
 	stepDescription := plan[currentStep]
 
 	if verbose {
-		fmt.Println("🔍 Verifying execution result...")
+		log.Info("verifying execution result...")
 	}
 
 	// Build verification prompt
@@ -314,9 +315,9 @@ Determine if this result indicates success or failure. Respond with JSON in this
 
 	if verbose {
 		if verificationResult.IsSuccessful {
-			fmt.Printf("✅ Verification passed: %s\n\n", verificationResult.Reasoning)
+			log.Info("verification passed: %s\n", verificationResult.Reasoning)
 		} else {
-			fmt.Printf("❌ Verification failed: %s\n\n", verificationResult.Reasoning)
+			log.Error("verification failed: %s\n", verificationResult.Reasoning)
 		}
 	}
 
@@ -333,7 +334,7 @@ func synthesizerNode(ctx context.Context, state interface{}, model llms.Model, v
 	intermediateSteps, _ := mState["intermediate_steps"].([]string)
 
 	if verbose {
-		fmt.Println("📝 Synthesizing final answer...")
+		log.Info("synthesizing final answer...")
 	}
 
 	originalRequest := getOriginalRequest(messages)
@@ -371,7 +372,7 @@ Provide a clear, concise final answer that directly addresses the user's request
 	finalAnswer := resp.Choices[0].Content
 
 	if verbose {
-		fmt.Printf("✅ Final answer generated\n\n")
+		log.Info("final answer generated\n")
 	}
 
 	// Create AI message
@@ -394,7 +395,7 @@ func routeAfterPlanner(state interface{}, verbose bool) string {
 
 	if !ok || len(plan) == 0 {
 		if verbose {
-			fmt.Println("⚠️  No plan created, ending")
+			log.Warn("no plan created, ending")
 		}
 		return graph.END
 	}
@@ -422,7 +423,7 @@ func routeAfterVerifier(state interface{}, maxRetries int, verbose bool) string 
 		if nextStep >= len(plan) {
 			// All steps completed successfully
 			if verbose {
-				fmt.Println("✅ All steps completed successfully, synthesizing final answer")
+				log.Info("all steps completed successfully, synthesizing final answer")
 			}
 			return "synthesizer"
 		}
@@ -435,7 +436,7 @@ func routeAfterVerifier(state interface{}, maxRetries int, verbose bool) string 
 	// Verification failed
 	if retries >= maxRetries {
 		if verbose {
-			fmt.Printf("❌ Max retries (%d) reached, synthesizing with partial results\n\n", maxRetries)
+			log.Error("max retries (%d) reached, synthesizing with partial results\n", maxRetries)
 		}
 		return "synthesizer"
 	}

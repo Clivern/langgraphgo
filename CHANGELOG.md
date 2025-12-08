@@ -3,6 +3,28 @@
 ## [Unreleased] - 2025-12-08
 
 ### Examples & Patterns
+- **[Tree of Thoughts](./examples/tree_of_thoughts/)**: Advanced reasoning framework using search tree exploration
+  - Implements systematic multi-path problem-solving approach
+  - Five key phases: Decomposition, Thought Generation, State Evaluation, Pruning & Expansion, Solution
+  - Configurable search strategies with generator and evaluator interfaces
+  - Visual search tree representation with path tracking
+  - Comprehensive documentation explaining ToT architecture and use cases
+
+### Pre-built Agents
+- **[PEV Agent](./examples/pev_agent/)**: Problem-Evidence-Verification agent (#38)
+  - Structured problem-solving with evidence gathering
+  - Verification mechanism for solution validation
+  - Support showcase for https://profile.rpcx.io project profile generation
+
+### Bug Fixes & Improvements
+- Fixed duration_execution bug in parallel execution scenarios
+- Enhanced GitHub Actions CI/CD with updated golangci-lint versions
+- Improved unit test reliability
+- Added CONTRIBUTING.md for development guidelines
+
+## [0.6.0] - 2025-12-08
+
+### Examples & Patterns
 - **[Complex Parallel Execution](./examples/complex_parallel_execution/)**: Advanced parallel execution pattern (#36)
   - Demonstrates fan-out/fan-in with branches of varying lengths
   - Three implementation versions: basic, smart aggregator, and synchronized
