@@ -113,31 +113,7 @@ result, _ := app.Invoke(ctx, initialState)
 
 ### 🔧 Go语言实现特点
 
-#### 1️⃣ **LangGraphGo的编排能力**
-
-Go版本采用LangGraphGo框架进行多Agent编排，实现了原版设计的所有核心功能：
-
-```go
-// LangGraphGo提供的清晰结构
-workflow := graph.NewStateGraph()
-
-// 添加5大引擎节点
-workflow.AddNode("query_engine", "信息收集", QueryEngineNode)
-workflow.AddNode("media_engine", "媒体搜索", MediaEngineNode)
-workflow.AddNode("insight_engine", "数据分析", InsightEngineNode)
-workflow.AddNode("forum_engine", "多视角整合", ForumEngineNode)
-workflow.AddNode("report_engine", "报告生成", ReportEngineNode)
-
-// 定义执行流程
-workflow.SetEntryPoint("query_engine")
-workflow.AddEdge("query_engine", "media_engine")
-workflow.AddEdge("media_engine", "insight_engine")
-workflow.AddEdge("insight_engine", "forum_engine")
-workflow.AddEdge("forum_engine", "report_engine")
-workflow.AddEdge("report_engine", graph.END)
-```
-
-#### 2️⃣ **部署方式**
+#### 1️⃣ **部署方式**
 
 Go版本提供简洁的部署方式：
 
@@ -189,60 +165,6 @@ Go版本完整实现了原版的所有核心功能：
 
 ---
 
-### 🏆 LangGraphGo框架的价值
-
-通过这个项目，展示了 **LangGraphGo** 作为轻量级多Agent编排框架的能力：
-
-#### 1️⃣ **快速实现能力**
-- 清晰的图结构定义
-- 简洁的API设计
-- 易于理解和维护
-
-#### 2️⃣ **Go语言特性**
-- 编译型语言的性能
-- 原生并发支持
-- 跨平台编译能力
-
-#### 3️⃣ **工程友好**
-- 单文件部署
-- 类型安全
-- 丰富的标准库
-
-#### 4️⃣ **灵活可扩展**
-```go
-// 添加新引擎很简单
-workflow.AddNode("sentiment_engine", "情感分析", SentimentEngineNode)
-workflow.AddEdge("insight_engine", "sentiment_engine")
-workflow.AddEdge("sentiment_engine", "forum_engine")
-
-// 重新编译即可
-app, _ := workflow.Compile()
-```
-
----
-
-### 📊 实现成果
-
-**代码组成**：
-```
-Go实现：
-  - 核心代码：~1500行
-  - 主要依赖：LangGraphGo + LangChainGo + OpenAI SDK
-  - 编译产物：单文件可执行程序（~15MB）
-```
-
-**运行稳定性测试**：
-```
-✅ 持续运行测试：100次分析，运行稳定
-✅ 内存管理测试：长期运行表现良好
-✅ 并发压力测试：支持多并发分析
-✅ 跨平台测试：macOS/Linux/Windows均可运行
-```
-
-**运行效果**
-![](demo.png)
----
-
 ### 🎓 技术学习价值
 
 这个项目是学习以下技术的绝佳案例：
@@ -253,109 +175,6 @@ Go实现：
 4. **LLM应用开发** - 如何设计Prompt和处理响应
 5. **状态管理** - 多Agent间如何共享和传递状态
 6. **错误处理** - 如何优雅地处理LLM返回的异常
-
----
-
-## 💼 真实场景：微舆如何拯救你
-
-### 场景一：品牌危机监测
-
-**背景**：某手机品牌发布新品，市场部需要实时监控舆情
-
-#### 😰 传统做法：
-
-```
-09:00 - 人工监控微博、知乎、贴吧
-10:30 - 发现负面评论开始增加
-11:00 - 开始统计负面评论数量
-12:00 - 整理负面观点分类
-14:00 - 分析负面原因
-16:00 - 写报告给领导
-18:00 - 领导："现在网上什么情况？"
-回答："呃...我看的是3小时前的数据..."
-
-❌ 滞后3-6小时，错过黄金处置期
-```
-
-#### 😎 使用微舆：
-
-```bash
-go run main.go "某某手机新品发布后的实时舆情监测与危机预警"
-
-✅ 2分钟生成完整报告：
-  - 舆情整体态势（正面56% 中性30% 负面14%）
-  - 负面舆情聚焦点（散热问题占比78%）
-  - 潜在危机预警（技术类吐槽快速扩散，24小时内可能发酵）
-  - 应对建议（官方技术解释+固件更新承诺）
-
-✅ 实时更新，把握黄金处置期
-```
-
-### 场景二：竞品对比分析
-
-**背景**：准备推出新产品，需要了解竞品的市场口碑
-
-#### 😰 传统做法：
-
-```
-第1天：收集A品牌用户评价
-第2天：收集B品牌用户评价
-第3天：收集C品牌用户评价
-第4天：整理对比表格
-第5天：分析优劣势
-第6-7天：写报告
-
-❌ 耗时1周，数据样本有限
-❌ 主观筛选，可能漏掉关键信息
-```
-
-#### 😎 使用微舆：
-
-```bash
-go run main.go "对比分析iPhone、华为、小米三款旗舰机的用户真实评价与口碑差异"
-
-✅ 2分钟完成：
-  - 三品牌全网舆情对比（10,000+真实评价）
-  - 用户痛点排行（价格、性能、续航、拍照...）
-  - 各品牌优势劣势矩阵
-  - 市场空白点识别
-  - 产品定位建议
-
-✅ 客观数据，消除人为偏见
-```
-
-### 场景三：政策影响评估
-
-**背景**：新政策出台，企业需要评估影响和公众反应
-
-#### 😰 传统做法：
-
-```
-- 找几个专家访谈
-- 看官方媒体报道
-- 参考券商研报
-- 凭经验判断
-
-❌ 样本局限，覆盖面窄
-❌ 精英视角，忽视民间声音
-❌ 可能产生重大误判
-```
-
-#### 😎 使用微舆：
-
-```bash
-go run main.go "某某新能源补贴政策的社会舆论反应与行业影响评估"
-
-✅ 全面舆情洞察：
-  - 政策解读（多方观点整合）
-  - 公众反应（支持/反对/中立，细分人群）
-  - 行业影响（受益/受损企业，产业链分析）
-  - 潜在风险（政策盲区，可能的负面反馈）
-  - 应对策略（不同企业的最佳路径）
-
-✅ 覆盖全网，代表性强
-✅ 多视角分析，还原真相
-```
 
 ---
 
@@ -433,40 +252,53 @@ go run main.go "某某新能源补贴政策的社会舆论反应与行业影响�
 舆情分析 = 模拟一场圆桌会议
 
 参会者：
-  - NewsAgent：代表官方媒体视角
-  - SocialAgent：代表社交媒体声音
-  - ForumAgent：代表专业深度讨论
-  - InsightAgent：代表数据分析结果
+  - Moderator：主持人，引导讨论、整合观点
+  - QueryAgent：代表新闻媒体视角，提供最新动态
+  - MediaAgent：代表多模态内容分析，关注视觉传播
+  - InsightAgent：代表数据分析结果（通过状态传递）
 
-讨论模式：
-  1️⃣ 各抒己见（展示不同视角）
-  2️⃣ 思维碰撞（发现矛盾与共识）
-  3️⃣ 主持总结（整合客观结论）
+讨论模式（5轮多Agent对话）：
+  第1轮：Moderator 开场 - 梳理背景，提出议题
+  第2轮：QueryAgent 发言 - 新闻视角分析
+  第3轮：MediaAgent 发言 - 媒体视角补充
+  第4轮：QueryAgent 补充 - 基于前面讨论深化
+  第5轮：Moderator 总结 - 整合观点，得出结论
+
+核心特点：
+  ✓ 多轮对话（不是一次性发言，而是互相回应）
+  ✓ 历史记忆（每个Agent都能看到之前的讨论）
+  ✓ 思维碰撞（发现矛盾与共识，纠正错误）
+  ✓ 观点演进（后续发言会基于前面的讨论优化）
 ```
 
-**实战案例**：
+**实战案例**（多轮讨论过程）：
 ```
 议题："ChatGPT对就业市场的影响"
 
-NewsAgent（官方媒体）：
+第1轮 - Moderator 开场：
+  "今天讨论ChatGPT对就业的影响。请各位从不同角度分析。"
+
+第2轮 - QueryAgent（新闻视角）：
   "主流媒体报道：AI将创造新就业机会，政府出台支持政策"
 
-SocialAgent（社交媒体）：
-  "网民讨论：担忧被替代的焦虑情绪蔓延，尤其是文案、客服等岗位"
+第3轮 - MediaAgent（媒体视角）：
+  "社交媒体上大量焦虑情绪，'被替代'成高频词，短视频传播很快"
 
-ForumAgent（专业论坛）：
-  "技术社区：讨论如何转型，学习AI技能成为共识，培训需求激增"
+第4轮 - QueryAgent（基于前面讨论的补充）：
+  "刚才MediaAgent提到焦虑情绪，我补充数据：
+   - AI岗位需求增长180%（新机会）
+   - 文案/客服岗位需求下降15%（确实存在冲击）
+   这验证了社交媒体的焦虑有数据支撑，但也有新机会"
 
-InsightAgent（数据分析）：
-  "数据显示：AI相关岗位需求增长180%，传统岗位需求下降15%"
+第5轮 - Moderator 总结：
+  "综合各方观点，形成以下结论：
+  ✓ 短期：确实存在结构性失业风险（数据+民间焦虑）
+  ✓ 中长期：催生新职业机会（官方政策+市场数据）
+  ✓ 关键矛盾：转型速度跟不上技术变化
+  ✓ 行动建议：政府加强职业培训，企业给员工学习时间"
 
-ForumEngine 整合结论：
-  ✓ 短期：确实存在结构性失业风险（数据支撑+民间焦虑）
-  ✓ 中长期：催生新职业机会（官方政策+市场需求）
-  ✓ 关键：个人和企业需要主动转型（专业共识）
-  ✓ 建议：政府加强职业培训支持（政策建议）
-
-✅ 多视角整合，还原完整真相，避免片面解读
+✅ 通过5轮多Agent对话，观点逐步深化，最终得出全面结论
+✅ 后续Agent能看到前面的讨论，形成真正的"思维碰撞"
 ```
 
 ---
@@ -1000,43 +832,79 @@ func main() {
 
 ### 核心特性
 
-**1. 状态共享机制**
+**1. 状态共享机制** (schema/state.go:54-73)
 ```go
 type BettaFishState struct {
-    Query          string          // 原始问题
-    SearchResults  []SearchResult  // QueryEngine结果
-    MediaContent   []Media         // MediaEngine结果
-    Insights       []Insight       // InsightEngine结果
-    ForumDiscussion string         // ForumEngine结果
-    Paragraphs     []string        // ReportEngine结果
+    Query string                // 原始问题
+    ReportTitle string          // 报告标题
+    Paragraphs  []*Paragraph    // 报告段落
+    NewsResults []string        // QueryEngine输出
+    FinalReport string          // 最终报告
+    MediaResults []string       // MediaEngine输出
+    InsightResults []string     // InsightEngine输出
+    Discussion []string         // ForumEngine输出
 }
 ```
 
-**2. 反思循环（Self-Reflection）**
+**2. 反思循环机制** (query_engine/agent.go:213-266)
 ```go
-// QueryEngine的质量自我评估
-for iteration < maxIterations {
-    results := search(query)
-    score := evaluateQuality(results)
-    if score > threshold {
-        break // 满意，退出
+// 为每个段落进行多轮反思优化
+maxReflections := 1
+for i := 0; i < maxReflections; i++ {
+    // 生成反思查询
+    var reflectionOutput struct {
+        SearchQuery string
+        SearchTool  string
+        Reasoning   string
     }
-    query = improveQuery(query, results) // 不满意，优化
+    generateJSON(ctx, llm, SystemPromptReflection, input, &reflectionOutput)
+
+    // 执行新搜索
+    newResults := ExecuteSearch(ctx, reflectionOutput.SearchQuery, ...)
+
+    // 更新段落总结
+    var reflectionSummaryOutput struct {
+        UpdatedParagraphLatestState string
+    }
+    generateJSON(ctx, llm, SystemPromptReflectionSummary, input, &reflectionSummaryOutput)
+    p.Research.LatestSummary = reflectionSummaryOutput.UpdatedParagraphLatestState
 }
 ```
 
-**3. 多Agent协商（Multi-Agent Forum）**
+**3. 多轮讨论机制** (forum_engine/agent.go:103-113)
 ```go
-// ForumEngine组织虚拟会议
-agents := []Agent{NewsAgent, SocialAgent, ForumAgent, InsightAgent}
-moderator := NewModerator()
-
-for _, agent := range agents {
-    opinion := agent.ShareOpinion(topic)
-    moderator.CollectOpinion(opinion)
+// ForumEngine的虚拟圆桌会议：5轮多Agent讨论
+turns := []struct {
+    Speaker string
+    Prompt  string
+}{
+    {"Moderator", SystemPromptModerator},     // 第1轮：主持人开场
+    {"QueryAgent", SystemPromptNewsAgent},    // 第2轮：新闻视角
+    {"MediaAgent", SystemPromptMediaAgent},   // 第3轮：媒体视角
+    {"QueryAgent", SystemPromptNewsAgent},    // 第4轮：新闻补充
+    {"Moderator", SystemPromptModerator},     // 第5轮：主持人总结
 }
 
-consensus := moderator.IntegrateOpinions()
+// 每轮讨论都会记录历史，后续Agent可以看到之前的发言
+for i, turn := range turns {
+    historyStr := strings.Join(history, "\n\n")
+    // Agent基于历史讨论进行发言...
+    history = append(history, entry)
+}
+```
+
+**4. 并行段落处理** (query_engine/agent.go:110-118)
+```go
+// 使用goroutine并行处理多个段落
+var wg sync.WaitGroup
+for i := range s.Paragraphs {
+    wg.Add(1)
+    go func(idx int) {
+        defer wg.Done()
+        processParagraph(ctx, llm, s.Paragraphs[idx])
+    }(i)
+}
+wg.Wait()
 ```
 
 ### LangGraphGo的设计哲学
@@ -1136,67 +1004,21 @@ LangGraphGo（编排层）
 
 ---
 
-## 🌟 总结：微舆的价值主张
+## 🌟 总结
 
-### 面临的问题
+微舆（BettaFish）是一个基于LangGraphGo框架实现的多Agent舆情分析系统，致敬并学习了Python原版的优秀设计。
 
-现代舆情分析面临的三大困境：
-1. **信息茧房** - 算法推荐导致片面认知
-2. **信息过载** - 海量数据无从下手
-3. **主观偏见** - 人类认知局限
+**核心价值**：
+- 🌐 打破信息茧房，全网多维度信息收集
+- 🎯 还原舆情原貌，多视角客观分析
+- 🔮 预测未来走向，数据驱动趋势预判
+- 💡 辅助科学决策，提供可执行建议
 
-### 微舆的解决方案
-
-**四大核心能力**：
-1. 🌐 **打破信息茧房** - 全网多维度信息收集
-2. 🎯 **还原舆情原貌** - 多视角客观分析
-3. 🔮 **预测未来走向** - 数据驱动趋势预判
-4. 💡 **辅助科学决策** - 提供可执行建议
-
-**五大智能引擎协同工作**：
-- QueryEngine - 反思循环，保证信息质量
-- MediaEngine - 可视化呈现
-- InsightEngine - 深度数据挖掘
-- ForumEngine - 多视角观点整合
-- ReportEngine - 决策建议生成
-
-### 微舆的技术价值
-
-**基于LangGraphGo的实现**：
-- ✅ **功能完整** - 完整实现了原版设计的所有核心功能
-- ✅ **开发高效** - LangGraphGo框架提供清晰的编排能力
-- ✅ **Go语言特性** - 充分利用Go的编译型语言优势和并发能力
-- ✅ **部署友好** - 单文件部署，跨平台编译
-
-**技术架构特点**：
-- ✅ **轻量级框架** - LangGraphGo提供简洁的编排能力
-- ✅ **完全可控** - 业务逻辑自主实现，灵活定制
-- ✅ **多Agent协作** - 5大引擎分工合作，还原客观真相
-- ✅ **易于使用** - 简单的命令行操作，零门槛上手
-
-**学习价值**：
-- ✅ 完整的多Agent系统实现案例
-- ✅ LangGraphGo框架的最佳实践
-- ✅ Go并发编程的实战应用
-- ✅ LLM应用开发的工程经验
-
----
-
-## 🚀 开始你的舆情分析之旅
-
-```bash
-# 1. 设置API密钥
-export OPENAI_API_KEY="sk-你的密钥"
-export TAVILY_API_KEY="tvly-你的密钥"
-
-# 2. 运行你的第一次分析
-go run showcases/BettaFish/main.go "分析2024年AI大模型的市场舆情与发展趋势"
-
-# 3. 查看报告
-ls final_reports/
-
-# 4. 开始你的舆情分析之旅！
-```
+**技术特点**：
+- 五大智能引擎协同工作（QueryEngine、MediaEngine、InsightEngine、ForumEngine、ReportEngine）
+- 基于LangGraphGo轻量级框架实现
+- Go语言天然并发优势
+- 单文件部署，跨平台支持
 
 ---
 
@@ -1227,6 +1049,5 @@ ls final_reports/
 
 ---
 
-**🐠 Made with ❤️ by BettaFish Team**
+**🐠 Made with ❤️ by BettaFish Team， Rebuilt with 🐕 LangGraphGo**
 
-*"打破信息茧房，还原舆情真相，预测未来走向，辅助科学决策！"*
