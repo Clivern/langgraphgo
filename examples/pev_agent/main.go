@@ -141,7 +141,7 @@ func main() {
 
 	fmt.Println("=== PEV Agent Examples ===")
 	fmt.Println("PEV (Plan, Execute, Verify) is a robust, self-correcting agent pattern")
-	fmt.Println("that verifies each action and can recover from failures.\n")
+	fmt.Println("that verifies each action and can recover from failures.")
 
 	// Example 1: Simple calculation with reliable tool
 	fmt.Println("--- Example 1: Simple Calculation (Reliable Tool) ---")
@@ -161,7 +161,7 @@ func main() {
 }
 
 func runExample1(model llms.Model) {
-	fmt.Println("This example demonstrates basic PEV operation with a reliable tool.\n")
+	fmt.Println("This example demonstrates basic PEV operation with a reliable tool.")
 
 	config := prebuilt.PEVAgentConfig{
 		Model:      model,
@@ -198,7 +198,7 @@ func runExample1(model llms.Model) {
 
 func runExample2(model llms.Model) {
 	fmt.Println("This example demonstrates PEV's self-correction with an unreliable weather API.")
-	fmt.Println("The tool has a 40% failure rate, but PEV will retry until successful.\n")
+	fmt.Println("The tool has a 40% failure rate, but PEV will retry until successful.")
 
 	config := prebuilt.PEVAgentConfig{
 		Model: model,
@@ -237,7 +237,7 @@ func runExample2(model llms.Model) {
 
 func runExample3(model llms.Model) {
 	fmt.Println("This example demonstrates PEV with multiple steps and different tools.")
-	fmt.Println("Each step is verified before proceeding to the next.\n")
+	fmt.Println("Each step is verified before proceeding to the next.")
 
 	config := prebuilt.PEVAgentConfig{
 		Model: model,
