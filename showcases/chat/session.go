@@ -208,7 +208,10 @@ func (sm *SessionManager) loadSessions() {
 			continue
 		}
 
-		sm.sessions[session.ID] = &session
+		// Only load sessions that have messages
+		if len(session.Messages) > 0 {
+			sm.sessions[session.ID] = &session
+		}
 	}
 }
 

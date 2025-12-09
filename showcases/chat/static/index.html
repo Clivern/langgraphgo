@@ -5,6 +5,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LangGraphGo 聊天应用</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" id="MathJax-script"></script>
     <style>
         * {
             margin: 0;
@@ -205,6 +222,109 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
+        .message-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #e1e8ed;
+        }
+
+        .copy-btn {
+            cursor: pointer;
+            font-size: 12px;
+            color: #7f8c8d;
+            padding: 4px 8px;
+            border-radius: 5px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+        .copy-btn:hover {
+            background-color: #f0f3ff;
+            color: #2c3e50;
+        }
+
+        .copy-btn span {
+            margin-left: 5px;
+        }
+
+        /* Markdown Content Styling */
+        .message-content h1,
+        .message-content h2,
+        .message-content h3 {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #e1e8ed;
+            padding-bottom: 5px;
+        }
+        .message-content h1 { font-size: 1.8em; }
+        .message-content h2 { font-size: 1.5em; }
+        .message-content h3 { font-size: 1.2em; }
+
+        .message-content p {
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .message-content ul,
+        .message-content ol {
+            padding-left: 25px;
+            margin-bottom: 15px;
+        }
+
+        .message-content li {
+            margin-bottom: 5px;
+        }
+
+        .message-content code {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            background: #f7f9fc;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .message-content pre {
+            background: #f7f9fc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+        }
+
+        .message-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .message-content blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+            margin: 15px 0;
+            color: #555;
+            background: #f9f9f9;
+        }
+
+        .message-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        .message-content th,
+        .message-content td {
+            border: 1px solid #e1e8ed;
+            padding: 10px;
+            text-align: left;
+        }
+        .message-content th {
+            background-color: #f7f9fc;
+            font-weight: 600;
+        }
+
+
         .message-time {
             font-size: 11px;
             opacity: 0.7;
@@ -348,6 +468,8 @@
     </div>
 
     <script>
+        mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+
         let currentSessionId = null;
 
         // Load sessions on page load
@@ -455,9 +577,9 @@
                 const messagesDiv = document.getElementById('messages');
                 messagesDiv.innerHTML = '';
 
-                messages.forEach(msg => {
-                    addMessageToUI(msg.role, msg.content, msg.timestamp);
-                });
+                for (const msg of messages) {
+                    await addMessageToUI(msg.role, msg.content, msg.timestamp);
+                }
 
                 scrollToBottom();
             } catch (error) {
@@ -477,7 +599,7 @@
             document.getElementById('send-btn').disabled = true;
 
             // Add user message to UI
-            addMessageToUI('user', message, new Date());
+            await addMessageToUI('user', message, new Date());
             input.value = '';
 
             // Show typing indicator
@@ -509,7 +631,7 @@
                 typingDiv.remove();
 
                 // Add assistant response
-                addMessageToUI('assistant', data.response, new Date());
+                await addMessageToUI('assistant', data.response, new Date());
 
                 // Reload sessions to update message count
                 loadSessions();
@@ -524,21 +646,87 @@
             }
         }
 
-        function addMessageToUI(role, content, timestamp) {
+        async function addMessageToUI(role, content, timestamp) {
             const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role}`;
 
             const time = new Date(timestamp).toLocaleTimeString();
-            messageDiv.innerHTML = `
-                <div class="message-content">
-                    ${escapeHtml(content)}
-                    <div class="message-time">${time}</div>
-                </div>
-            `;
+            let processedContent = '';
+            if (role === 'assistant') {
+                // Render Markdown for assistant messages
+                processedContent = marked.parse(content);
+            } else {
+                // Escape HTML for user messages
+                processedContent = escapeHtml(content);
+            }
 
+            const messageContentDiv = document.createElement('div');
+            messageContentDiv.className = 'message-content';
+
+            if (role === 'assistant') {
+                const copyBtn = document.createElement('div');
+                copyBtn.className = 'copy-btn';
+                copyBtn.innerHTML = '&#x1f4cb; <span>Copy</span>';
+                copyBtn.setAttribute('data-raw-content', content);
+                copyBtn.onclick = (e) => copyToClipboard(e);
+
+                const footer = document.createElement('div');
+                footer.className = 'message-footer';
+
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'message-time';
+                timeDiv.textContent = time;
+
+                footer.appendChild(timeDiv);
+                footer.appendChild(copyBtn);
+
+                messageContentDiv.innerHTML = processedContent;
+                messageContentDiv.appendChild(footer);
+
+            } else {
+                messageContentDiv.innerHTML = `
+                    ${processedContent}
+                    <div class="message-time">${time}</div>
+                `;
+            }
+
+            messageDiv.appendChild(messageContentDiv);
             messagesDiv.appendChild(messageDiv);
+
+            // Process MathJax, Mermaid, and Highlight.js
+            if (role === 'assistant') {
+                await MathJax.typesetPromise([messageDiv]);
+                try {
+                    await mermaid.run({
+                        nodes: messageDiv.querySelectorAll('.mermaid')
+                    });
+                } catch(e) {
+                    console.error("Mermaid rendering error:", e);
+                }
+                messageDiv.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }
+
             scrollToBottom();
+        }
+
+        function copyToClipboard(event) {
+            const button = event.currentTarget;
+            const rawContent = button.getAttribute('data-raw-content');
+            navigator.clipboard.writeText(rawContent).then(() => {
+                const originalText = button.innerHTML;
+                button.innerHTML = '✓ Copied!';
+                button.style.color = '#27ae60'; // Green color for success
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.color = ''; // Revert color
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+            event.stopPropagation();
         }
 
         function addErrorMessage(message) {
