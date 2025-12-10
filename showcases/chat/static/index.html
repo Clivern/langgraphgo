@@ -227,6 +227,42 @@
             overflow: hidden;
         }
 
+        /* Sidebar Footer Styles */
+        .sidebar-footer {
+            padding: 15px;
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            position: relative;
+        }
+
+        .sidebar.collapsed .sidebar-footer {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .theme-selector-sidebar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .theme-selector-sidebar:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--accent-primary);
+            transform: scale(1.1);
+        }
+
         /* Artifact placeholder button styles */
         .artifact-placeholder {
             display: inline-flex;
@@ -1246,6 +1282,119 @@
             max-width: 100%;
             height: auto;
         }
+
+        /* Settings Button and Menu */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 15px;
+        }
+
+        .settings-btn,
+        .theme-selector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .settings-btn:hover,
+        .theme-selector:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--accent-primary);
+            transform: scale(1.1);
+        }
+
+        .settings-icon,
+        .theme-icon {
+            font-size: 20px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .settings-btn:hover .settings-icon,
+        .theme-selector:hover .theme-icon {
+            opacity: 1;
+        }
+
+        /* Settings Dropdown Menu */
+        .settings-menu {
+            position: absolute;
+            bottom: 60px;
+            left: 15px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            min-width: 220px;
+            z-index: 1000;
+            padding: 10px 0;
+        }
+
+        .settings-menu-item {
+            padding: 12px 20px;
+            transition: background 0.2s;
+        }
+
+        .settings-menu-item:hover {
+            background: var(--bg-secondary);
+        }
+
+        /* Toggle Switch */
+        .settings-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .settings-label {
+            font-size: 14px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .settings-toggle input[type="checkbox"] {
+            display: none;
+        }
+
+        .toggle-slider {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: var(--text-muted);
+            border-radius: 12px;
+            transition: background 0.3s;
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.3s;
+        }
+
+        .settings-toggle input[type="checkbox"]:checked + .toggle-slider {
+            background: var(--accent-primary);
+        }
+
+        .settings-toggle input[type="checkbox"]:checked + .toggle-slider::before {
+            transform: translateX(20px);
+        }
     </style>
 </head>
 
@@ -1268,6 +1417,26 @@
             <div class="sidebar-footer">
                 <div class="theme-selector-sidebar" id="theme-selector" onclick="showThemeModal()" title="主题设置">
                     <span class="theme-icon">🎨</span>
+                </div>
+                <div class="settings-btn" id="settings-btn" onclick="toggleSettingsMenu()" title="设置">
+                    <span class="settings-icon">⚙️</span>
+                </div>
+                <!-- Settings Dropdown Menu -->
+                <div class="settings-menu" id="settings-menu" style="display: none;">
+                    <div class="settings-menu-item">
+                        <label class="settings-toggle">
+                            <span class="settings-label">启用 Skills</span>
+                            <input type="checkbox" id="user-enable-skills" checked onchange="handleSettingsChange()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="settings-menu-item">
+                        <label class="settings-toggle">
+                            <span class="settings-label">启用 MCP</span>
+                            <input type="checkbox" id="user-enable-mcp" checked onchange="handleSettingsChange()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1467,6 +1636,94 @@
             modal.classList.remove('show');
         }
 
+        // User Settings Management
+        let userSettings = {
+            enableSkills: true,
+            enableMCP: true
+        };
+
+        // Update tools icons visibility based on user settings
+        function updateToolsIconsVisibility() {
+            const skillsStatus = document.getElementById('skills-status');
+            const mcpStatus = document.getElementById('mcp-status');
+
+            if (skillsStatus) {
+                skillsStatus.style.display = userSettings.enableSkills ? 'flex' : 'none';
+            }
+            if (mcpStatus) {
+                mcpStatus.style.display = userSettings.enableMCP ? 'flex' : 'none';
+            }
+        }
+
+        // Load user settings from localStorage
+        function loadUserSettings() {
+            const saved = localStorage.getItem('userSettings');
+            if (saved) {
+                userSettings = JSON.parse(saved);
+            }
+
+            // Update checkbox states
+            const skillsCheckbox = document.getElementById('user-enable-skills');
+            const mcpCheckbox = document.getElementById('user-enable-mcp');
+
+            if (skillsCheckbox) {
+                skillsCheckbox.checked = userSettings.enableSkills;
+            }
+            if (mcpCheckbox) {
+                mcpCheckbox.checked = userSettings.enableMCP;
+            }
+
+            // Update icons visibility
+            updateToolsIconsVisibility();
+        }
+
+        // Save user settings to localStorage
+        function saveUserSettings() {
+            localStorage.setItem('userSettings', JSON.stringify(userSettings));
+            console.log('User settings saved:', userSettings);
+        }
+
+        // Toggle settings menu
+        function toggleSettingsMenu() {
+            const menu = document.getElementById('settings-menu');
+            if (menu.style.display === 'none' || menu.style.display === '') {
+                menu.style.display = 'block';
+            } else {
+                menu.style.display = 'none';
+            }
+        }
+
+        // Close settings menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const settingsBtn = document.getElementById('settings-btn');
+            const settingsMenu = document.getElementById('settings-menu');
+
+            if (settingsMenu && settingsBtn) {
+                // Check if click is outside both button and menu
+                if (!settingsBtn.contains(event.target) && !settingsMenu.contains(event.target)) {
+                    settingsMenu.style.display = 'none';
+                }
+            }
+        });
+
+        // Handle settings changes
+        function handleSettingsChange() {
+            const skillsCheckbox = document.getElementById('user-enable-skills');
+            const mcpCheckbox = document.getElementById('user-enable-mcp');
+
+            if (skillsCheckbox) {
+                userSettings.enableSkills = skillsCheckbox.checked;
+            }
+            if (mcpCheckbox) {
+                userSettings.enableMCP = mcpCheckbox.checked;
+            }
+
+            saveUserSettings();
+
+            // Update icons visibility immediately
+            updateToolsIconsVisibility();
+        }
+
         // Load chat configuration
         async function loadConfig() {
             try {
@@ -1492,6 +1749,12 @@
 
         // Initialize artifacts sidebar as collapsed by default
         document.addEventListener('DOMContentLoaded', () => {
+            // Load configuration first
+            loadConfig();
+
+            // Load user settings
+            loadUserSettings();
+
             // Apply saved theme
             applyTheme(currentTheme);
 
@@ -1714,7 +1977,11 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         session_id: currentSessionId,
-                        message: message
+                        message: message,
+                        user_settings: {
+                            enable_skills: userSettings.enableSkills,
+                            enable_mcp: userSettings.enableMCP
+                        }
                     })
                 });
 

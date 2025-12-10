@@ -86,7 +86,7 @@ type SkillInfo struct {
 
 // ChatAgent interface defines the contract for chat agents
 type ChatAgent interface {
-	Chat(ctx context.Context, message string) (string, error)
+	Chat(ctx context.Context, message string, enableSkills bool, enableMCP bool) (string, error)
 }
 
 // SimpleChatAgent manages conversation history for a session
@@ -102,7 +102,7 @@ type SimpleChatAgent struct {
 }
 
 // NewSimpleChatAgent creates a simple chat agent
-func NewSimpleChatAgent(llm llms.Model) *SimpleChatAgent {
+func NewSimpleChatAgent(llm llms.Model, config Config) *SimpleChatAgent {
 	// Add system message
 	systemMsg := llms.MessageContent{
 		Role:  llms.ChatMessageTypeSystem,
@@ -114,7 +114,7 @@ func NewSimpleChatAgent(llm llms.Model) *SimpleChatAgent {
 		messages: []llms.MessageContent{systemMsg},
 	}
 
-	// Load Skills info only (not tools yet)
+	// Try to load Skills
 	skillsDir := os.Getenv("SKILLS_DIR")
 	if skillsDir == "" {
 		skillsDir = "../../testdata/skills"
@@ -137,9 +137,11 @@ func NewSimpleChatAgent(llm llms.Model) *SimpleChatAgent {
 			log.Printf("Loaded %d skills info", len(agent.skills))
 			agent.toolsEnabled = true
 		}
+	} else {
+		log.Printf("Skills directory not found at %s", skillsDir)
 	}
 
-	// Try to initialize MCP if config is available
+	// Try to initialize MCP
 	mcpConfigPath := os.Getenv("MCP_CONFIG_PATH")
 	if mcpConfigPath == "" {
 		mcpConfigPath = "../../testdata/mcp/mcp.json"
@@ -307,7 +309,7 @@ func (a *SimpleChatAgent) GetAvailableTools() []map[string]string {
 }
 
 // Chat sends a message and returns response
-func (a *SimpleChatAgent) Chat(ctx context.Context, message string) (string, error) {
+func (a *SimpleChatAgent) Chat(ctx context.Context, message string, enableSkills bool, enableMCP bool) (string, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -323,46 +325,48 @@ func (a *SimpleChatAgent) Chat(ctx context.Context, message string) (string, err
 	var toolName string
 
 	if a.toolsEnabled {
-		// Stage 1: Select skill if needed
-		selectedSkill, err := a.selectSkillForTask(ctx, message)
-		if err != nil {
-			log.Printf("Skill selection error: %v", err)
-		} else if selectedSkill != "" {
-			// Load tools for the selected skill
-			skillTools, err := a.loadSkillTools(selectedSkill)
+		// Stage 1: Select skill if needed (only if user enables Skills)
+		if enableSkills && len(a.skills) > 0 {
+			selectedSkill, err := a.selectSkillForTask(ctx, message)
 			if err != nil {
-				log.Printf("Failed to load skill tools: %v", err)
-			} else {
-				a.selectedSkill = selectedSkill
-
-				// Stage 2: Select specific tool from the skill
-				tool, args, err := a.selectToolForTask(ctx, message, skillTools)
+				log.Printf("Skill selection error: %v", err)
+			} else if selectedSkill != "" {
+				// Load tools for the selected skill
+				skillTools, err := a.loadSkillTools(selectedSkill)
 				if err != nil {
-					log.Printf("Tool selection error: %v", err)
-				} else if tool != nil {
-					// Convert args to JSON string
-					argsJSON, _ := json.Marshal(args)
-					argsStr := string(argsJSON)
-					if argsStr == "null" {
-						argsStr = "{}"
-					}
+					log.Printf("Failed to load skill tools: %v", err)
+				} else {
+					a.selectedSkill = selectedSkill
 
-					// Call the tool
-					result, err := (*tool).Call(ctx, argsStr)
+					// Stage 2: Select specific tool from the skill
+					tool, args, err := a.selectToolForTask(ctx, message, skillTools)
 					if err != nil {
-						log.Printf("Tool %s call failed: %v", (*tool).Name(), err)
-					} else {
-						toolUsed = true
-						toolResult = result
-						toolName = (*tool).Name()
-						log.Printf("Successfully used tool '%s' from skill '%s'", (*tool).Name(), selectedSkill)
+						log.Printf("Tool selection error: %v", err)
+					} else if tool != nil {
+						// Convert args to JSON string
+						argsJSON, _ := json.Marshal(args)
+						argsStr := string(argsJSON)
+						if argsStr == "null" {
+							argsStr = "{}"
+						}
+
+						// Call the tool
+						result, err := (*tool).Call(ctx, argsStr)
+						if err != nil {
+							log.Printf("Tool %s call failed: %v", (*tool).Name(), err)
+						} else {
+							toolUsed = true
+							toolResult = result
+							toolName = (*tool).Name()
+							log.Printf("Successfully used tool '%s' from skill '%s'", (*tool).Name(), selectedSkill)
+						}
 					}
 				}
 			}
 		}
 
-		// If no skill was selected, try MCP tools
-		if !toolUsed && len(a.mcpTools) > 0 {
+		// If no skill was selected, try MCP tools (only if user enables MCP)
+		if !toolUsed && enableMCP && len(a.mcpTools) > 0 {
 			tool, args, err := a.selectToolForTask(ctx, message, a.mcpTools)
 			if err != nil {
 				log.Printf("MCP tool selection error: %v", err)
@@ -534,7 +538,7 @@ func (cs *ChatServer) getOrCreateAgent(sessionID string) (ChatAgent, error) {
 	}
 
 	// Create simple chat agent
-	agent = NewSimpleChatAgent(cs.llm)
+	agent = NewSimpleChatAgent(cs.llm, cs.config)
 	cs.agents[sessionID] = agent
 	return agent, nil
 }
@@ -714,8 +718,12 @@ func (cs *ChatServer) handleChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		SessionID string `json:"session_id"`
-		Message   string `json:"message"`
+		SessionID    string `json:"session_id"`
+		Message      string `json:"message"`
+		UserSettings struct {
+			EnableSkills bool `json:"enable_skills"`
+			EnableMCP    bool `json:"enable_mcp"`
+		} `json:"user_settings"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -757,7 +765,14 @@ func (cs *ChatServer) handleChat(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 	defer cancel()
 
-	response, err := agent.Chat(ctx, req.Message)
+	// Use user settings directly
+	enableSkills := req.UserSettings.EnableSkills
+	enableMCP := req.UserSettings.EnableMCP
+
+	log.Printf("Tool settings for session %s - Skills: %v, MCP: %v",
+		req.SessionID, enableSkills, enableMCP)
+
+	response, err := agent.Chat(ctx, req.Message, enableSkills, enableMCP)
 	if err != nil {
 		log.Printf("Chat error for session %s: %v", req.SessionID, err)
 		http.Error(w, fmt.Sprintf("Chat failed: %v", err), http.StatusInternalServerError)
@@ -935,7 +950,7 @@ func (cs *ChatServer) handleToolsHierarchical(w http.ResponseWriter, r *http.Req
 // handleConfig returns the chat configuration
 func (cs *ChatServer) handleConfig(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"chatTitle": cs.config.ChatTitle,
 	})
 }
