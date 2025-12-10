@@ -160,6 +160,16 @@ func (a *SimpleChatAgent) InitializeToolsAsync() {
 				a.toolsEnabled = true
 				a.mu.Unlock()
 				log.Printf("Loaded %d skills info", len(packages))
+
+				// Pre-warm: Load tools for all skills
+				log.Println("Pre-loading tools for all skills...")
+				for i := range a.skills {
+					skillName := a.skills[i].Name
+					if _, err := a.loadSkillTools(skillName); err != nil {
+						log.Printf("Failed to pre-load tools for skill '%s': %v", skillName, err)
+					}
+				}
+				log.Printf("Pre-loaded tools for %d skills", len(a.skills))
 			}
 		} else {
 			log.Printf("Skills directory not found at %s", skillsDir)
@@ -180,9 +190,11 @@ func (a *SimpleChatAgent) InitializeToolsAsync() {
 		a.mu.Lock()
 		a.toolsLoading = false
 		a.toolsLoaded = true
+		skillsCount := len(a.skills)
+		mcpToolsCount := len(a.mcpTools)
 		a.mu.Unlock()
 
-		log.Println("Background tools initialization complete")
+		log.Printf("✓ Tools pre-warming complete: %d Skills, %d MCP tools loaded", skillsCount, mcpToolsCount)
 	}()
 }
 
@@ -567,6 +579,14 @@ func (cs *ChatServer) getOrCreateAgent(sessionID string) (ChatAgent, error) {
 	// Double-check after acquiring write lock
 	if agent, exists := cs.agents[sessionID]; exists {
 		return agent, nil
+	}
+
+	// Try to reuse the warmup agent if available
+	if warmupAgent, exists := cs.agents["__warmup__"]; exists {
+		log.Printf("Reusing pre-warmed agent for session %s", sessionID)
+		delete(cs.agents, "__warmup__")
+		cs.agents[sessionID] = warmupAgent
+		return warmupAgent, nil
 	}
 
 	// Create simple chat agent
@@ -1072,7 +1092,7 @@ func (cs *ChatServer) Start() error {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticSubFS))))
 
 	addr := ":" + cs.port
-	log.Printf("Chat server starting on http://localhost%s", addr)
+	log.Printf("🌐 HTTP server listening on http://localhost%s", addr)
 	return http.ListenAndServe(addr, nil)
 }
 
@@ -1295,6 +1315,32 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)
 	}
+
+	// Pre-warm: Initialize tools in background before server starts
+	// This prevents the first user from experiencing slow tool loading
+	log.Println("🔄 Pre-warming tools initialization...")
+	warmupAgent := NewSimpleChatAgent(server.llm, server.config)
+	warmupAgent.InitializeToolsAsync()
+
+	// Store the warmup agent so it can be reused for the first session
+	server.agentMu.Lock()
+	server.agents["__warmup__"] = warmupAgent
+	server.agentMu.Unlock()
+
+	// Wait for tools to finish loading before starting server
+	go func() {
+		for {
+			warmupAgent.mu.RLock()
+			loaded := warmupAgent.toolsLoaded
+			warmupAgent.mu.RUnlock()
+
+			if loaded {
+				log.Printf("🚀 Server is ready! Access at http://localhost:%s", port)
+				break
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
+	}()
 
 	// Setup graceful shutdown
 	serverErr := make(chan error, 1)

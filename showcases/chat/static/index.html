@@ -5,28 +5,88 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="page-title">LangGraphGo 聊天</title>
-    <link rel="preload" href="https://cdn.bootcdn.net/ajax/libs/marked/11.1.1/marked.min.js" as="script">
-    <link rel="preload" href="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/highlight.min.js" as="script">
-    <link rel="preload" href="https://cdn.bootcdn.net/ajax/libs/mermaid/10.9.0/mermaid.min.js" as="script">
-    <link rel="preload" href="https://cdn.bootcdn.net/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" as="script">
-
-    <script src="https://cdn.bootcdn.net/ajax/libs/marked/11.1.1/marked.min.js" defer></script>
+    <!-- Load only essential CSS immediately -->
     <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/mermaid/10.9.0/mermaid.min.js" defer></script>
+
+    <!-- Lazy load heavy libraries only when needed -->
     <script>
-        MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']],
-                processEscapes: true
-            },
-            svg: {
-                fontCache: 'global'
+        // Lazy loading utilities
+        window.librariesLoading = {};
+        window.librariesLoaded = {};
+
+        function loadLibrary(name, url, onLoad) {
+            if (window.librariesLoaded[name]) {
+                if (onLoad) onLoad();
+                return Promise.resolve();
             }
+
+            if (window.librariesLoading[name]) {
+                return window.librariesLoading[name];
+            }
+
+            window.librariesLoading[name] = new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = url;
+                script.async = true;
+                script.onload = () => {
+                    window.librariesLoaded[name] = true;
+                    if (onLoad) onLoad();
+                    resolve();
+                };
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+
+            return window.librariesLoading[name];
+        }
+
+        // Load marked.js immediately (lightweight and essential)
+        loadLibrary('marked', 'https://cdn.bootcdn.net/ajax/libs/marked/11.1.1/marked.min.js');
+
+        // Load highlight.js immediately (relatively small)
+        loadLibrary('highlightjs', 'https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/highlight.min.js');
+
+        // Lazy load Mermaid (3.3MB, only when needed)
+        window.loadMermaid = function() {
+            return loadLibrary('mermaid', 'https://cdn.bootcdn.net/ajax/libs/mermaid/10.9.0/mermaid.min.js', () => {
+                if (typeof mermaid !== 'undefined') {
+                    mermaid.initialize({
+                        startOnLoad: false,
+                        theme: 'base',
+                        themeVariables: {
+                            primaryColor: 'var(--accent-primary)',
+                            primaryTextColor: 'var(--text-primary)',
+                            primaryBorderColor: 'var(--border-secondary)',
+                            lineColor: 'var(--text-secondary)',
+                            secondaryColor: 'var(--bg-tertiary)',
+                            tertiaryColor: 'var(--bg-secondary)',
+                            background: '#ffffff',
+                            mainBkg: '#ffffff',
+                            secondBkg: 'var(--bg-secondary)',
+                            tertiaryBkg: 'var(--bg-tertiary)'
+                        }
+                    });
+                }
+            });
+        };
+
+        // Lazy load MathJax (only when needed)
+        window.loadMathJax = function() {
+            if (!window.MathJax) {
+                window.MathJax = {
+                    tex: {
+                        inlineMath: [['$', '$'], ['\\(', '\\)']],
+                        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                        processEscapes: true
+                    },
+                    svg: {
+                        fontCache: 'global'
+                    }
+                };
+            }
+            return loadLibrary('mathjax', 'https://cdn.bootcdn.net/ajax/libs/mathjax/3.2.2/es5/tex-svg.js');
         };
     </script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" id="MathJax-script" defer></script>
     <link rel="stylesheet" href="/static/themes/themes.css">
     <link rel="stylesheet" href="/static/css/main.css">
 </head>
@@ -408,29 +468,6 @@
             if (mcpStatus) {
                 mcpStatus.addEventListener('click', showMCPToolsModal);
             }
-
-            // Wait for external resources to load
-            window.addEventListener('load', () => {
-                // Initialize mermaid after all resources are loaded
-                if (typeof mermaid !== 'undefined') {
-                    mermaid.initialize({
-                        startOnLoad: false,
-                        theme: 'base',
-                        themeVariables: {
-                            primaryColor: 'var(--accent-primary)',
-                            primaryTextColor: 'var(--text-primary)',
-                            primaryBorderColor: 'var(--border-secondary)',
-                            lineColor: 'var(--text-secondary)',
-                            secondaryColor: 'var(--bg-tertiary)',
-                            tertiaryColor: 'var(--bg-secondary)',
-                            background: '#ffffff',
-                            mainBkg: '#ffffff',
-                            secondBkg: 'var(--bg-secondary)',
-                            tertiaryBkg: 'var(--bg-tertiary)'
-                        }
-                    });
-                }
-            });
         });
         let sidebarCollapsed = false;
         let artifacts = new Map(); // Store artifacts by ID
@@ -741,30 +778,56 @@
 
             // Process MathJax, Mermaid, and Highlight.js
             if (role === 'assistant') {
-                await MathJax.typesetPromise([messageDiv]);
+                // Check if message contains math formulas and load MathJax if needed
+                if (processedContent.includes('$') || processedContent.includes('\\[') || processedContent.includes('\\(')) {
+                    await window.loadMathJax();
+                    if (window.MathJax && window.MathJax.typesetPromise) {
+                        try {
+                            await window.MathJax.typesetPromise([messageDiv]);
+                        } catch (e) {
+                            console.error("MathJax rendering error:", e);
+                        }
+                    }
+                }
 
-                // Process Mermaid code blocks
+                // Check if message contains Mermaid diagrams
                 const mermaidCodeBlocks = messageDiv.querySelectorAll('pre code.language-mermaid');
-                for (const codeBlock of mermaidCodeBlocks) {
-                    const code = codeBlock.textContent;
-                    const mermaidDiv = document.createElement('div');
-                    mermaidDiv.className = 'mermaid';
-                    mermaidDiv.textContent = code;
-                    codeBlock.parentNode.replaceWith(mermaidDiv);
+                if (mermaidCodeBlocks.length > 0) {
+                    await window.loadMermaid();
+
+                    for (const codeBlock of mermaidCodeBlocks) {
+                        const code = codeBlock.textContent;
+                        const mermaidDiv = document.createElement('div');
+                        mermaidDiv.className = 'mermaid';
+                        mermaidDiv.textContent = code;
+                        codeBlock.parentNode.replaceWith(mermaidDiv);
+                    }
+
+                    if (typeof mermaid !== 'undefined') {
+                        try {
+                            await mermaid.run({
+                                nodes: messageDiv.querySelectorAll('.mermaid')
+                            });
+                        } catch (e) {
+                            console.error("Mermaid rendering error:", e);
+                        }
+                    }
                 }
 
-                try {
-                    await mermaid.run({
-                        nodes: messageDiv.querySelectorAll('.mermaid')
+                // Highlight code blocks (wait for highlight.js if needed)
+                if (typeof hljs !== 'undefined') {
+                    messageDiv.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block);
                     });
-                } catch (e) {
-                    console.error("Mermaid rendering error:", e);
+                } else {
+                    // Wait for highlight.js to load
+                    await window.librariesLoading['highlightjs'];
+                    if (typeof hljs !== 'undefined') {
+                        messageDiv.querySelectorAll('pre code').forEach((block) => {
+                            hljs.highlightElement(block);
+                        });
+                    }
                 }
-
-                // Highlight code blocks (excluding mermaid which has been replaced)
-                messageDiv.querySelectorAll('pre code').forEach((block) => {
-                    hljs.highlightElement(block);
-                });
             }
 
             scrollToBottom();
