@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"crypto/md5"
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -22,6 +24,9 @@ import (
 	"github.com/tmc/langchaingo/llms/openai"
 	"github.com/tmc/langchaingo/tools"
 )
+
+//go:embed static
+var staticFS embed.FS
 
 // Config holds application configuration
 type Config struct {
@@ -581,7 +586,16 @@ func (cs *ChatServer) handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.ServeFile(w, r, "static/index.html")
+	// Read index.html from embedded filesystem
+	data, err := staticFS.ReadFile("static/index.html")
+	if err != nil {
+		http.Error(w, "Failed to load page", http.StatusInternalServerError)
+		log.Printf("Failed to read index.html: %v", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(data)
 }
 
 // handleNewSession creates a new chat session
@@ -1050,8 +1064,12 @@ func (cs *ChatServer) Start() error {
 	http.HandleFunc("/api/tools/hierarchical", cs.handleToolsHierarchical)
 	http.HandleFunc("/api/config", cs.handleConfig)
 
-	// Serve static files
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	// Serve static files from embedded filesystem
+	staticSubFS, err := fs.Sub(staticFS, "static")
+	if err != nil {
+		return fmt.Errorf("failed to create sub filesystem: %w", err)
+	}
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticSubFS))))
 
 	addr := ":" + cs.port
 	log.Printf("Chat server starting on http://localhost%s", addr)
