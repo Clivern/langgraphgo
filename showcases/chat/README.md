@@ -1,67 +1,127 @@
-# LangGraphGo Chat Agent
+# LangGraphGo Chat Application
 
-A web-based multi-session chat application with persistent local history. Supports OpenAI and OpenAI-compatible APIs (Baidu, Azure, local models, etc.).
+A sophisticated web-based multi-session chat application with AI agent integration, tool support, and persistent local storage.
 
-## Features
+## ✨ Features
 
 - 🔄 **Multi-Session Support**: Create and manage multiple independent chat sessions
-- 💾 **Persistent History**: All conversations are automatically saved to local disk
-- 🌐 **Web Interface**: Clean, modern web UI for easy interaction
-- 🤖 **Smart Chat Agent**: Lightweight chat agent with conversation history management
+- 💾 **Persistent Storage**: All conversations automatically saved to local disk
+- 🌐 **Modern Web Interface**: Clean, responsive web UI with real-time updates
+- 🤖 **AI Chat Agent**: Advanced agent with conversation history management
+- 🔧 **Tool Integration**: Support for Skills and MCP (Model Context Protocol) tools
 - 🔌 **Multi-Provider Support**: Works with OpenAI, Baidu, Azure, and any OpenAI-compatible API
-- 🎨 **Beautiful UI**: Responsive design with smooth animations
+- 🎨 **Beautiful UI**: Dark/light theme support with smooth animations
 - 📝 **Session Management**: Create, view, clear, and delete sessions
-- ⏱️ **Real-time Updates**: See message counts and timestamps
+- ⚡ **Hot Reload**: Development mode with automatic code reloading
+- 🐳 **Docker Support**: Containerized deployment ready
 
-## Architecture
+## 🏗️ Architecture
 
 ```
 showcases/chat/
-├── main.go              # HTTP server and ChatAgent integration
-├── session.go           # Session management and persistence
+├── main.go                 # Application entry point and server bootstrap
+├── pkg/                    # Go packages
+│   ├── chat/              # Chat server and agent logic
+│   │   └── chat.go        # Core chat functionality
+│   └── session/           # Session management
+│       └── session.go     # Session persistence
 ├── static/
-│   └── index.html      # Web frontend
-├── sessions/           # Local session storage (auto-created)
+│   ├── index.html        # Web frontend
+│   ├── style.css         # UI styles
+│   └── script.js         # Frontend logic
+├── sessions/             # Local session storage (auto-created)
+├── build/                # Build output directory
+├── Makefile              # Build automation
+├── Dockerfile            # Docker configuration
+├── .air.toml            # Hot reload configuration
 ├── go.mod
-├── .env                # Configuration (create from .env.example)
+├── go.sum
+├── .env                 # Configuration (create from .env.example)
 └── README.md
 ```
 
-## Quick Start
+## 🚀 Quick Start
 
-### 1. Setup
+### Option 1: Using Makefile (Recommended)
 
 ```bash
+# Clone and navigate to the project
 cd showcases/chat
+
+# Install development tools
+make setup-dev
 
 # Copy environment template
 cp .env.example .env
 
 # Edit .env and add your OpenAI API key
 # OPENAI_API_KEY=sk-...
+
+# Run with hot reload (development mode)
+make dev
+
+# Or run normally
+make run-dev
 ```
 
-### 2. Install Dependencies
+### Option 2: Standard Go Commands
 
 ```bash
-go mod tidy
-```
+cd showcases/chat
 
-### 3. Run the Server
+# Install dependencies
+go mod download
 
-```bash
-go run main.go session.go
+# Copy environment template
+cp .env.example .env
+
+# Edit .env and add your OpenAI API key
+# OPENAI_API_KEY=sk-...
+
+# Build and run
+go run main.go
 ```
 
 The server will start at `http://localhost:8080`
 
-### 4. Use the Web Interface
+## 🛠️ Development Workflow
 
-1. Open your browser to `http://localhost:8080`
-2. A session will be automatically created if none exists
-3. Start chatting immediately!
+### Using Makefile
 
-## Configuration
+```bash
+# Install development tools (air, golangci-lint, etc.)
+make setup-dev
+
+# Run with hot reload
+make dev
+
+# Run all checks (format, lint, vet, test)
+make check
+
+# Build for production
+make build
+
+# Build for all platforms
+make build-all
+```
+
+### Common Makefile Targets
+
+| Target | Description |
+|--------|-------------|
+| `make dev` | Run with hot reload |
+| `make run-dev` | Run with dev environment |
+| `make build` | Build the application |
+| `make test` | Run tests |
+| `make coverage` | Run tests with coverage |
+| `make format` | Format code |
+| `make vet` | Vet code |
+| `make lint` | Lint code |
+| `make docker-up` | Build and run Docker |
+| `make clean` | Clean build artifacts |
+| `make help` | Show all targets |
+
+## ⚙️ Configuration
 
 Environment variables (in `.env`):
 
@@ -73,9 +133,8 @@ OPENAI_API_KEY=your-api-key-here
 OPENAI_MODEL=gpt-4o-mini
 
 # Optional: Base URL for OpenAI-compatible APIs
-# Leave empty for standard OpenAI API
 # Examples:
-#   Baidu: https://your-baidu-endpoint/v1
+#   Baidu: https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions
 #   Azure: https://your-resource.openai.azure.com/
 #   Ollama: http://localhost:11434/v1
 OPENAI_BASE_URL=
@@ -88,20 +147,30 @@ SESSION_DIR=./sessions
 
 # Optional: Maximum messages per session (default: 50)
 MAX_HISTORY_SIZE=50
+
+# Optional: Skills directory (for tool integration)
+SKILLS_DIR=../../testdata/skills
+
+# Optional: MCP configuration path
+MCP_CONFIG_PATH=../../testdata/mcp/mcp.json
+
+# Optional: Chat title
+CHAT_TITLE=LangGraphGo Chat
 ```
 
-### Using Different LLM Providers
+### LLM Provider Examples
 
-**OpenAI (default)**:
+**OpenAI**:
 ```env
 OPENAI_API_KEY=sk-your-openai-key
+OPENAI_MODEL=gpt-4o
 ```
 
 **Baidu Qianfan**:
 ```env
 OPENAI_API_KEY=your-baidu-token
-OPENAI_BASE_URL=https://your-baidu-endpoint/v1
-OPENAI_MODEL=your-model-name
+OPENAI_BASE_URL=https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions
+OPENAI_MODEL=ERNIE-Bot
 ```
 
 **Azure OpenAI**:
@@ -118,22 +187,25 @@ OPENAI_BASE_URL=http://localhost:11434/v1
 OPENAI_MODEL=llama2
 ```
 
-## API Endpoints
+## 📡 API Endpoints
 
 ### Sessions
-
 - `POST /api/sessions/new` - Create a new session
 - `GET /api/sessions` - List all sessions
 - `DELETE /api/sessions/:id` - Delete a session
 - `GET /api/sessions/:id/history` - Get session messages
+- `GET /api/client-id` - Get current client ID
 
 ### Chat
-
 - `POST /api/chat` - Send a message
   ```json
   {
     "session_id": "uuid",
-    "message": "your message"
+    "message": "your message",
+    "user_settings": {
+      "enable_skills": true,
+      "enable_mcp": true
+    }
   }
   ```
   Response:
@@ -143,56 +215,111 @@ OPENAI_MODEL=llama2
   }
   ```
 
-## Features Explained
+### Tools
+- `GET /api/mcp/tools?session_id=:id` - List available MCP tools
+- `GET /api/tools/hierarchical?session_id=:id` - Get tools in hierarchical structure
+- `GET /api/config` - Get chat configuration
+
+## 🧩 Components
+
+### ChatAgent
+
+The `SimpleChatAgent` provides:
+- Automatic conversation context management
+- Tool integration (Skills and MCP)
+- Support for OpenAI-compatible APIs
+- Thread-safe conversation history
+- Asynchronous tool loading
 
 ### Session Management
 
-Each session is independent with its own:
+Each session includes:
 - Unique UUID identifier
-- Message history
-- ChatAgent instance
-- Persistent storage (JSON file)
+- Complete message history
+- Persistent JSON storage
+- Client-based isolation
+- Automatic saving and loading
 
-Sessions are automatically saved after each message and loaded on server restart.
+### Tool Integration
 
-### Chat Agent
+The application supports two types of tools:
 
-The application uses a custom `SimpleChatAgent`:
-- Maintains conversation context automatically
-- Direct LLM integration for reliability
-- System message support
-- Thread-safe conversation history
-- Works with any OpenAI-compatible API
+1. **Skills**: Pre-defined tool packages loaded from `SKILLS_DIR`
+2. **MCP Tools**: Dynamic tools from Model Context Protocol servers
 
-### Local Storage
+Tools can be enabled/disabled per session via user settings.
 
-All sessions are stored as JSON files in the `sessions/` directory:
-```
-sessions/
-├── 123e4567-e89b-12d3-a456-426614174000.json
-├── 234e5678-f90c-23e4-b567-537725285111.json
-└── ...
-```
+## 🐳 Docker Deployment
 
-Each file contains:
-- Session metadata (ID, timestamps)
-- Full message history
-- Automatically loaded on startup
+```bash
+# Build and run with Docker Compose
+make docker-up
 
-## Customization
-
-### Change the LLM Model
-
-Use environment variable:
-```env
-OPENAI_MODEL=gpt-4o
+# Or manually:
+docker build -t chat-app .
+docker run -p 8080:8080 -e OPENAI_API_KEY=your-key chat-app
 ```
 
-Or edit `main.go:99-102`.
+### Docker Compose
+
+```yaml
+version: '3.8'
+services:
+  chat:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=gpt-4o-mini
+    volumes:
+      - ./sessions:/app/sessions
+```
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+make test
+
+# Run tests with coverage
+make coverage
+
+# Run specific test
+go test ./pkg/session -v
+```
+
+## 📦 Building
+
+### Build for Current Platform
+```bash
+make build
+```
+
+### Cross-Platform Builds
+```bash
+# Build for all platforms
+make build-all
+
+# Build for specific platforms
+make build-linux
+make build-darwin
+make build-windows
+```
+
+### Release Packages
+```bash
+# Create release packages
+make release
+```
+
+Outputs will be in `build/release/`.
+
+## 🔧 Customization
 
 ### Change System Prompt
 
-Edit `main.go:27-31` in the `NewSimpleChatAgent` function:
+Edit `pkg/chat/chat.go` in the `NewSimpleChatAgent` function:
 ```go
 systemMsg := llms.MessageContent{
     Role:  llms.ChatMessageTypeSystem,
@@ -200,92 +327,111 @@ systemMsg := llms.MessageContent{
 }
 ```
 
-### Use Different LLM Provider
+### Add Custom Tools
 
-Set the base URL in `.env`:
-```env
-OPENAI_BASE_URL=https://your-provider.com/v1
-OPENAI_API_KEY=your-provider-key
-OPENAI_MODEL=your-model-name
-```
+1. Create a skill package in your skills directory
+2. Follow the skill package structure from the examples
+3. Tools will be automatically loaded
 
-## Development
+### Modify UI
+
+Edit files in `static/`:
+- `index.html` - Main HTML structure
+- `style.css` - Styles and themes
+- `script.js` - Frontend logic
+
+## 🔍 Development
 
 ### Project Structure
 
-- **main.go**: HTTP server, routing, ChatAgent management
-- **session.go**: Session persistence and history management
-- **static/index.html**: Single-page web application
-- **sessions/**: Auto-created directory for session storage
+- **main.go**: Application entry point, bootstrap, and graceful shutdown
+- **pkg/chat/**: Core chat functionality and HTTP handlers
+- **pkg/session/**: Session persistence and management
+- **static/**: Web frontend assets
+- **Makefile**: Build automation and development workflow
 
-### Testing
+### Adding Features
 
-```bash
-# Run the server
-go run main.go session.go
+1. **New API endpoints**: Add to `pkg/chat/chat.go`
+2. **New session fields**: Update `pkg/session/session.go`
+3. **Frontend changes**: Modify `static/` files
+4. **Configuration**: Add to environment variables
 
-# In another terminal, test the API
-curl -X POST http://localhost:8080/api/sessions/new
+### Code Quality
 
-curl -X POST http://localhost:8080/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"session_id":"...", "message":"Hello!"}'
-```
+The project uses:
+- `go fmt` for formatting
+- `go vet` for static analysis
+- `golangci-lint` for comprehensive linting
+- Tests for critical functionality
 
-## Troubleshooting
+Run `make check` to run all quality checks.
 
-### "OPENAI_API_KEY environment variable not set"
+## 🐛 Troubleshooting
 
-Make sure you've created `.env` file and added your API key:
+### Common Issues
+
+**"OPENAI_API_KEY environment variable not set"**
 ```bash
 cp .env.example .env
 # Edit .env and add your key
 ```
 
-### Port already in use
-
-Change the port in `.env`:
-```env
-PORT=3000
-```
-
-### Sessions not loading
-
-Check that the `sessions/` directory exists and has proper permissions:
+**Port already in use**
 ```bash
-ls -la sessions/
+PORT=3000 make run-dev
 ```
 
-## Recent Changes
+**Tools not loading**
+- Check `SKILLS_DIR` environment variable
+- Verify MCP configuration path
+- Check logs for error messages
 
-See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
+**Build errors**
+```bash
+make clean
+make deps
+make build
+```
 
-### Latest Updates (2025-12-09)
-- ✅ **Auto-create first session**: Automatically creates and selects a session when none exists
-- ✅ Fixed LLM integration with simplified SimpleChatAgent
-- ✅ Added support for OpenAI-compatible APIs (Baidu, Azure, etc.)
-- ✅ Removed clear history feature (simplified to delete only)
-- ✅ Improved error handling and logging
-- ✅ Added OPENAI_BASE_URL and OPENAI_MODEL configuration
+### Debug Mode
 
-## TODO / Future Enhancements
+Enable verbose logging:
+```env
+LOG_LEVEL=debug
+```
 
-- [ ] Add streaming support to UI
-- [ ] Export/import session functionality
-- [ ] Search across all sessions
-- [ ] Markdown rendering in messages
-- [ ] Code syntax highlighting
-- [ ] Voice input/output
-- [ ] Session tagging and organization
+## 📈 Performance
+
+- **Session Loading**: Lazy loading of session history
+- **Tool Initialization**: Asynchronous background loading
+- **Memory Management**: LRU-based session caching
+- **Concurrent Requests**: Goroutine-based request handling
+
+## 🔒 Security
+
+- No user authentication (single-user mode)
+- Local storage only (no cloud dependencies)
+- Input validation and sanitization
+- CORS configuration for API access
+
+## 🗺️ Roadmap
+
+- [ ] Streaming chat responses
 - [ ] Multi-user support with authentication
-- [ ] Tool/function calling support
+- [ ] Session export/import functionality
+- [ ] Advanced tool management UI
+- [ ] Voice input/output support
+- [ ] Plugin system for custom tools
+- [ ] Real-time collaboration features
 
-## License
+## 📄 License
 
 This project is part of LangGraphGo and follows the same license.
 
-## Learn More
+## 🔗 Learn More
 
 - [LangGraphGo Documentation](https://github.com/smallnest/langgraphgo)
-- [ChatAgent API Reference](../../prebuilt/chat_agent.go)
+- [Makefile Guide](./Makefile.README.md)
 - [LangChain Go](https://github.com/tmc/langchaingo)
+- [MCP Specification](https://modelcontextprotocol.io/)

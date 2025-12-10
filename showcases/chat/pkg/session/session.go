@@ -1,4 +1,4 @@
-package main
+package session
 
 import (
 	"encoding/json"
@@ -50,6 +50,16 @@ func NewSessionManager(sessionDir string, maxHistory int) *SessionManager {
 	sm.loadSessions()
 
 	return sm
+}
+
+// GetSessionDir returns the session directory
+func (sm *SessionManager) GetSessionDir() string {
+	return sm.sessionDir
+}
+
+// GetMaxHistory returns the maximum history length
+func (sm *SessionManager) GetMaxHistory() int {
+	return sm.maxHistory
 }
 
 // CreateSession creates a new chat session

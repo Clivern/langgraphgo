@@ -1,4 +1,4 @@
-# Makefile for LangGraphGo Chat Demo
+# Makefile for Chat Application
 
 # Go parameters
 GOCMD=go
@@ -7,182 +7,202 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
-
-# Binary names
 BINARY_NAME=chat
 BINARY_UNIX=$(BINARY_NAME)_unix
 
-# Build flags
-LDFLAGS=-ldflags "-X main.version=$(shell git describe --tags --always --dirty 2>/dev/null || echo 'dev')"
+# Build settings
+BUILD_DIR=build
+LDFLAGS=-ldflags "-X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME)"
+VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+BUILD_TIME=$(shell date +%Y-%m-%dT%H:%M:%S)
 
-.PHONY: all build clean test coverage deps help run docker-build docker-run format lint install
+# Directories
+PKG_DIR=pkg
+CMD_DIR=.
 
-# Main targets
-all: build
+# Docker settings
+DOCKER_IMAGE=chat-app
+DOCKER_TAG=latest
+
+.PHONY: all build clean test coverage deps run docker-build docker-run help install format lint vet check
+
+# Default target
+all: clean deps lint vet test build
 
 # Build the application
 build:
-	$(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME) -v .
+	@echo "Building $(BINARY_NAME)..."
+	@mkdir -p $(BUILD_DIR)
+	$(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) -v ./$(CMD_DIR)
 
 # Build for Linux
 build-linux:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BINARY_UNIX) -v .
+	@echo "Building $(BINARY_UNIX) for Linux..."
+	@mkdir -p $(BUILD_DIR)
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_UNIX) -v ./$(CMD_DIR)
+
+# Build for multiple platforms
+build-all:
+	@echo "Building for multiple platforms..."
+	@mkdir -p $(BUILD_DIR)
+
+	# Linux AMD64
+	@echo "Building for linux/amd64..."
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 -v ./$(CMD_DIR)
+
+	# Linux ARM64
+	@echo "Building for linux/arm64..."
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm64 -v ./$(CMD_DIR)
+
+	# macOS AMD64
+	@echo "Building for darwin/amd64..."
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 -v ./$(CMD_DIR)
+
+	# macOS ARM64 (Apple Silicon)
+	@echo "Building for darwin/arm64..."
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 -v ./$(CMD_DIR)
+
+	# Windows AMD64
+	@echo "Building for windows/amd64..."
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe -v ./$(CMD_DIR)
 
 # Clean build artifacts
 clean:
+	@echo "Cleaning..."
 	$(GOCLEAN)
-	rm -f $(BINARY_NAME)
-	rm -f $(BINARY_UNIX)
-	rm -f coverage.out
+	@rm -rf $(BUILD_DIR)
+	@rm -f $(BINARY_NAME)
+	@rm -f $(BINARY_UNIX)
 
 # Run tests
 test:
+	@echo "Running tests..."
 	$(GOTEST) -v ./...
 
 # Run tests with coverage
 coverage:
+	@echo "Running tests with coverage..."
 	$(GOTEST) -v -coverprofile=coverage.out ./...
-	$(GOCMD) tool cover -html=coverage.out
+	$(GOCMD) tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
 
 # Download dependencies
 deps:
+	@echo "Downloading dependencies..."
 	$(GOMOD) download
 	$(GOMOD) tidy
 
-# Format code
-format:
-	$(GOCMD) fmt ./...
+# Run the application
+run:
+	@echo "Running $(BINARY_NAME)..."
+	$(GOBUILD) -o $(BINARY_NAME) -v ./$(CMD_DIR)
+	./$(BINARY_NAME)
 
-# Lint code (requires golangci-lint)
-lint:
-	golangci-lint run
+# Run with environment variables
+run-dev:
+	@echo "Running $(BINARY_NAME) in development mode..."
+	PORT=8080 SESSION_DIR=./sessions MAX_HISTORY_SIZE=50 SKILLS_DIR=../../testdata/skills MCP_CONFIG_PATH=../../testdata/mcp/mcp.json $(GOBUILD) -o $(BINARY_NAME) -v ./$(CMD_DIR) && ./$(BINARY_NAME)
 
 # Install the application
 install: build
-	cp $(BINARY_NAME) $(GOPATH)/bin/
+	@echo "Installing $(BINARY_NAME)..."
+	@cp $(BUILD_DIR)/$(BINARY_NAME) $(GOPATH)/bin/
 
-# Run the application
-run:
-	$(GOBUILD) -o $(BINARY_NAME) -v .
-	./$(BINARY_NAME)
+# Format code
+format:
+	@echo "Formatting code..."
+	$(GOCMD) fmt ./...
 
-# Run with environment file
-run-env:
-	$(GOBUILD) -o $(BINARY_NAME) -v .
-	./$(BINARY_NAME) --env .env
+# Lint code
+lint:
+	@echo "Linting code..."
+	@which golangci-lint > /dev/null || (echo "golangci-lint not installed. Install with: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b \$$(go env GOPATH)/bin v1.54.2" && exit 1)
+	golangci-lint run
 
-# Development mode with hot reload (requires air)
-dev:
-	air -c .air.toml
+# Vet code
+vet:
+	@echo "Vetting code..."
+	$(GOCMD) vet ./...
 
-# Docker build
-docker-build:
-	docker build -t langgraphgo-chat:latest .
-
-# Docker run
-docker-run:
-	docker run -p 8080:8080 --env-file .env langgraphgo-chat:latest
-
-# Production build
-prod-build:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -a -installsuffix cgo $(LDFLAGS) -o $(BINARY_UNIX) .
-
-# Check for required tools
-check-tools:
-	@command -v go >/dev/null 2>&1 || { echo "Go is required but not installed. Aborting." >&2; exit 1; }
-	@command -v git >/dev/null 2>&1 || { echo "Git is required but not installed. Aborting." >&2; exit 1; }
-
-# Create environment file template
-init-env:
-	@if [ ! -f .env ]; then \
-		cp .env.example .env; \
-		echo "Created .env file from .env.example"; \
-		echo "Please edit .env file with your configuration"; \
-	else \
-		echo ".env file already exists"; \
-	fi
-
-# Create session directory
-init-dirs:
-	@mkdir -p sessions/clients
-	@echo "Created session directories"
-
-# Setup development environment
-setup: check-tools init-env init-dirs deps
-	@echo "Development environment setup complete"
+# Run all checks (format, vet, lint, test)
+check: format vet lint test
 
 # Generate documentation
 docs:
-	godoc -http=:6060
+	@echo "Generating documentation..."
+	@mkdir -p docs
+	@which godoc > /dev/null || (echo "godoc not installed. Install with: go install golang.org/x/tools/cmd/godoc@latest" && exit 1)
+	godoc -http=:6060 &
+	@echo "Documentation available at http://localhost:6060"
 
-# Pre-commit hook
-pre-commit: format lint test
-	@echo "Pre-commit checks passed"
+# Build Docker image
+docker-build:
+	@echo "Building Docker image..."
+	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
 
-# Watch for changes and rebuild (requires fswatch)
-watch:
-	fswatch -o . | xargs -n1 -I {} make build
+# Run Docker container
+docker-run:
+	@echo "Running Docker container..."
+	docker run -p 8080:8080 -e PORT=8080 -e SESSION_DIR=/app/sessions -v $(PWD)/sessions:/app/sessions $(DOCKER_IMAGE):$(DOCKER_TAG)
 
-# Install development tools
-install-tools:
-	go install github.com/cosmtrek/air@latest
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	go install github.com/securecodewarrior/golangci-gosec/v2/cmd/gosec@latest
+# Docker build and run
+docker-up: docker-build docker-run
 
-# Security scan
-security:
-	gosec ./...
+# Stop running containers
+docker-stop:
+	@echo "Stopping Docker containers..."
+	docker stop $$(docker ps -q --filter ancestor=$(DOCKER_IMAGE)) || true
+	docker rm $$(docker ps -aq --filter ancestor=$(DOCKER_IMAGE)) || true
 
-# Benchmark
-bench:
-	$(GOTEST) -bench=. -benchmem
+# Development setup (install tools)
+setup-dev:
+	@echo "Setting up development environment..."
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@go install golang.org/x/tools/cmd/godoc@latest
+	@go install github.com/air-verse/air@latest
+	@echo "Development tools installed. Use 'make dev' for hot reload."
 
-# Update dependencies
-update-deps:
-	$(GOGET) -u ./...
-	$(GOMOD) tidy
+# Development with hot reload
+dev:
+	@echo "Starting development server with hot reload..."
+	@which air > /dev/null || (echo "air not installed. Run 'make setup-dev' first." && exit 1)
+	air
 
-# Verify dependencies
-verify-deps:
-	$(GOMOD) verify
+# Create release package
+release: clean test build-all
+	@echo "Creating release package..."
+	@mkdir -p $(BUILD_DIR)/release
+	@cd $(BUILD_DIR) && tar -czf release/$(BINARY_NAME)-$(VERSION)-linux-amd64.tar.gz $(BINARY_NAME)-linux-amd64
+	@cd $(BUILD_DIR) && tar -czf release/$(BINARY_NAME)-$(VERSION)-linux-arm64.tar.gz $(BINARY_NAME)-linux-arm64
+	@cd $(BUILD_DIR) && tar -czf release/$(BINARY_NAME)-$(VERSION)-darwin-amd64.tar.gz $(BINARY_NAME)-darwin-amd64
+	@cd $(BUILD_DIR) && tar -czf release/$(BINARY_NAME)-$(VERSION)-darwin-arm64.tar.gz $(BINARY_NAME)-darwin-arm64
+	@cd $(BUILD_DIR) && zip -q release/$(BINARY_NAME)-$(VERSION)-windows-amd64.zip $(BINARY_NAME)-windows-amd64.exe
+	@echo "Release packages created in $(BUILD_DIR)/release/"
 
-# Build with race detector
-build-race:
-	$(GOBUILD) -race $(LDFLAGS) -o $(BINARY_NAME)_race -v .
-
-# Run with race detector
-run-race: build-race
-	./$(BINARY_NAME)_race
-
-# Profile with pprof
-profile:
-	$(GOBUILD) -o $(BINARY_NAME)_prof -v .
-	./$(BINARY_NAME)_prof -cpuprofile=cpu.prof -memprofile=mem.prof
-
-# Analyze profile
-analyze-profile:
-	$(GOCMD) tool pprof cpu.prof
-	$(GOCMD) tool pprof mem.prof
-
-# Help target
+# Show help
 help:
 	@echo "Available targets:"
-	@echo "  build           - Build the application (with MCP support if available)"
-	@echo "  build-linux     - Build for Linux (with MCP support if available)"
-	@echo "  clean           - Clean build artifacts"
-	@echo "  test            - Run tests"
-	@echo "  coverage        - Run tests with coverage"
-	@echo "  deps            - Download dependencies"
-	@echo "  format          - Format code"
-	@echo "  lint            - Lint code"
-	@echo "  install         - Install the application"
-	@echo "  run             - Run the application"
-	@echo "  dev             - Development mode with hot reload"
-	@echo "  docker-build    - Build Docker image"
-	@echo "  docker-run      - Run Docker container"
-	@echo "  setup           - Setup development environment"
-	@echo "  help            - Show this help message"
-	@echo ""
-	@echo "MCP Configuration:"
-	@echo "  Set MCP_CONFIG_PATH environment variable to specify MCP config file"
-	@echo "  Default: testdata/mcp/mcp.json"
+	@echo "  all          - Clean, deps, lint, vet, test, and build"
+	@echo "  build        - Build the application"
+	@echo "  build-linux  - Build for Linux"
+	@echo "  build-all    - Build for multiple platforms"
+	@echo "  clean        - Clean build artifacts"
+	@echo "  test         - Run tests"
+	@echo "  coverage     - Run tests with coverage report"
+	@echo "  deps         - Download dependencies"
+	@echo "  run          - Build and run the application"
+	@echo "  run-dev      - Run with development environment variables"
+	@echo "  install      - Install the application"
+	@echo "  format       - Format code"
+	@echo "  lint         - Lint code"
+	@echo "  vet          - Vet code"
+	@echo "  check        - Run all checks (format, vet, lint, test)"
+	@echo "  docs         - Generate and serve documentation"
+	@echo "  docker-build - Build Docker image"
+	@echo "  docker-run   - Run Docker container"
+	@echo "  docker-up    - Build and run Docker"
+	@echo "  docker-stop  - Stop Docker containers"
+	@echo "  setup-dev    - Install development tools"
+	@echo "  dev          - Run with hot reload"
+	@echo "  release      - Create release packages"
+	@echo "  help         - Show this help message"
