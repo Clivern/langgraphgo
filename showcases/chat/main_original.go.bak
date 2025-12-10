@@ -14,21 +14,10 @@ import (
 
 	mcpclient "github.com/smallnest/goskills/mcp"
 	"github.com/smallnest/langgraphgo/adapter/mcp"
-	adaptergoskills "github.com/smallnest/langgraphgo/adapter/goskills"
-	"github.com/smallnest/goskills"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/openai"
 	"github.com/tmc/langchaingo/tools"
 )
-
-// SkillInfo stores basic info about a skill
-type SkillInfo struct {
-	Name        string
-	Description string
-	Package     *goskills.SkillPackage
-	Tools       []tools.Tool // Cached tools for the skill
-	Loaded      bool         // Whether tools have been loaded
-}
 
 // ChatAgent interface defines the contract for chat agents
 type ChatAgent interface {
@@ -37,14 +26,12 @@ type ChatAgent interface {
 
 // SimpleChatAgent manages conversation history for a session
 type SimpleChatAgent struct {
-	llm           llms.Model
-	messages      []llms.MessageContent
-	mu            sync.RWMutex
-	mcpClient     *mcpclient.Client
-	mcpTools      []tools.Tool
-	skills        []SkillInfo
-	selectedSkill string // Currently selected skill name
-	toolsEnabled  bool
+	llm          llms.Model
+	messages     []llms.MessageContent
+	mu           sync.RWMutex
+	mcpClient    *mcpclient.Client
+	mcpTools     []tools.Tool
+	toolsEnabled bool
 }
 
 // NewSimpleChatAgent creates a simple chat agent
@@ -58,31 +45,6 @@ func NewSimpleChatAgent(llm llms.Model) *SimpleChatAgent {
 	agent := &SimpleChatAgent{
 		llm:      llm,
 		messages: []llms.MessageContent{systemMsg},
-	}
-
-	// Load Skills info only (not tools yet)
-	skillsDir := os.Getenv("SKILLS_DIR")
-	if skillsDir == "" {
-		skillsDir = "../../testdata/skills"
-	}
-
-	if _, err := os.Stat(skillsDir); err == nil {
-		packages, err := goskills.ParseSkillPackages(skillsDir)
-		if err != nil {
-			log.Printf("Failed to parse skills packages: %v", err)
-		} else {
-			for _, skill := range packages {
-				// Store skill info without converting to tools yet
-				agent.skills = append(agent.skills, SkillInfo{
-					Name:        skill.Meta.Name,
-					Description: skill.Meta.Description,
-					Package:     skill,
-					Loaded:      false,
-				})
-			}
-			log.Printf("Loaded %d skills info", len(agent.skills))
-			agent.toolsEnabled = true
-		}
 	}
 
 	// Try to initialize MCP if config is available
@@ -133,28 +95,15 @@ func (a *SimpleChatAgent) getToolsInfo() string {
 	return info.String()
 }
 
-// GetAvailableTools returns the list of available skills and MCP tools
+// GetAvailableTools returns the list of available tools
 func (a *SimpleChatAgent) GetAvailableTools() []map[string]string {
 	var tools []map[string]string
-
-	// Add MCP tools
 	for _, tool := range a.mcpTools {
 		tools = append(tools, map[string]string{
 			"name":        tool.Name(),
 			"description": tool.Description(),
-			"type":        "mcp",
 		})
 	}
-
-	// Add skills (not loaded as tools yet)
-	for _, skill := range a.skills {
-		tools = append(tools, map[string]string{
-			"name":        skill.Name,
-			"description": skill.Description,
-			"type":        "skill",
-		})
-	}
-
 	return tools
 }
 
@@ -170,85 +119,99 @@ func (a *SimpleChatAgent) Chat(ctx context.Context, message string) (string, err
 	}
 	a.messages = append(a.messages, userMsg)
 
+	// If tools are enabled, try to use them intelligently
 	toolUsed := false
-	var toolResult string
-	var toolName string
+	if a.toolsEnabled && len(a.mcpTools) > 0 {
+		// Create a prompt to help LLM decide if and which tool to use
+		toolsInfo := a.getToolsInfo()
+		toolDecisionPrompt := fmt.Sprintf(`Based on the user's message, determine if any of the available tools should be used.
 
-	if a.toolsEnabled {
-		// Stage 1: Select skill if needed
-		selectedSkill, err := a.selectSkillForTask(ctx, message)
-		if err != nil {
-			log.Printf("Skill selection error: %v", err)
-		} else if selectedSkill != "" {
-			// Load tools for the selected skill
-			skillTools, err := a.loadSkillTools(selectedSkill)
-			if err != nil {
-				log.Printf("Failed to load skill tools: %v", err)
+Available tools:
+%s
+
+User message: %s
+
+Respond with a JSON object:
+- If no tool is needed: {"use_tool": false, "reason": "reason why no tool is needed"}
+- If a tool is needed: {"use_tool": true, "tool_name": "exact tool name", "args": {param: "value"}, "reason": "why this tool is appropriate"}
+
+Only use tools that are directly relevant to the user's request.
+
+IMPORTANT: Return ONLY valid JSON. 
+- Do NOT use markdown code fences (`+"```"+`)
+- Do NOT use `+"```"+`json wrapper
+- Return raw JSON object directly
+- No additional formatting or explanations
+`, toolsInfo, message)
+
+		// Create a temporary LLM call for tool decision
+		tempMsg := []llms.MessageContent{
+			{Role: llms.ChatMessageTypeSystem, Parts: []llms.ContentPart{llms.TextPart("You are a helpful assistant that decides when to use tools. Respond only with valid JSON.")}},
+			{Role: llms.ChatMessageTypeHuman, Parts: []llms.ContentPart{llms.TextPart(toolDecisionPrompt)}},
+		}
+
+		decisionResp, err := a.llm.GenerateContent(ctx, tempMsg)
+		if err == nil && len(decisionResp.Choices) > 0 {
+			decision := decisionResp.Choices[0].Content
+			log.Printf("LLM tool decision: %s", decision)
+
+			// Clean up the decision - remove markdown code block markers if present
+			cleanDecision := strings.TrimSpace(decision)
+			if strings.HasPrefix(cleanDecision, "```json") {
+				cleanDecision = strings.TrimPrefix(cleanDecision, "```json")
+				cleanDecision = strings.TrimSuffix(cleanDecision, "```")
+				cleanDecision = strings.TrimSpace(cleanDecision)
+			} else if strings.HasPrefix(cleanDecision, "```") {
+				cleanDecision = strings.TrimPrefix(cleanDecision, "```")
+				cleanDecision = strings.TrimSuffix(cleanDecision, "```")
+				cleanDecision = strings.TrimSpace(cleanDecision)
+			}
+
+			// Try to parse the decision
+			var decisionData struct {
+				UseTool  bool            `json:"use_tool"`
+				ToolName string          `json:"tool_name"`
+				Args     json.RawMessage `json:"args"`
+				Reason   string          `json:"reason"`
+			}
+
+			err = json.Unmarshal([]byte(cleanDecision), &decisionData)
+			if err == nil && decisionData.UseTool {
+				// Find the tool
+				for _, tool := range a.mcpTools {
+					if strings.EqualFold(tool.Name(), decisionData.ToolName) {
+						// Prepare arguments
+						var argsStr string
+						if len(decisionData.Args) > 0 {
+							argsStr = string(decisionData.Args)
+						} else {
+							argsStr = "{}"
+						}
+
+						// Call the tool
+						result, err := tool.Call(ctx, argsStr)
+						if err != nil {
+							log.Printf("Tool %s call failed: %v", tool.Name(), err)
+						} else {
+							toolUsed = true
+							log.Printf("Successfully called tool %s with args: %s", tool.Name(), argsStr)
+
+							// Add tool call and result to conversation
+							toolCallMsg := llms.MessageContent{
+								Role: llms.ChatMessageTypeSystem,
+								Parts: []llms.ContentPart{
+									llms.TextPart(fmt.Sprintf("I used the %s tool because: %s\n\nTool result: %s", tool.Name(), decisionData.Reason, result)),
+								},
+							}
+							a.messages = append(a.messages, toolCallMsg)
+						}
+						break
+					}
+				}
 			} else {
-				a.selectedSkill = selectedSkill
-
-				// Stage 2: Select specific tool from the skill
-				tool, args, err := a.selectToolForTask(ctx, message, skillTools)
-				if err != nil {
-					log.Printf("Tool selection error: %v", err)
-				} else if tool != nil {
-					// Convert args to JSON string
-					argsJSON, _ := json.Marshal(args)
-					argsStr := string(argsJSON)
-					if argsStr == "null" {
-						argsStr = "{}"
-					}
-
-					// Call the tool
-					result, err := (*tool).Call(ctx, argsStr)
-					if err != nil {
-						log.Printf("Tool %s call failed: %v", (*tool).Name(), err)
-					} else {
-						toolUsed = true
-						toolResult = result
-						toolName = (*tool).Name()
-						log.Printf("Successfully used tool '%s' from skill '%s'", (*tool).Name(), selectedSkill)
-					}
-				}
+				log.Printf("failed to unmarshal decision: %v", err)
 			}
 		}
-
-		// If no skill was selected, try MCP tools
-		if !toolUsed && len(a.mcpTools) > 0 {
-			tool, args, err := a.selectToolForTask(ctx, message, a.mcpTools)
-			if err != nil {
-				log.Printf("MCP tool selection error: %v", err)
-			} else if tool != nil {
-				// Convert args to JSON string
-				argsJSON, _ := json.Marshal(args)
-				argsStr := string(argsJSON)
-				if argsStr == "null" {
-					argsStr = "{}"
-				}
-
-				// Call the tool
-				result, err := (*tool).Call(ctx, argsStr)
-				if err != nil {
-					log.Printf("MCP tool %s call failed: %v", (*tool).Name(), err)
-				} else {
-					toolUsed = true
-					toolResult = result
-					toolName = (*tool).Name()
-					log.Printf("Successfully used MCP tool '%s'", (*tool).Name())
-				}
-			}
-		}
-	}
-
-	// Add tool result to conversation if a tool was used
-	if toolUsed && toolResult != "" {
-		toolMsg := llms.MessageContent{
-			Role: llms.ChatMessageTypeSystem,
-			Parts: []llms.ContentPart{
-				llms.TextPart(fmt.Sprintf("I used the '%s' tool to help with your request. Here's the result:\n\n%s", toolName, toolResult)),
-			},
-		}
-		a.messages = append(a.messages, toolMsg)
 	}
 
 	// Call LLM with full history
@@ -261,6 +224,11 @@ func (a *SimpleChatAgent) Chat(ctx context.Context, message string) (string, err
 	var responseText string
 	if response != nil && len(response.Choices) > 0 {
 		responseText = response.Choices[0].Content
+	}
+
+	// If a tool was used, prepend that information to the response
+	if toolUsed {
+		responseText = fmt.Sprintf("I used a tool to help with your request. %s", responseText)
 	}
 
 	// Add assistant response to history
@@ -692,203 +660,6 @@ func (cs *ChatServer) Start() error {
 	addr := ":" + cs.port
 	log.Printf("Chat server starting on http://localhost%s", addr)
 	return http.ListenAndServe(addr, nil)
-}
-
-// getSkillsOverview returns a formatted string of available skills (name and description only)
-func (a *SimpleChatAgent) getSkillsOverview() string {
-	if len(a.skills) == 0 {
-		return ""
-	}
-
-	var info strings.Builder
-	info.WriteString("Available Skills:\n\n")
-
-	for _, skill := range a.skills {
-		info.WriteString(fmt.Sprintf("- %s: %s\n", skill.Name, skill.Description))
-	}
-
-	return info.String()
-}
-
-// loadSkillTools loads and caches tools for a specific skill
-func (a *SimpleChatAgent) loadSkillTools(skillName string) ([]tools.Tool, error) {
-	// Find the skill
-	for i := range a.skills {
-		if strings.EqualFold(a.skills[i].Name, skillName) {
-			if !a.skills[i].Loaded {
-				// Convert skill to tools
-				skillTools, err := adaptergoskills.SkillsToTools(*a.skills[i].Package)
-				if err != nil {
-					return nil, fmt.Errorf("failed to convert skill '%s' to tools: %w", skillName, err)
-				}
-				a.skills[i].Tools = skillTools
-				a.skills[i].Loaded = true
-				log.Printf("Loaded %d tools from skill '%s'", len(skillTools), skillName)
-			}
-			return a.skills[i].Tools, nil
-		}
-	}
-	return nil, fmt.Errorf("skill '%s' not found", skillName)
-}
-
-// selectSkillForTask uses LLM to determine which skill (if any) should be used for the task
-func (a *SimpleChatAgent) selectSkillForTask(ctx context.Context, message string) (string, error) {
-	if len(a.skills) == 0 {
-		return "", nil // No skills available
-	}
-
-	skillsOverview := a.getSkillsOverview()
-
-	skillPrompt := fmt.Sprintf(`Based on the user's message, determine if any of the available skills should be used to help with this task.
-
-%s
-
-User message: %s
-
-Respond with a JSON object:
-- If no skill is needed: {"use_skill": false, "reason": "reason why no skill is needed"}
-- If a skill is needed: {"use_skill": true, "skill_name": "exact skill name", "reason": "why this skill is appropriate"}
-
-IMPORTANT:
-- Return ONLY valid JSON
-- Do NOT use markdown code fences
-- Do NOT use ` + "```json" + ` wrapper
-- Choose the skill that best matches the user's needs`, skillsOverview, message)
-
-	// Create LLM call for skill selection
-	skillMsg := []llms.MessageContent{
-		{Role: llms.ChatMessageTypeSystem, Parts: []llms.ContentPart{llms.TextPart("You are a helpful assistant that selects appropriate skills for tasks. Respond only with valid JSON.")}},
-		{Role: llms.ChatMessageTypeHuman, Parts: []llms.ContentPart{llms.TextPart(skillPrompt)}},
-	}
-
-	response, err := a.llm.GenerateContent(ctx, skillMsg)
-	if err != nil {
-		return "", fmt.Errorf("LLM call failed for skill selection: %w", err)
-	}
-
-	if len(response.Choices) == 0 {
-		return "", fmt.Errorf("no response from LLM")
-	}
-
-	decision := response.Choices[0].Content
-	log.Printf("Skill selection decision: %s", decision)
-
-	// Clean up the decision
-	cleanDecision := strings.TrimSpace(decision)
-	if strings.HasPrefix(cleanDecision, "```json") {
-		cleanDecision = strings.TrimPrefix(cleanDecision, "```json")
-		cleanDecision = strings.TrimSuffix(cleanDecision, "```")
-		cleanDecision = strings.TrimSpace(cleanDecision)
-	} else if strings.HasPrefix(cleanDecision, "```") {
-		cleanDecision = strings.TrimPrefix(cleanDecision, "```")
-		cleanDecision = strings.TrimSuffix(cleanDecision, "```")
-		cleanDecision = strings.TrimSpace(cleanDecision)
-	}
-
-	// Parse the decision
-	var skillDecision struct {
-		UseSkill  bool   `json:"use_skill"`
-		SkillName string `json:"skill_name"`
-		Reason    string `json:"reason"`
-	}
-
-	if err := json.Unmarshal([]byte(cleanDecision), &skillDecision); err != nil {
-		return "", fmt.Errorf("failed to parse skill decision: %w", err)
-	}
-
-	if skillDecision.UseSkill {
-		log.Printf("Selected skill '%s' because: %s", skillDecision.SkillName, skillDecision.Reason)
-		return skillDecision.SkillName, nil
-	}
-
-	log.Printf("No skill selected: %s", skillDecision.Reason)
-	return "", nil
-}
-
-// selectToolForTask uses LLM to determine which tool should be used
-func (a *SimpleChatAgent) selectToolForTask(ctx context.Context, message string, availableTools []tools.Tool) (*tools.Tool, map[string]interface{}, error) {
-	if len(availableTools) == 0 {
-		return nil, nil, nil // No tools available
-	}
-
-	// Build tools info
-	var toolsInfo strings.Builder
-	for _, tool := range availableTools {
-		toolsInfo.WriteString(fmt.Sprintf("- %s: %s\n", tool.Name(), tool.Description()))
-	}
-
-	toolPrompt := fmt.Sprintf(`Based on the user's message, determine which tool should be used.
-
-Available tools:
-%s
-
-User message: %s
-
-Respond with a JSON object:
-- If no tool is needed: {"use_tool": false, "reason": "reason why no tool is needed"}
-- If a tool is needed: {"use_tool": true, "tool_name": "exact tool name", "args": {parameter: "value"}, "reason": "why this tool is appropriate"}
-
-IMPORTANT:
-- Return ONLY valid JSON
-- Do NOT use markdown code fences
-- Do NOT use ` + "```json" + ` wrapper
-- Select the tool that can best accomplish the user's request`, toolsInfo, message)
-
-	// Create LLM call for tool selection
-	toolMsg := []llms.MessageContent{
-		{Role: llms.ChatMessageTypeSystem, Parts: []llms.ContentPart{llms.TextPart("You are a helpful assistant that selects appropriate tools for tasks. Respond only with valid JSON.")}},
-		{Role: llms.ChatMessageTypeHuman, Parts: []llms.ContentPart{llms.TextPart(toolPrompt)}},
-	}
-
-	response, err := a.llm.GenerateContent(ctx, toolMsg)
-	if err != nil {
-		return nil, nil, fmt.Errorf("LLM call failed for tool selection: %w", err)
-	}
-
-	if len(response.Choices) == 0 {
-		return nil, nil, fmt.Errorf("no response from LLM")
-	}
-
-	decision := response.Choices[0].Content
-	log.Printf("Tool selection decision: %s", decision)
-
-	// Clean up the decision
-	cleanDecision := strings.TrimSpace(decision)
-	if strings.HasPrefix(cleanDecision, "```json") {
-		cleanDecision = strings.TrimPrefix(cleanDecision, "```json")
-		cleanDecision = strings.TrimSuffix(cleanDecision, "```")
-		cleanDecision = strings.TrimSpace(cleanDecision)
-	} else if strings.HasPrefix(cleanDecision, "```") {
-		cleanDecision = strings.TrimPrefix(cleanDecision, "```")
-		cleanDecision = strings.TrimSuffix(cleanDecision, "```")
-		cleanDecision = strings.TrimSpace(cleanDecision)
-	}
-
-	// Parse the decision
-	var toolDecision struct {
-		UseTool  bool                   `json:"use_tool"`
-		ToolName string                 `json:"tool_name"`
-		Args     map[string]interface{} `json:"args"`
-		Reason   string                 `json:"reason"`
-	}
-
-	if err := json.Unmarshal([]byte(cleanDecision), &toolDecision); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse tool decision: %w", err)
-	}
-
-	if toolDecision.UseTool {
-		// Find the selected tool
-		for _, tool := range availableTools {
-			if strings.EqualFold(tool.Name(), toolDecision.ToolName) {
-				log.Printf("Selected tool '%s' because: %s", toolDecision.ToolName, toolDecision.Reason)
-				return &tool, toolDecision.Args, nil
-			}
-		}
-		return nil, nil, fmt.Errorf("tool '%s' not found in available tools", toolDecision.ToolName)
-	}
-
-	log.Printf("No tool selected: %s", toolDecision.Reason)
-	return nil, nil, nil
 }
 
 func main() {

@@ -537,12 +537,13 @@
             max-height: calc(80vh - 80px);
         }
 
-        .mcp-tools-list {
+        
+        .tools-list {
             display: grid;
-            gap: 15px;
+            gap: 12px;
         }
 
-        .mcp-tool-item {
+        .tool-item {
             padding: 15px;
             background: #f8fafc;
             border: 1px solid #e2e8f0;
@@ -550,30 +551,43 @@
             transition: all 0.2s;
         }
 
-        .mcp-tool-item:hover {
+        .tool-item:hover {
             background: #f0fdf4;
             border-color: #10b981;
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
         }
 
-        .mcp-tool-name {
+        .tool-name {
             font-weight: 600;
             color: #2c3e50;
             margin-bottom: 8px;
             font-size: 16px;
         }
 
-        .mcp-tool-description {
+        .tool-description {
             color: #64748b;
             font-size: 14px;
             line-height: 1.5;
         }
 
-        .mcp-no-tools {
+        .tool-type {
+            font-size: 12px;
+            color: #64748b;
+            background: #e2e8f0;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+            display: inline-block;
+        }
+
+        .no-tools {
             text-align: center;
             color: #94a3b8;
             padding: 40px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px dashed #e2e8f0;
         }
 
         @keyframes slideUp {
@@ -638,6 +652,53 @@
             display: flex;
             align-items: center;
             gap: 15px;
+        }
+
+        .tools-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .skills-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #fefce8;
+            border: 1px solid #fbbf24;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .skills-status:hover {
+            background: #fef3c7;
+            border-color: #f59e0b;
+        }
+
+        .skills-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #f59e0b;
+            animation: pulse 2s infinite;
+        }
+
+        .skills-indicator.disabled {
+            background: #94a3b8;
+            animation: none;
+        }
+
+        .skills-text {
+            font-size: 12px;
+            font-weight: 600;
+            color: #92400e;
+        }
+
+        .skills-status:hover .skills-text {
+            color: #f59e0b;
         }
 
         .mcp-status {
@@ -1095,9 +1156,15 @@
                     <div class="status" id="status">选择或创建一个会话</div>
                 </div>
                 <div class="chat-header-right">
-                    <div class="mcp-status" id="mcp-status" title="MCP 工具状态">
-                        <span class="mcp-indicator" id="mcp-indicator"></span>
-                        <span class="mcp-text" id="mcp-text">MCP</span>
+                    <div class="tools-status">
+                        <div class="skills-status" id="skills-status" title="Skills 状态">
+                            <span class="skills-indicator" id="skills-indicator"></span>
+                            <span class="skills-text" id="skills-text">Skills</span>
+                        </div>
+                        <div class="mcp-status" id="mcp-status" title="MCP 工具状态">
+                            <span class="mcp-indicator" id="mcp-indicator"></span>
+                            <span class="mcp-text" id="mcp-text">MCP</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1130,15 +1197,30 @@
         </div>
     </div>
 
+    <!-- Skills Modal -->
+    <div class="modal" id="skills-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎯 Skills</h2>
+                <button class="modal-close" onclick="closeSkillsModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="skills-list" class="tools-list">
+                    <p>加载中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- MCP Tools Modal -->
     <div class="modal" id="mcp-tools-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>🛠️ 可用工具</h2>
+                <h2>⚡ MCP 工具</h2>
                 <button class="modal-close" onclick="closeMCPToolsModal()">×</button>
             </div>
             <div class="modal-body">
-                <div id="mcp-tools-list" class="mcp-tools-list">
+                <div id="mcp-tools-list" class="tools-list">
                     <p>加载中...</p>
                 </div>
             </div>
@@ -1148,6 +1230,7 @@
     <script>
         let currentSessionId = null;
         let mcpTools = [];
+        let skills = [];
         let mcpEnabled = false;
 
         // Initialize artifacts sidebar as collapsed by default
@@ -1156,6 +1239,12 @@
             if (artifactsSidebar) {
                 artifactsSidebar.classList.add('collapsed');
                 isArtifactsOpen = false; // Ensure state is consistent
+            }
+
+            // Add click listener to Skills status
+            const skillsStatus = document.getElementById('skills-status');
+            if (skillsStatus) {
+                skillsStatus.addEventListener('click', showSkillsModal);
             }
 
             // Add click listener to MCP status
@@ -1306,7 +1395,7 @@
             await loadHistory(sessionId);
 
             // Update MCP status for the new session
-            await updateMCPStatus();
+            await updateToolsStatus();
         }
 
         async function loadHistory(sessionId) {
@@ -1897,8 +1986,8 @@
         }
 
   
-        // MCP Functions
-        async function updateMCPStatus() {
+        // Tools Functions
+        async function updateToolsStatus() {
             if (!currentSessionId) return;
 
             try {
@@ -1906,49 +1995,98 @@
                 if (response.ok) {
                     const data = await response.json();
                     mcpEnabled = data.enabled;
-                    mcpTools = data.tools || [];
+                    const allTools = data.tools || [];
 
-                    const indicator = document.getElementById('mcp-indicator');
+                    // Separate skills and MCP tools
+                    skills = allTools.filter(tool => tool.type === 'skill');
+                    mcpTools = allTools.filter(tool => tool.type === 'mcp');
+
+                    // Update Skills status
+                    const skillsIndicator = document.getElementById('skills-indicator');
+                    const skillsText = document.getElementById('skills-text');
+
+                    if (skills.length > 0) {
+                        skillsIndicator.classList.remove('disabled');
+                        skillsText.textContent = `Skills (${skills.length})`;
+                        document.getElementById('skills-status').title = `已加载 ${skills.length} 个 Skills`;
+                    } else {
+                        skillsIndicator.classList.add('disabled');
+                        skillsText.textContent = 'Skills';
+                        document.getElementById('skills-status').title = '暂无 Skills';
+                    }
+
+                    // Update MCP status
+                    const mcpIndicator = document.getElementById('mcp-indicator');
                     const mcpText = document.getElementById('mcp-text');
 
                     if (mcpEnabled && mcpTools.length > 0) {
-                        indicator.classList.remove('disabled');
+                        mcpIndicator.classList.remove('disabled');
                         mcpText.textContent = `MCP (${mcpTools.length})`;
                         document.getElementById('mcp-status').title = `已加载 ${mcpTools.length} 个 MCP 工具`;
                     } else {
-                        indicator.classList.add('disabled');
+                        mcpIndicator.classList.add('disabled');
                         mcpText.textContent = 'MCP';
                         document.getElementById('mcp-status').title = 'MCP 工具未启用';
                     }
                 } else {
                     // Server doesn't support MCP
-                    const indicator = document.getElementById('mcp-indicator');
-                    const mcpText = document.getElementById('mcp-text');
-                    indicator.classList.add('disabled');
-                    mcpText.textContent = 'MCP';
-                    document.getElementById('mcp-status').title = 'MCP 未启用';
+                    updateToolsDisabled();
                 }
             } catch (error) {
-                console.log('MCP not available:', error);
-                const indicator = document.getElementById('mcp-indicator');
-                const mcpText = document.getElementById('mcp-text');
-                indicator.classList.add('disabled');
-                mcpText.textContent = 'MCP';
-                document.getElementById('mcp-status').title = 'MCP 未启用';
+                console.log('Tools not available:', error);
+                updateToolsDisabled();
             }
+        }
+
+        function updateToolsDisabled() {
+            const skillsIndicator = document.getElementById('skills-indicator');
+            const skillsText = document.getElementById('skills-text');
+            const mcpIndicator = document.getElementById('mcp-indicator');
+            const mcpText = document.getElementById('mcp-text');
+
+            skillsIndicator.classList.add('disabled');
+            skillsText.textContent = 'Skills';
+            document.getElementById('skills-status').title = 'Skills 未启用';
+
+            mcpIndicator.classList.add('disabled');
+            mcpText.textContent = 'MCP';
+            document.getElementById('mcp-status').title = 'MCP 未启用';
+        }
+
+        function showSkillsModal() {
+            const modal = document.getElementById('skills-modal');
+            const skillsList = document.getElementById('skills-list');
+
+            if (skills.length === 0) {
+                skillsList.innerHTML = '<div class="no-tools">暂无可用 Skills</div>';
+            } else {
+                skillsList.innerHTML = skills.map(skill => `
+                    <div class="tool-item">
+                        <div class="tool-name">${escapeHtml(skill.name)}</div>
+                        <div class="tool-description">${escapeHtml(skill.description)}</div>
+                    </div>
+                `).join('');
+            }
+
+            modal.classList.add('show');
+        }
+
+        function closeSkillsModal() {
+            const modal = document.getElementById('skills-modal');
+            modal.classList.remove('show');
         }
 
         function showMCPToolsModal() {
             const modal = document.getElementById('mcp-tools-modal');
-            const toolsList = document.getElementById('mcp-tools-list');
+            const mcpToolsList = document.getElementById('mcp-tools-list');
 
             if (!mcpEnabled || mcpTools.length === 0) {
-                toolsList.innerHTML = '<div class="mcp-no-tools">暂无可用工具</div>';
+                mcpToolsList.innerHTML = '<div class="no-tools">暂无可用 MCP 工具</div>';
             } else {
-                toolsList.innerHTML = mcpTools.map(tool => `
-                    <div class="mcp-tool-item">
-                        <div class="mcp-tool-name">${escapeHtml(tool.name)}</div>
-                        <div class="mcp-tool-description">${escapeHtml(tool.description)}</div>
+                mcpToolsList.innerHTML = mcpTools.map(tool => `
+                    <div class="tool-item">
+                        <div class="tool-name">${escapeHtml(tool.name)}</div>
+                        <div class="tool-description">${escapeHtml(tool.description)}</div>
                     </div>
                 `).join('');
             }
@@ -1962,16 +2100,31 @@
         }
 
         // Close modal when clicking outside
+        document.getElementById('skills-modal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                closeSkillsModal();
+            }
+        });
+
         document.getElementById('mcp-tools-modal').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) {
                 closeMCPToolsModal();
             }
         });
 
-        // Escape key to close modal
+        // Escape key to close modals
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                closeMCPToolsModal();
+                // Close any open modal
+                const skillsModal = document.getElementById('skills-modal');
+                const mcpModal = document.getElementById('mcp-tools-modal');
+
+                if (skillsModal.classList.contains('show')) {
+                    closeSkillsModal();
+                }
+                if (mcpModal.classList.contains('show')) {
+                    closeMCPToolsModal();
+                }
             }
         });
         </script>
