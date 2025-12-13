@@ -11,7 +11,10 @@ import (
 )
 
 // CreateReactAgent creates a new ReAct agent graph
-func CreateReactAgent(model llms.Model, inputTools []tools.Tool) (*graph.StateRunnable, error) {
+func CreateReactAgent(model llms.Model, inputTools []tools.Tool, maxIterations int) (*graph.StateRunnable, error) {
+	if maxIterations == 0 {
+		maxIterations = 20
+	}
 	// Define the tool executor
 	toolExecutor := NewToolExecutor(inputTools)
 
@@ -35,6 +38,26 @@ func CreateReactAgent(model llms.Model, inputTools []tools.Tool) (*graph.StateRu
 		if !ok {
 			return nil, fmt.Errorf("messages key not found or invalid type")
 		}
+
+		// Check iteration count
+		iterationCount := 0
+		if count, ok := mState["iteration_count"].(int); ok {
+			iterationCount = count
+		}
+		if iterationCount >= maxIterations {
+			// Max iterations reached, return final message
+			finalMsg := llms.MessageContent{
+				Role: llms.ChatMessageTypeAI,
+				Parts: []llms.ContentPart{
+					llms.TextPart("Maximum iterations reached. Please try a simpler query."),
+				},
+			}
+			mState["messages"] = append(messages, finalMsg)
+			return mState, nil
+		}
+
+		// Increment iteration count
+		mState["iteration_count"] = iterationCount + 1
 
 		// Convert tools to ToolInfo for the model
 		var toolDefs []llms.Tool

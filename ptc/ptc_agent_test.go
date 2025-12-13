@@ -13,9 +13,11 @@ import (
 // MockLLM for testing
 type MockLLM struct {
 	response string
+	callCount int
 }
 
 func (m *MockLLM) GenerateContent(ctx context.Context, messages []llms.MessageContent, options ...llms.CallOption) (*llms.ContentResponse, error) {
+	m.callCount++
 	return &llms.ContentResponse{
 		Choices: []*llms.ContentChoice{
 			{
@@ -26,6 +28,7 @@ func (m *MockLLM) GenerateContent(ctx context.Context, messages []llms.MessageCo
 }
 
 func (m *MockLLM) Call(ctx context.Context, prompt string, options ...llms.CallOption) (string, error) {
+	m.callCount++
 	return m.response, nil
 }
 

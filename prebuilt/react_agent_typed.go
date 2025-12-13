@@ -12,11 +12,15 @@ import (
 
 // ReactAgentState represents the state for a ReAct agent
 type ReactAgentState struct {
-	Messages []llms.MessageContent `json:"messages"`
+	Messages       []llms.MessageContent `json:"messages"`
+	IterationCount int                   `json:"iteration_count"`
 }
 
 // CreateReactAgentTyped creates a new typed ReAct agent graph
-func CreateReactAgentTyped(model llms.Model, inputTools []tools.Tool) (*graph.StateRunnableTyped[ReactAgentState], error) {
+func CreateReactAgentTyped(model llms.Model, inputTools []tools.Tool, maxIterations int) (*graph.StateRunnableTyped[ReactAgentState], error) {
+	if maxIterations == 0 {
+		maxIterations = 20
+	}
 	// Define the tool executor
 	toolExecutor := NewToolExecutor(inputTools)
 
@@ -29,6 +33,7 @@ func CreateReactAgentTyped(model llms.Model, inputTools []tools.Tool) (*graph.St
 		func(current, new ReactAgentState) (ReactAgentState, error) {
 			// Append new messages to current messages
 			current.Messages = append(current.Messages, new.Messages...)
+			current.IterationCount = new.IterationCount
 			return current, nil
 		},
 	)
@@ -36,6 +41,22 @@ func CreateReactAgentTyped(model llms.Model, inputTools []tools.Tool) (*graph.St
 
 	// Define the agent node
 	workflow.AddNode("agent", "ReAct agent decision maker", func(ctx context.Context, state ReactAgentState) (ReactAgentState, error) {
+		// Check iteration count
+		if state.IterationCount >= maxIterations {
+			// Max iterations reached, return final message
+			finalMsg := llms.MessageContent{
+				Role: llms.ChatMessageTypeAI,
+				Parts: []llms.ContentPart{
+					llms.TextPart("Maximum iterations reached. Please try a simpler query."),
+				},
+			}
+			state.Messages = append(state.Messages, finalMsg)
+			return state, nil
+		}
+
+		// Increment iteration count
+		state.IterationCount++
+
 		// Convert tools to ToolInfo for the model
 		var toolDefs []llms.Tool
 		for _, t := range inputTools {
@@ -185,8 +206,14 @@ func CreateReactAgentWithCustomStateTyped[S any](
 	inputTools []tools.Tool,
 	getMessages func(S) []llms.MessageContent,
 	setMessages func(S, []llms.MessageContent) S,
+	getIterationCount func(S) int,
+	setIterationCount func(S, int) S,
 	hasToolCalls func([]llms.MessageContent) bool,
+	maxIterations int,
 ) (*graph.StateRunnableTyped[S], error) {
+	if maxIterations == 0 {
+		maxIterations = 20
+	}
 	// Define the tool executor
 	toolExecutor := NewToolExecutor(inputTools)
 
@@ -195,6 +222,21 @@ func CreateReactAgentWithCustomStateTyped[S any](
 
 	// Define the agent node
 	workflow.AddNode("agent", "ReAct agent decision maker", func(ctx context.Context, state S) (S, error) {
+		// Check iteration count
+		if getIterationCount(state) >= maxIterations {
+			// Max iterations reached, return final message
+			finalMsg := llms.MessageContent{
+				Role: llms.ChatMessageTypeAI,
+				Parts: []llms.ContentPart{
+					llms.TextPart("Maximum iterations reached. Please try a simpler query."),
+				},
+			}
+			return setMessages(state, append(getMessages(state), finalMsg)), nil
+		}
+
+		// Increment iteration count
+		state = setIterationCount(state, getIterationCount(state)+1)
+
 		messages := getMessages(state)
 
 		// Convert tools to ToolInfo for the model

@@ -54,7 +54,7 @@ func CreatePTCAgent(config PTCAgentConfig) (*graph.Runnable, error) {
 	}
 
 	if config.MaxIterations == 0 {
-		config.MaxIterations = 10
+		config.MaxIterations = 20
 	}
 
 	// Create PTC tool node with execution mode
@@ -66,7 +66,7 @@ func CreatePTCAgent(config PTCAgentConfig) (*graph.Runnable, error) {
 	}
 
 	// Build system prompt with tool definitions
-	systemPrompt := buildSystemPrompt(config.SystemPrompt, config.Language, ptcNode.Executor)
+	systemPrompt := BuildSystemPrompt(config.SystemPrompt, config.Language, ptcNode.Executor)
 
 	// Create the graph
 	workflow := graph.NewMessageGraph()
@@ -96,7 +96,7 @@ func CreatePTCAgent(config PTCAgentConfig) (*graph.Runnable, error) {
 		lastMsg := messages[len(messages)-1]
 
 		// Check if the message contains code to execute
-		if lastMsg.Role == llms.ChatMessageTypeAI && containsCode(lastMsg) {
+		if lastMsg.Role == llms.ChatMessageTypeAI && ContainsCode(lastMsg) {
 			return "execute_code"
 		}
 
@@ -135,7 +135,7 @@ func agentNode(ctx context.Context, state any, model llms.Model, systemPrompt st
 				llms.TextPart("Maximum iterations reached. Please try a simpler query."),
 			},
 		}
-		mState["messages"] = append(messages, finalMsg)
+		mState["messages"] = []llms.MessageContent{finalMsg}
 		return mState, nil
 	}
 
@@ -183,13 +183,15 @@ func agentNode(ctx context.Context, state any, model llms.Model, systemPrompt st
 }
 
 // buildSystemPrompt builds the system prompt with tool definitions
-func buildSystemPrompt(userPrompt string, language ExecutionLanguage, executor *CodeExecutor) string {
+// BuildSystemPrompt builds the system prompt with tool definitions
+func BuildSystemPrompt(userPrompt string, language ExecutionLanguage, executor *CodeExecutor) string {
 	toolDefs := executor.GetToolDefinitions()
 
 	langName := "Python"
 	if language == LanguageGo {
 		langName = "Go"
 	}
+	langNameLower := strings.ToLower(langName)
 
 	basePrompt := fmt.Sprintf(`You are an AI assistant that can write %s code to solve problems using available tools.
 
@@ -207,7 +209,7 @@ IMPORTANT GUIDELINES:
 6. When you have the final answer, respond with just the answer (no code)
 
 Format your code in markdown code blocks:
-`+"```"+langName+`
+`+"```"+langNameLower+`
 # Your code here
 `+"```", langName, langName, toolDefs, langName)
 
@@ -219,13 +221,13 @@ Format your code in markdown code blocks:
 }
 
 // containsCode checks if a message contains code to execute
-func containsCode(msg llms.MessageContent) bool {
+// ContainsCode checks if a message contains code to execute
+func ContainsCode(msg llms.MessageContent) bool {
 	for _, part := range msg.Parts {
 		if textPart, ok := part.(llms.TextContent); ok {
 			text := textPart.Text
-			// Check for code blocks (case-insensitive)
 			textLower := strings.ToLower(text)
-			if len(text) > 6 && (contains(textLower, "```python") || contains(textLower, "```go")) {
+			if (strings.Contains(textLower, "```python") || strings.Contains(textLower, "```go")) && strings.Count(textLower, "```") >= 2 {
 				return true
 			}
 		}

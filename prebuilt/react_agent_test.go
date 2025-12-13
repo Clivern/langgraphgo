@@ -68,7 +68,7 @@ func TestCreateReactAgent(t *testing.T) {
 	}
 
 	// Create Agent
-	agent, err := CreateReactAgent(mockLLM, []tools.Tool{mockTool})
+	agent, err := CreateReactAgent(mockLLM, []tools.Tool{mockTool}, 3)
 	assert.NoError(t, err)
 
 	// Initial State

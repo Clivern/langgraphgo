@@ -18,7 +18,7 @@ func TestReactAgentTyped_Simple(t *testing.T) {
 	}
 
 	// Test with nil tools first
-	agent, err := CreateReactAgentTyped(mockLLM, nil)
+	agent, err := CreateReactAgentTyped(mockLLM, nil, 3)
 	if err != nil {
 		// This is expected to fail because of nil model, but that's OK for this test
 		assert.Error(t, err)
@@ -27,7 +27,7 @@ func TestReactAgentTyped_Simple(t *testing.T) {
 
 	// Test with empty tools slice
 	emptyTools := []tools.Tool{}
-	agent, err = CreateReactAgentTyped(mockLLM, emptyTools)
+	agent, err = CreateReactAgentTyped(mockLLM, emptyTools, 3)
 	if err != nil {
 		// This is expected to fail, but we're testing the error path
 		assert.Error(t, err)
@@ -49,10 +49,11 @@ func TestReactAgentState_Simple(t *testing.T) {
 	assert.Equal(t, 1, len(state.Messages))
 }
 
-// TestCreateReactAgentWithCustomStateTyped_Simple Tests custom state creation
+	// TestCreateReactAgentWithCustomStateTyped_Simple Tests custom state creation
 func TestCreateReactAgentWithCustomStateTyped_Simple(t *testing.T) {
 	type TestState struct {
-		Data string
+		Data           string
+		IterationCount int
 	}
 
 	getMessages := func(s TestState) []llms.MessageContent {
@@ -60,6 +61,15 @@ func TestCreateReactAgentWithCustomStateTyped_Simple(t *testing.T) {
 	}
 
 	setMessages := func(s TestState, msgs []llms.MessageContent) TestState {
+		return s
+	}
+
+	getIterationCount := func(s TestState) int {
+		return s.IterationCount
+	}
+
+	setIterationCount := func(s TestState, count int) TestState {
+		s.IterationCount = count
 		return s
 	}
 
@@ -78,9 +88,11 @@ func TestCreateReactAgentWithCustomStateTyped_Simple(t *testing.T) {
 		[]tools.Tool{},
 		getMessages,
 		setMessages,
+		getIterationCount,
+		setIterationCount,
 		hasToolCalls,
+		3,
 	)
-
 	// We don't assert the result here because the model may be invalid
 	// The important thing is that the function signature compiles
 	_ = err

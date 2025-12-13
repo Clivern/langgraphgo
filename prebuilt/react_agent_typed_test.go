@@ -101,7 +101,7 @@ func TestCreateReactAgentTyped(t *testing.T) {
 	})
 
 	// Create ReAct agent
-	agent, err := CreateReactAgentTyped(mockLLM, tools)
+	agent, err := CreateReactAgentTyped(mockLLM, tools, 3)
 	if err != nil {
 		t.Fatalf("Failed to create ReAct agent: %v", err)
 	}
@@ -131,7 +131,7 @@ func TestCreateReactAgentTyped_WithTools(t *testing.T) {
 	})
 
 	// This should not panic even with tool calls
-	agent, err := CreateReactAgentTyped(mockLLM, tools)
+	agent, err := CreateReactAgentTyped(mockLLM, tools, 3)
 	if err != nil {
 		t.Fatalf("Failed to create ReAct agent: %v", err)
 	}
@@ -149,7 +149,7 @@ func TestCreateReactAgentTyped_NoTools(t *testing.T) {
 		"I don't need tools to answer this",
 	})
 
-	agent, err := CreateReactAgentTyped(mockLLM, tools)
+	agent, err := CreateReactAgentTyped(mockLLM, tools, 3)
 	if err != nil {
 		t.Fatalf("Failed to create ReAct agent with no tools: %v", err)
 	}
@@ -182,6 +182,7 @@ func TestCreateReactAgentWithCustomStateTyped(t *testing.T) {
 		Messages []llms.MessageContent `json:"messages"`
 		Step     int                   `json:"step"`
 		Debug    bool                  `json:"debug"`
+		IterationCount int
 	}
 
 	// Create mock tools
@@ -208,6 +209,16 @@ func TestCreateReactAgentWithCustomStateTyped(t *testing.T) {
 		return s
 	}
 
+	getIterationCount := func(s CustomState) int {
+		return s.IterationCount
+	}
+
+	setIterationCount := func(s CustomState, count int) CustomState {
+		s.IterationCount = count
+		return s
+	}
+
+
 	hasToolCalls := func(msgs []llms.MessageContent) bool {
 		// For simplicity, always return false
 		return false
@@ -219,7 +230,10 @@ func TestCreateReactAgentWithCustomStateTyped(t *testing.T) {
 		tools,
 		getMessages,
 		setMessages,
+		getIterationCount,
+		setIterationCount,
 		hasToolCalls,
+		3,
 	)
 
 	if err != nil {
@@ -239,6 +253,7 @@ func TestCreateReactAgentWithCustomStateTyped_ComplexState(t *testing.T) {
 		Thoughts     []string              `json:"thoughts"`
 		Observations []string              `json:"observations"`
 		Complete     bool                  `json:"complete"`
+		IterationCount int
 	}
 
 	tools := []tools.Tool{
@@ -261,6 +276,15 @@ func TestCreateReactAgentWithCustomStateTyped_ComplexState(t *testing.T) {
 		return s
 	}
 
+	getIterationCount := func(s ComplexState) int {
+		return s.IterationCount
+	}
+
+	setIterationCount := func(s ComplexState, count int) ComplexState {
+		s.IterationCount = count
+		return s
+	}
+
 	hasToolCalls := func(msgs []llms.MessageContent) bool {
 		// Check last message for tool calls
 		if len(msgs) > 0 {
@@ -275,7 +299,10 @@ func TestCreateReactAgentWithCustomStateTyped_ComplexState(t *testing.T) {
 		tools,
 		getMessages,
 		setMessages,
+		getIterationCount,
+		setIterationCount,
 		hasToolCalls,
+		3,
 	)
 
 	if err != nil {
@@ -309,7 +336,7 @@ func TestCreateReactAgentTyped_MultipleToolResponses(t *testing.T) {
 		currentIndex: 0,
 	}
 
-	agent, err := CreateReactAgentTyped(mockLLM, tools)
+	agent, err := CreateReactAgentTyped(mockLLM, tools, 3)
 	if err != nil {
 		t.Fatalf("Failed to create ReAct agent: %v", err)
 	}
@@ -338,7 +365,7 @@ func TestCreateReactAgentTyped_ToolCallWithArguments(t *testing.T) {
 		},
 	})
 
-	agent, err := CreateReactAgentTyped(mockLLM, tools)
+	agent, err := CreateReactAgentTyped(mockLLM, tools, 3)
 	if err != nil {
 		t.Fatalf("Failed to create ReAct agent with tool arguments: %v", err)
 	}
@@ -362,7 +389,7 @@ func TestCreateReactAgentTyped_EmptyToolName(t *testing.T) {
 	})
 
 	// Should still create agent even with empty tool name
-	agent, err := CreateReactAgentTyped(mockLLM, tools)
+	agent, err := CreateReactAgentTyped(mockLLM, tools, 3)
 	if err != nil {
 		t.Fatalf("Failed to create ReAct agent with empty tool name: %v", err)
 	}
@@ -386,7 +413,7 @@ func TestCreateReactAgentTyped_LargeNumberOfTools(t *testing.T) {
 		"Using many tools",
 	})
 
-	agent, err := CreateReactAgentTyped(mockLLM, tools)
+	agent, err := CreateReactAgentTyped(mockLLM, tools, 3)
 	if err != nil {
 		t.Fatalf("Failed to create ReAct agent with many tools: %v", err)
 	}
@@ -414,8 +441,7 @@ func TestCreateReactAgentTyped_VariousResponses(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name:      "empty response",
-			responses: []string{""},
+			name:      "empty response",			responses: []string{""},
 			expectErr: false,
 		},
 		{
@@ -427,9 +453,9 @@ func TestCreateReactAgentTyped_VariousResponses(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockLLM := NewMockLLMWithTextResponse(tt.responses)
+			llm := NewMockLLMWithTextResponse(tt.responses)
 
-			agent, err := CreateReactAgentTyped(mockLLM, []tools.Tool{})
+			agent, err := CreateReactAgentTyped(llm, []tools.Tool{}, 3)
 			if (err != nil) != tt.expectErr {
 				t.Errorf("Expected error: %v, got: %v", tt.expectErr, err)
 			}
@@ -452,6 +478,7 @@ func TestCreateReactAgentWithCustomStateTyped_ComplexScenarios(t *testing.T) {
 			}
 		}
 		Messages []llms.MessageContent
+		IterationCount int
 	}
 
 	getMessages := func(s NestedState) []llms.MessageContent {
@@ -460,6 +487,15 @@ func TestCreateReactAgentWithCustomStateTyped_ComplexScenarios(t *testing.T) {
 
 	setMessages := func(s NestedState, msgs []llms.MessageContent) NestedState {
 		s.Messages = msgs
+		return s
+	}
+
+	getIterationCount := func(s NestedState) int {
+		return s.IterationCount
+	}
+
+	setIterationCount := func(s NestedState, count int) NestedState {
+		s.IterationCount = count
 		return s
 	}
 
@@ -477,7 +513,10 @@ func TestCreateReactAgentWithCustomStateTyped_ComplexScenarios(t *testing.T) {
 		[]tools.Tool{},
 		getMessages,
 		setMessages,
+		getIterationCount,
+		setIterationCount,
 		hasToolCalls,
+		3,
 	)
 
 	if err != nil {
@@ -494,6 +533,7 @@ func TestCreateReactAgentWithCustomStateTyped_ErrorHandling(t *testing.T) {
 	type ErrorState struct {
 		Messages []llms.MessageContent
 		Error    error
+		IterationCount int
 	}
 
 	getMessages := func(s ErrorState) []llms.MessageContent {
@@ -502,6 +542,15 @@ func TestCreateReactAgentWithCustomStateTyped_ErrorHandling(t *testing.T) {
 
 	setMessages := func(s ErrorState, msgs []llms.MessageContent) ErrorState {
 		s.Messages = msgs
+		return s
+	}
+
+	getIterationCount := func(s ErrorState) int {
+		return s.IterationCount
+	}
+
+	setIterationCount := func(s ErrorState, count int) ErrorState {
+		s.IterationCount = count
 		return s
 	}
 
@@ -516,7 +565,10 @@ func TestCreateReactAgentWithCustomStateTyped_ErrorHandling(t *testing.T) {
 		[]tools.Tool{},
 		getMessages,
 		setMessages,
+		getIterationCount,
+		setIterationCount,
 		hasToolCalls,
+		3,
 	)
 
 	if err != nil {
@@ -562,7 +614,7 @@ func TestCreateReactAgentTyped_Execution(t *testing.T) {
 	})
 
 	// Create agent
-	agent, err := CreateReactAgentTyped(mockLLM, []tools.Tool{tool})
+	agent, err := CreateReactAgentTyped(mockLLM, []tools.Tool{tool}, 3)
 	require.NoError(t, err)
 	require.NotNil(t, agent)
 
@@ -577,7 +629,7 @@ func TestCreateReactAgentTyped_EmptyState(t *testing.T) {
 		"I can help you with that",
 	})
 
-	agent, err := CreateReactAgentTyped(mockLLM, []tools.Tool{})
+	agent, err := CreateReactAgentTyped(mockLLM, []tools.Tool{}, 3)
 	require.NoError(t, err)
 	require.NotNil(t, agent)
 
@@ -597,6 +649,7 @@ func TestCreateReactAgentWithCustomStateTyped_Execution(t *testing.T) {
 		Messages []llms.MessageContent `json:"messages"`
 		Count    int                   `json:"count"`
 		Steps    []string              `json:"steps"`
+		IterationCount int
 	}
 
 	getMessages := func(s CustomState) []llms.MessageContent {
@@ -607,6 +660,15 @@ func TestCreateReactAgentWithCustomStateTyped_Execution(t *testing.T) {
 		s.Messages = msgs
 		s.Count++
 		s.Steps = append(s.Steps, fmt.Sprintf("Step %d", s.Count))
+		return s
+	}
+
+	getIterationCount := func(s CustomState) int {
+		return s.IterationCount
+	}
+
+	setIterationCount := func(s CustomState, count int) CustomState {
+		s.IterationCount = count
 		return s
 	}
 
@@ -629,7 +691,10 @@ func TestCreateReactAgentWithCustomStateTyped_Execution(t *testing.T) {
 		[]tools.Tool{tool},
 		getMessages,
 		setMessages,
+		getIterationCount,
+		setIterationCount,
 		hasToolCalls,
+		3,
 	)
 	require.NoError(t, err)
 	require.NotNil(t, agent)
@@ -640,7 +705,7 @@ func TestCreateReactAgentWithCustomStateTyped_Execution(t *testing.T) {
 }
 
 // Test tool definitions creation
-func TestReactAgentTyped_ToolDefinitions(t *testing.T) {
+func TestCreateReactAgentTyped_ToolDefinitions(t *testing.T) {
 	tools := []tools.Tool{
 		&MockToolForReact{
 			name:        "search_tool",
@@ -656,7 +721,7 @@ func TestReactAgentTyped_ToolDefinitions(t *testing.T) {
 		"I have access to tools",
 	})
 
-	agent, err := CreateReactAgentTyped(mockLLM, tools)
+	agent, err := CreateReactAgentTyped(mockLLM, tools, 3)
 	require.NoError(t, err)
 	require.NotNil(t, agent)
 
@@ -687,10 +752,16 @@ func TestCreateReactAgentTyped_ComplexToolNames(t *testing.T) {
 		"I can use these tools",
 	})
 
-	agent, err := CreateReactAgentTyped(mockLLM, tools)
-	require.NoError(t, err)
-	require.NotNil(t, agent)
+	agent, err := CreateReactAgentTyped(mockLLM, tools, 3)
+	if err != nil {
+		t.Fatalf("Failed to create ReAct agent with complex tool names: %v", err)
+	}
+
+	if agent == nil {
+		t.Fatal("Agent should not be nil")
+	}
 }
+
 
 // Test CreateReactAgentTyped error scenarios
 func TestCreateReactAgentTyped_ErrorScenarios(t *testing.T) {
@@ -720,8 +791,8 @@ func TestCreateReactAgentTyped_ErrorScenarios(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockLLM := tt.setupMock()
-			agent, err := CreateReactAgentTyped(mockLLM, tt.tools)
+			llm := tt.setupMock()
+			agent, err := CreateReactAgentTyped(llm, tt.tools, 3)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -769,7 +840,7 @@ func TestCreateReactAgentTyped_LargeMessageHistory(t *testing.T) {
 		"I'll respond to your messages",
 	})
 
-	agent, err := CreateReactAgentTyped(mockLLM, []tools.Tool{})
+	agent, err := CreateReactAgentTyped(mockLLM, []tools.Tool{}, 3)
 	require.NoError(t, err)
 	require.NotNil(t, agent)
 
