@@ -107,9 +107,16 @@ When you have enough information to answer the user's question, provide the Fina
 
 		choice := resp.Choices[0]
 
+		// Check if the response content is empty
+		if choice.Content == "" && len(choice.ToolCalls) == 0 {
+			return ReactAgentState{}, fmt.Errorf("empty response from model")
+		}
+
 		// Add the model's response to messages
 		newMessages := state.Messages
-		newMessages = append(newMessages, llms.TextParts(llms.ChatMessageTypeAI, choice.Content))
+		if choice.Content != "" {
+			newMessages = append(newMessages, llms.TextParts(llms.ChatMessageTypeAI, choice.Content))
+		}
 
 		// Check if the model made a tool call
 		if len(choice.ToolCalls) > 0 {
@@ -122,7 +129,9 @@ When you have enough information to answer the user's question, provide the Fina
 			}
 			inputVal := tc.FunctionCall.Arguments
 			if tc.FunctionCall.Arguments != "" {
-				_ = json.Unmarshal([]byte(tc.FunctionCall.Arguments), &args)
+				if err := json.Unmarshal([]byte(tc.FunctionCall.Arguments), &args); err != nil {
+					return state, fmt.Errorf("invalid tool arguments: %w", err)
+				}
 				inputVal = args.Input
 			}
 
@@ -304,7 +313,9 @@ When you have enough information to answer the user's question, provide the Fina
 			}
 			inputVal := tc.FunctionCall.Arguments
 			if tc.FunctionCall.Arguments != "" {
-				_ = json.Unmarshal([]byte(tc.FunctionCall.Arguments), &args)
+				if err := json.Unmarshal([]byte(tc.FunctionCall.Arguments), &args); err != nil {
+					return state, fmt.Errorf("invalid tool arguments: %w", err)
+				}
 				inputVal = args.Input
 			}
 

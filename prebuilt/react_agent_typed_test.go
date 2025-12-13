@@ -3,6 +3,8 @@ package prebuilt
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,6 +24,88 @@ func (t *MockToolForReact) Description() string { return t.description }
 func (t *MockToolForReact) Call(ctx context.Context, input string) (string, error) {
 	return "Result: " + input, nil
 }
+
+// CalculatorTool for testing arithmetic operations
+type CalculatorTool struct{}
+
+func (t *CalculatorTool) Name() string {
+	return "calculator"
+}
+
+func (t *CalculatorTool) Description() string {
+	return "A simple calculator that can perform basic arithmetic operations (add, subtract, multiply, divide). Format: 'a + b', 'a - b', 'a * b', or 'a / b'"
+}
+
+func (t *CalculatorTool) Call(ctx context.Context, input string) (string, error) {
+	// Parse the input expression
+	input = strings.TrimSpace(input)
+
+	// Division
+	if strings.Contains(input, "/") {
+		parts := strings.Split(input, "/")
+		if len(parts) != 2 {
+			return "", fmt.Errorf("invalid division format")
+		}
+		a, err1 := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
+		b, err2 := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
+		if err1 != nil || err2 != nil {
+			return "", fmt.Errorf("invalid numbers for division")
+		}
+		if b == 0 {
+			return "", fmt.Errorf("division by zero")
+		}
+		result := a / b
+		return fmt.Sprintf("%.2f", result), nil
+	}
+
+	// Multiplication
+	if strings.Contains(input, "*") {
+		parts := strings.Split(input, "*")
+		if len(parts) != 2 {
+			return "", fmt.Errorf("invalid multiplication format")
+		}
+		a, err1 := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
+		b, err2 := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
+		if err1 != nil || err2 != nil {
+			return "", fmt.Errorf("invalid numbers for multiplication")
+		}
+		result := a * b
+		return fmt.Sprintf("%.2f", result), nil
+	}
+
+	// Addition
+	if strings.Contains(input, "+") {
+		parts := strings.Split(input, "+")
+		if len(parts) != 2 {
+			return "", fmt.Errorf("invalid addition format")
+		}
+		a, err1 := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
+		b, err2 := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
+		if err1 != nil || err2 != nil {
+			return "", fmt.Errorf("invalid numbers for addition")
+		}
+		result := a + b
+		return fmt.Sprintf("%.2f", result), nil
+	}
+
+	// Subtraction
+	if strings.Contains(input, "-") {
+		parts := strings.Split(input, "-")
+		if len(parts) != 2 {
+			return "", fmt.Errorf("invalid subtraction format")
+		}
+		a, err1 := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
+		b, err2 := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
+		if err1 != nil || err2 != nil {
+			return "", fmt.Errorf("invalid numbers for subtraction")
+		}
+		result := a - b
+		return fmt.Sprintf("%.2f", result), nil
+	}
+
+	return "", fmt.Errorf("unsupported operation. Use +, -, *, or /")
+}
+
 
 // MockLLMForReact for testing
 type MockLLMForReact struct {
@@ -646,9 +730,9 @@ func TestCreateReactAgentTyped_EmptyState(t *testing.T) {
 // Test CreateReactAgentWithCustomStateTyped execution
 func TestCreateReactAgentWithCustomStateTyped_Execution(t *testing.T) {
 	type CustomState struct {
-		Messages []llms.MessageContent `json:"messages"`
-		Count    int                   `json:"count"`
-		Steps    []string              `json:"steps"`
+		Messages       []llms.MessageContent `json:"messages"`
+		Count          int                   `json:"count"`
+		Steps          []string              `json:"steps"`
 		IterationCount int
 	}
 
@@ -673,22 +757,47 @@ func TestCreateReactAgentWithCustomStateTyped_Execution(t *testing.T) {
 	}
 
 	hasToolCalls := func(msgs []llms.MessageContent) bool {
-		// Simplified check
-		return len(msgs) > 0 && msgs[len(msgs)-1].Role == llms.ChatMessageTypeAI
+		if len(msgs) == 0 {
+			return false
+		}
+		lastMsg := msgs[len(msgs)-1]
+		for _, part := range lastMsg.Parts {
+			if _, ok := part.(llms.ToolCall); ok {
+				return true
+			}
+		}
+		return false
 	}
 
-	tool := &MockToolForReact{
-		name:        "custom_tool",
-		description: "A custom tool",
-	}
+	// Use Calculator tool for actual execution
+	calculator := &CalculatorTool{}
 
-	mockLLM := NewMockLLMWithTextResponse([]string{
-		"I'll help you with that",
-	})
+	// Mock LLM that simulates using calculator
+	mockLLM := &MockLLMForReact{
+		responses: []llms.ContentChoice{
+			{
+				// First response: Make a tool call to calculate 10 + 5
+				ToolCalls: []llms.ToolCall{
+					{
+						ID: "call_1",
+						FunctionCall: &llms.FunctionCall{
+							Name:      "calculator",
+							Arguments: `{"input": "10 + 5"}`,
+						},
+					},
+				},
+			},
+			{
+				// Second response: Provide the final answer
+				Content: "10 + 5 = 15",
+			},
+		},
+		currentIndex: 0,
+	}
 
 	agent, err := CreateReactAgentWithCustomStateTyped(
 		mockLLM,
-		[]tools.Tool{tool},
+		[]tools.Tool{calculator},
 		getMessages,
 		setMessages,
 		getIterationCount,
@@ -699,9 +808,166 @@ func TestCreateReactAgentWithCustomStateTyped_Execution(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, agent)
 
-	// Skip execution to avoid hanging
-	// The agent creation with custom state is the main test
-	t.Log("Custom state agent created successfully - execution skipped to avoid hanging")
+	// Initial state with user query
+	initialState := CustomState{
+		Messages: []llms.MessageContent{
+			llms.TextParts(llms.ChatMessageTypeHuman, "What is 10 + 5?"),
+		},
+		Count:          0,
+		Steps:          []string{},
+		IterationCount: 0,
+	}
+
+	// Execute the agent
+	finalState, err := agent.Invoke(context.Background(), initialState)
+	require.NoError(t, err)
+
+	// Debug: print actual messages
+	for i, msg := range finalState.Messages {
+		t.Logf("Message %d: Role=%s, Parts=%d", i, msg.Role, len(msg.Parts))
+	}
+
+	// Should have 3 messages (because the tool call returns empty content):
+	// 0: Human "What is 10 + 5?"
+	// 1: AI with tool call (no content since first response has no Content field)
+	// 2: Tool response with result "15.00"
+	assert.Equal(t, 3, len(finalState.Messages))
+	assert.Equal(t, 1, finalState.IterationCount) // Should have iterated once
+	assert.Equal(t, 1, finalState.Count)          // Should have made 1 step
+
+	// Verify message roles
+	assert.Equal(t, llms.ChatMessageTypeHuman, finalState.Messages[0].Role)
+	assert.Equal(t, llms.ChatMessageTypeAI, finalState.Messages[1].Role)
+	assert.Equal(t, llms.ChatMessageTypeTool, finalState.Messages[2].Role)
+
+	// Verify the tool call
+	toolCallMsg := finalState.Messages[1]
+	// The AI message with tool call might not have text content, only the tool call
+	if len(toolCallMsg.Parts) > 0 {
+		if toolCall, ok := toolCallMsg.Parts[0].(llms.ToolCall); ok {
+			assert.Equal(t, "calculator", toolCall.FunctionCall.Name)
+			assert.Equal(t, `{"input": "10 + 5"}`, toolCall.FunctionCall.Arguments)
+		}
+	}
+
+	// Verify the tool response
+	toolResponseMsg := finalState.Messages[2]
+	assert.Greater(t, len(toolResponseMsg.Parts), 0)
+	toolResponse, ok := toolResponseMsg.Parts[0].(llms.TextContent)
+	require.True(t, ok)
+	assert.Contains(t, toolResponse.Text, "15.00")
+
+	// Verify steps were recorded
+	assert.Equal(t, 1, len(finalState.Steps))
+	assert.Equal(t, "Step 1", finalState.Steps[0])
+}
+
+// Test CreateReactAgentWithCustomStateTyped with weather tool
+func TestCreateReactAgentWithCustomStateTyped_Weather(t *testing.T) {
+	type CustomState struct {
+		Messages       []llms.MessageContent `json:"messages"`
+		IterationCount int
+		CityQueried    string
+	}
+
+	getMessages := func(s CustomState) []llms.MessageContent {
+		return s.Messages
+	}
+
+	setMessages := func(s CustomState, msgs []llms.MessageContent) CustomState {
+		s.Messages = msgs
+		return s
+	}
+
+	getIterationCount := func(s CustomState) int {
+		return s.IterationCount
+	}
+
+	setIterationCount := func(s CustomState, count int) CustomState {
+		s.IterationCount = count
+		return s
+	}
+
+	hasToolCalls := func(msgs []llms.MessageContent) bool {
+		if len(msgs) == 0 {
+			return false
+		}
+		lastMsg := msgs[len(msgs)-1]
+		for _, part := range lastMsg.Parts {
+			if _, ok := part.(llms.ToolCall); ok {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Use Weather tool for weather query
+	weatherTool := NewWeatherTool(22)
+
+	// Mock LLM that simulates weather query
+	mockLLM := &MockLLMForReact{
+		responses: []llms.ContentChoice{
+			{
+				// First response: Check weather in Beijing
+				ToolCalls: []llms.ToolCall{
+					{
+						ID: "call_1",
+						FunctionCall: &llms.FunctionCall{
+							Name:      "get_weather",
+							Arguments: `{"input": "beijing"}`,
+						},
+					},
+				},
+			},
+			{
+				// Second response: Provide weather summary
+				Content: "北京当前天气：22°C，晴天。",
+			},
+		},
+		currentIndex: 0,
+	}
+
+	agent, err := CreateReactAgentWithCustomStateTyped(
+		mockLLM,
+		[]tools.Tool{weatherTool},
+		getMessages,
+		setMessages,
+		getIterationCount,
+		setIterationCount,
+		hasToolCalls,
+		5,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, agent)
+
+	// Initial state with user query
+	initialState := CustomState{
+		Messages: []llms.MessageContent{
+			llms.TextParts(llms.ChatMessageTypeHuman, "北京现在天气怎么样？"),
+		},
+		IterationCount: 0,
+	}
+
+	// Execute the agent
+	finalState, err := agent.Invoke(context.Background(), initialState)
+	require.NoError(t, err)
+
+	// Should have 3 messages:
+	// 0: Human query
+	// 1: AI with tool call
+	// 2: Tool response
+	assert.Equal(t, 3, len(finalState.Messages))
+	assert.Equal(t, 1, finalState.IterationCount)
+
+	// Verify message roles
+	assert.Equal(t, llms.ChatMessageTypeHuman, finalState.Messages[0].Role)
+	assert.Equal(t, llms.ChatMessageTypeAI, finalState.Messages[1].Role)
+	assert.Equal(t, llms.ChatMessageTypeTool, finalState.Messages[2].Role)
+
+	// Verify weather tool response
+	weatherResponse := finalState.Messages[2].Parts[0].(llms.TextContent)
+	assert.Contains(t, weatherResponse.Text, "22°C")
+	assert.Contains(t, weatherResponse.Text, "晴天")
 }
 
 // Test tool definitions creation
