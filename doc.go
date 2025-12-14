@@ -338,44 +338,42 @@
 //
 //	func main() {
 //		// Create typed graph
-//		g := graph.NewStateGraphTyped(func() WorkflowState {
-//			return WorkflowState{}
-//		})
+//		g := graph.NewStateGraphTyped[WorkflowState]()
 //
 //		// Add typed nodes
-//		g.AddNodeTyped("process", func(ctx context.Context, state WorkflowState) (WorkflowState, error) {
+//		g.AddNode("process", "Process the input", func(ctx context.Context, state WorkflowState) (WorkflowState, error) {
 //			state.Processed = strings.ToUpper(state.Input)
 //			state.StepCount++
 //			return state, nil
 //		})
 //
-//		g.AddNodeTyped("validate", func(ctx context.Context, state WorkflowState) (WorkflowState, error) {
+//		g.AddNode("validate", "Validate the output", func(ctx context.Context, state WorkflowState) (WorkflowState, error) {
 //			state.Validated = len(state.Processed) > 0
 //			state.StepCount++
 //			return state, nil
 //		})
 //
-//		g.AddNodeTyped("output", func(ctx context.Context, state WorkflowState) (WorkflowState, error) {
+//		g.AddNode("output", "Generate final output", func(ctx context.Context, state WorkflowState) (WorkflowState, error) {
 //			state.Output = fmt.Sprintf("Processed: %s, Validated: %v", state.Processed, state.Validated)
 //			state.StepCount++
 //			return state, nil
 //		})
 //
 //		// Define flow
-//		g.SetEntryTyped("process")
-//		g.AddEdgeTyped("process", "validate")
-//		g.AddConditionalEdgeTyped("validate", func(ctx context.Context, state WorkflowState) string {
+//		g.SetEntryPoint("process")
+//		g.AddEdge("process", "validate")
+//		g.AddConditionalEdge("validate", func(ctx context.Context, state WorkflowState) string {
 //			if state.Validated {
 //				return "output"
 //			}
 //			return "process" // Retry
-//		}, "output", "process")
-//		g.AddEdgeTyped("output", graph.END)
+//		})
+//		g.AddEdge("output", graph.END)
 //
 //		// Compile and run
-//		runnable, _ := g.CompileTyped()
+//		runnable, _ := g.Compile()
 //
-//		result, _ := runnable.InvokeTyped(ctx, WorkflowState{
+//		result, _ := runnable.Invoke(ctx, WorkflowState{
 //			Input: "hello world",
 //		})
 //

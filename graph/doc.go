@@ -37,22 +37,24 @@
 //	g := graph.NewStateGraph()
 //
 //	// Add nodes
-//	g.AddNode("process", func(ctx context.Context, state map[string]any) (map[string]any, error) {
+//	g.AddNode("process", "Process node", func(ctx context.Context, state any) (any, error) {
 //		// Process the state
-//		state["processed"] = true
-//		return state, nil
+//		s := state.(map[string]any)
+//		s["processed"] = true
+//		return s, nil
 //	})
 //
-//	g.AddNode("validate", func(ctx context.Context, state map[string]any) (map[string]any, error) {
+//	g.AddNode("validate", "Validate node", func(ctx context.Context, state any) (any, error) {
 //		// Validate the processed state
-//		if state["processed"].(bool) {
-//			state["valid"] = true
+//		s := state.(map[string]any)
+//		if s["processed"].(bool) {
+//			s["valid"] = true
 //		}
-//		return state, nil
+//		return s, nil
 //	})
 //
 //	// Set entry point and edges
-//	g.SetEntry("process")
+//	g.SetEntryPoint("process")
 //	g.AddEdge("process", "validate")
 //	g.AddEdge("validate", graph.END)
 //
@@ -70,56 +72,75 @@
 //		Complete bool   `json:"complete"`
 //	}
 //
-//	g := graph.NewStateGraphTyped(func() WorkflowState { return WorkflowState{} })
+//	g := graph.NewStateGraphTyped[WorkflowState]()
 //
-//	g.AddNodeTyped("process", func(ctx context.Context, state WorkflowState) (WorkflowState, error) {
+//	g.AddNode("process", "Process the input", func(ctx context.Context, state WorkflowState) (WorkflowState, error) {
 //		state.Output = strings.ToUpper(state.Input)
 //		state.Complete = true
+//		return state, nil
+//	})
+//
+//	// Add validate node
+//	g.AddNode("validate", "Validate the output", func(ctx context.Context, state WorkflowState) (WorkflowState, error) {
+//		return state, nil
+//	})
+//	g.AddNode("retry", "Retry processing", func(ctx context.Context, state WorkflowState) (WorkflowState, error) {
 //		return state, nil
 //	})
 //
 //	// Conditional routing
 //	g.AddConditionalEdge("process", func(ctx context.Context, state WorkflowState) string {
 //		if state.Complete {
-//			return "next"
+//			return "validate"
 //		}
 //		return "retry"
-//	}, "next", "retry")
+//	})
+//	g.AddEdge("validate", graph.END)
+//	g.AddEdge("retry", "process")
 //
 // ## Parallel Execution
 //
-//	g.AddNodeParallel("parallel_tasks",
-//		graph.NewParallelNode(
-//			[]graph.Node{
-//				{Name: "task1", Function: task1Func},
-//				{Name: "task2", Function: task2Func},
-//			},
-//		),
-//	)
+//	// Add parallel nodes
+//	g.AddParallelNodes("parallel_tasks", map[string]func(context.Context, any) (any, error){
+//		"task1": func(ctx context.Context, state any) (any, error) {
+//			// First task logic
+//			return state, nil
+//		},
+//		"task2": func(ctx context.Context, state any) (any, error) {
+//			// Second task logic
+//			return state, nil
+//		},
+//	})
 //
 // ## Checkpointing
 //
-//	store := graph.NewMemoryCheckpointStore()
-//	g.WithCheckpointing(graph.CheckpointConfig{
-//		Store: store,
-//	})
+//	// Note: Checkpointing is handled at the runnable level
+//	// See store package examples for checkpointing implementation
 //
-//	// Execute with checkpoint
 //	runnable := g.Compile()
-//	result, err := runnable.Invoke(context.Background(), initialState,
-//		graph.WithExecutionID("workflow-123"))
 //
-//	// Resume from checkpoint
-//	resumed, err := runnable.Resume(context.Background(), "workflow-123", "checkpoint-456")
+//	// Execute with context
+//	result, err := runnable.Invoke(context.Background(), initialState)
 //
 // ## Streaming
 //
-//	streaming := graph.NewStreamingStateGraph(g, graph.StreamConfig{
-//		BufferSize: 100,
+//	// Create listenable graph for streaming
+//	g := graph.NewListenableStateGraph()
+//	g.AddNode("process", "Process node", func(ctx context.Context, state map[string]any) (map[string]any, error) {
+//		state["processed"] = true
+//		return state, nil
 //	})
+//	g.SetEntryPoint("process")
+//	g.AddEdge("process", graph.END)
 //
-//	runnable := streaming.Compile()
-//	result, err := runnable.Stream(context.Background(), initialState)
+//	// Compile to listenable runnable
+//	runnable, _ := g.CompileListenable()
+//
+//	// Create streaming runnable
+//	streaming := graph.NewStreamingRunnableWithDefaults(runnable)
+//
+//	// Stream execution
+//	result := streaming.Stream(context.Background(), initialState)
 //
 //	// Process events
 //	for event := range result.Events {
@@ -150,12 +171,12 @@
 //	exporter := graph.NewExporter(g)
 //
 //	// Mermaid diagram
-//	mermaid, err := exporter.Mermaid(graph.MermaidOptions{
-//		Direction: "TD",
-//	})
+//	mermaid := exporter.DrawMermaid()
 //
-//	// PlantUML diagram
-//	puml, err := exporter.PlantUML()
+//	// Mermaid with options
+//	mermaidWithOptions := exporter.DrawMermaidWithOptions(graph.MermaidOptions{
+//		Direction: "LR", // Left to right
+//	})
 //
 // # Thread Safety
 //
