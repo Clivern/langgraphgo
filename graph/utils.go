@@ -72,15 +72,18 @@ func SafeGo(wg *sync.WaitGroup, fn func(), onPanic func(any)) {
 	}
 	go func() {
 		defer func() {
-			if wg != nil {
-				wg.Done()
-			}
+			// Handle panic first, before calling wg.Done()
+			// This ensures onPanic completes before wg.Wait() returns
 			if r := recover(); r != nil {
 				if onPanic != nil {
 					onPanic(r)
 				} else {
 					fmt.Printf("panic recovered in SafeGo: %v\n", r)
 				}
+			}
+			// Call wg.Done() last to ensure all cleanup is done
+			if wg != nil {
+				wg.Done()
 			}
 		}()
 		fn()
