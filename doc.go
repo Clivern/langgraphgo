@@ -54,37 +54,37 @@
 //
 // # Key Features
 //
-//   - **Stateful Graphs**: Define complex workflows with state persistence
-//   - **Agent Orchestration**: Build multi-agent systems with specialized roles
-//   - **Checkpointing**: Save and resume execution state
-//   - **Streaming**: Real-time event streaming during execution
-//   - **Memory Management**: Various strategies for conversation memory
-//   - **Tool Integration**: Extensive ecosystem of built-in tools
-//   - **Type Safety**: Generic-based typed graphs for compile-time safety
-//   - **Visualization**: Graph visualization and debugging tools
+//   - *Stateful Graphs*: Define complex workflows with state persistence
+//   - *Agent Orchestration*: Build multi-agent systems with specialized roles
+//   - *Checkpointing*: Save and resume execution state
+//   - *Streaming*: Real-time event streaming during execution
+//   - *Memory Management*: Various strategies for conversation memory
+//   - *Tool Integration*: Extensive ecosystem of built-in tools
+//   - *Type Safety*: Generic-based typed graphs for compile-time safety
+//   - *Visualization*: Graph visualization and debugging tools
 //
 // # Core Concepts
 //
-// ## Graph Structure
+// Graph Structure
 //
 // LangGraph Go uses a directed graph structure where:
 //   - Nodes represent processing units (agents, tools, functions)
 //   - Edges define the flow of execution
 //   - State flows through the graph and evolves at each node
 //
-// ## State Management
+// State Management
 //
 // State can be managed in different ways:
 //
-//   - **Untyped**: Using map[string]any for flexibility
-//   - **Typed**: Using Go generics for type safety
-//   - **Structured**: Using predefined schemas
+//   - *Untyped*: Using map[string]any for flexibility
+//   - *Typed*: Using Go generics for type safety
+//   - *Structured*: Using predefined schemas
 //
 // # Package Structure
 //
-// ## Core Packages
+// Core Packages
 //
-// ### graph/
+// graph/
 // The core graph construction and execution engine
 //
 //	// Create a state graph
@@ -104,15 +104,15 @@
 //	runnable, _ := g.Compile()
 //	result, _ := runnable.Invoke(ctx, initialState)
 //
-// ### prebuilt/
+// prebuilt/
 // Ready-to-use agent implementations
 //
 // Types of agents:
-//   - **ReAct Agent**: Reason and act pattern
-//   - **Supervisor Agent**: Orchestrates multiple agents
-//   - **Planning Agent**: Creates and executes plans
-//   - **Reflection Agent**: Self-correcting agent
-//   - **Tree of Thoughts**: Multi-path reasoning
+//   - *ReAct Agent*: Reason and act pattern
+//   - *Supervisor Agent*: Orchestrates multiple agents
+//   - *Planning Agent*: Creates and executes plans
+//   - *Reflection Agent*: Self-correcting agent
+//   - *Tree of Thoughts*: Multi-path reasoning
 //
 // Example:
 //
@@ -156,9 +156,9 @@
 //	searchTool, _ := tool.NewTavilySearchTool(apiKey)
 //	agent, _ := prebuilt.CreateReactAgent(llm, []tools.Tool{searchTool}, 10)
 //
-// ## Storage Packages
+// Storage Packages
 //
-// ### store/
+// store/
 // Checkpoint persistence implementations
 //
 // Options:
@@ -175,9 +175,9 @@
 //
 //	g.WithCheckpointing(graph.CheckpointConfig{Store: store})
 //
-// ## Adapter Packages
+// Adapter Packages
 //
-// ### adapter/
+// adapter/
 // Integration adapters for external systems
 //
 // Adapters:
@@ -190,9 +190,9 @@
 //	skills, _ := goskills.LoadSkillsFromDir("./skills")
 //	tools, _ := goskills.ConvertToLangChainTools(skills)
 //
-// ## Specialized Packages
+// Specialized Packages
 //
-// ### ptc/
+// ptc/
 // Programmatic Tool Calling - agents generate code to use tools
 //
 //	agent, _ := ptc.CreatePTCAgent(ptc.PTCAgentConfig{
@@ -201,7 +201,7 @@
 //		Language: ptc.LanguagePython,
 //	})
 //
-// ### log/
+// log/
 // Simple logging utilities
 //
 //	logger := log.NewDefaultLogger(log.LogLevelInfo)
@@ -209,7 +209,7 @@
 //
 // # Advanced Examples
 //
-// ## 1. Multi-Agent System with Supervisor
+// 1. Multi-Agent System with Supervisor
 //
 //	package main
 //
@@ -254,7 +254,7 @@
 //		fmt.Println(result)
 //	}
 //
-// ## 2. RAG (Retrieval-Augmented Generation) System
+// 2. RAG (Retrieval-Augmented Generation) System
 //
 //	package main
 //
@@ -316,7 +316,7 @@
 //		})
 //	}
 //
-// ## 3. Typed Graph with Custom State
+// 3. Typed Graph with Custom State
 //
 //	package main
 //
@@ -383,22 +383,22 @@
 //
 // # Best Practices
 //
-//  1. **Choose the right agent type** for your use case
+//  1. *Choose the right agent type* for your use case
 //     - ReAct for general tasks
 //     - Supervisor for multi-agent workflows
 //     - PTC for complex tool interactions
 //
-//  2. **Use typed graphs** when possible for better type safety
+//  2. *Use typed graphs* when possible for better type safety
 //
-//  3. **Implement proper error handling** in all node functions
+//  3. *Implement proper error handling* in all node functions
 //
-//  4. **Add checkpoints** for long-running or critical workflows
+//  4. *Add checkpoints* for long-running or critical workflows
 //
-//  5. **Use appropriate memory** strategy for conversations
+//  5. *Use appropriate memory* strategy for conversations
 //
-//  6. **Monitor execution** with listeners and logging
+//  6. *Monitor execution* with listeners and logging
 //
-//  7. **Test thoroughly** with various input scenarios
+//  7. *Test thoroughly* with various input scenarios
 //
 // # Configuration
 //

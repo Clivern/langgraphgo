@@ -6,16 +6,16 @@
 //
 // # Core Concepts
 //
-// ## StateGraph
+// StateGraph
 // The primary component for building graphs is StateGraph, which maintains state as it flows
 // through nodes. Each node can process and transform the state before passing it to the next node
 // based on defined edges.
 //
-// ## Nodes and Edges
+// Nodes and Edges
 // Nodes represent processing units (functions, agents, tools) that transform state.
 // Edges define the flow between nodes, supporting conditional routing based on state content.
 //
-// ## Typed Support
+// Typed Support
 // For type safety, the package provides StateGraphTyped[S] which uses Go generics to enforce
 // state types at compile time, reducing runtime errors and improving code maintainability.
 //
@@ -27,12 +27,12 @@
 //   - Comprehensive listener system for observability
 //   - Built-in retry mechanisms with configurable policies
 //   - Subgraph composition for modular design
-//   - Graph visualization (Mermaid, PlantUML)
+//   - Graph visualization (Mermaid, ASCII, DOT)
 //   - Interrupt support for human-in-the-loop workflows
 //
 // # Example Usage
 //
-// ## Basic State Graph
+// Basic State Graph
 //
 //	g := graph.NewStateGraph()
 //
@@ -64,7 +64,7 @@
 //		"data": "example",
 //	})
 //
-// ## Typed State Graph
+// Typed State Graph
 //
 //	type WorkflowState struct {
 //		Input    string `json:"input"`
@@ -98,7 +98,7 @@
 //	g.AddEdge("validate", graph.END)
 //	g.AddEdge("retry", "process")
 //
-// ## Parallel Execution
+// Parallel Execution
 //
 //	// Add parallel nodes
 //	g.AddParallelNodes("parallel_tasks", map[string]func(context.Context, any) (any, error){
@@ -112,7 +112,7 @@
 //		},
 //	})
 //
-// ## Checkpointing
+// Checkpointing
 //
 //	// Note: Checkpointing is handled at the runnable level
 //	// See store package examples for checkpointing implementation
@@ -122,7 +122,7 @@
 //	// Execute with context
 //	result, err := runnable.Invoke(context.Background(), initialState)
 //
-// ## Streaming
+// Streaming
 //
 //	// Create listenable graph for streaming
 //	g := graph.NewListenableStateGraph()
@@ -147,7 +147,7 @@
 //		fmt.Printf("Event: %v\n", event)
 //	}
 //
-// # Listener System
+// Listener System
 //
 // The package provides a powerful listener system for monitoring and reacting to graph events:
 //
@@ -157,14 +157,14 @@
 //   - ChatListener: Chat-style output formatting
 //   - Custom listeners: Implement NodeListener interface
 //
-// # Error Handling
+// Error Handling
 //
 //   - Built-in retry policies with exponential backoff
 //   - Custom error filtering for selective retries
 //   - Interrupt handling for pausing execution
 //   - Comprehensive error context in events
 //
-// # Visualization
+// Visualization
 //
 // Export graphs for documentation and debugging:
 //
@@ -178,12 +178,12 @@
 //		Direction: "LR", // Left to right
 //	})
 //
-// # Thread Safety
+// Thread Safety
 //
 // All graph structures are thread-safe for read operations. Write operations (adding nodes,
 // edges, or listeners) should be performed before compilation or protected by external synchronization.
 //
-// # Best Practices
+// Best Practices
 //
 //  1. Use typed graphs when possible for better type safety
 //  2. Set appropriate buffer sizes for streaming to balance memory and performance
