@@ -2,273 +2,29 @@ package graph
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
-	"sort"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/smallnest/langgraphgo/store"
+	"github.com/smallnest/langgraphgo/store/file"
+	"github.com/smallnest/langgraphgo/store/memory"
 )
 
 // Checkpoint represents a saved state at a specific point in execution
-type Checkpoint struct {
-	ID        string         `json:"id"`
-	NodeName  string         `json:"node_name"`
-	State     any            `json:"state"`
-	Metadata  map[string]any `json:"metadata"`
-	Timestamp time.Time      `json:"timestamp"`
-	Version   int            `json:"version"`
-}
+type Checkpoint = store.Checkpoint
 
 // CheckpointStore defines the interface for checkpoint persistence
-type CheckpointStore interface {
-	// Save stores a checkpoint
-	Save(ctx context.Context, checkpoint *Checkpoint) error
-
-	// Load retrieves a checkpoint by ID
-	Load(ctx context.Context, checkpointID string) (*Checkpoint, error)
-
-	// List returns all checkpoints for a given execution
-	List(ctx context.Context, executionID string) ([]*Checkpoint, error)
-
-	// Delete removes a checkpoint
-	Delete(ctx context.Context, checkpointID string) error
-
-	// Clear removes all checkpoints for an execution
-	Clear(ctx context.Context, executionID string) error
-}
-
-// MemoryCheckpointStore provides in-memory checkpoint storage
-type MemoryCheckpointStore struct {
-	checkpoints map[string]*Checkpoint
-	mutex       sync.RWMutex
-}
+type CheckpointStore = store.CheckpointStore
 
 // NewMemoryCheckpointStore creates a new in-memory checkpoint store
-func NewMemoryCheckpointStore() *MemoryCheckpointStore {
-	return &MemoryCheckpointStore{
-		checkpoints: make(map[string]*Checkpoint),
-	}
-}
-
-// Save implements CheckpointStore interface
-func (m *MemoryCheckpointStore) Save(_ context.Context, checkpoint *Checkpoint) error {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	m.checkpoints[checkpoint.ID] = checkpoint
-	return nil
-}
-
-// Load implements CheckpointStore interface
-func (m *MemoryCheckpointStore) Load(_ context.Context, checkpointID string) (*Checkpoint, error) {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-
-	checkpoint, exists := m.checkpoints[checkpointID]
-	if !exists {
-		return nil, fmt.Errorf("checkpoint not found: %s", checkpointID)
-	}
-
-	return checkpoint, nil
-}
-
-// List implements CheckpointStore interface
-func (m *MemoryCheckpointStore) List(_ context.Context, executionID string) ([]*Checkpoint, error) {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-
-	var checkpoints []*Checkpoint
-	for _, checkpoint := range m.checkpoints {
-		if execID, ok := checkpoint.Metadata["execution_id"].(string); ok && execID == executionID {
-			checkpoints = append(checkpoints, checkpoint)
-		}
-	}
-
-	// Sort by version (ascending order) so latest is last
-	sort.Slice(checkpoints, func(i, j int) bool {
-		return checkpoints[i].Version < checkpoints[j].Version
-	})
-
-	return checkpoints, nil
-}
-
-// Delete implements CheckpointStore interface
-func (m *MemoryCheckpointStore) Delete(_ context.Context, checkpointID string) error {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	delete(m.checkpoints, checkpointID)
-	return nil
-}
-
-// Clear implements CheckpointStore interface
-func (m *MemoryCheckpointStore) Clear(_ context.Context, executionID string) error {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	for id, checkpoint := range m.checkpoints {
-		if execID, ok := checkpoint.Metadata["execution_id"].(string); ok && execID == executionID {
-			delete(m.checkpoints, id)
-		}
-	}
-
-	return nil
-}
-
-// FileCheckpointStore provides file-based checkpoint storage
-type FileCheckpointStore struct {
-	path  string
-	mutex sync.RWMutex
+func NewMemoryCheckpointStore() CheckpointStore {
+	return memory.NewMemoryCheckpointStore()
 }
 
 // NewFileCheckpointStore creates a new file-based checkpoint store
-func NewFileCheckpointStore(path string) (*FileCheckpointStore, error) {
-	// Ensure directory exists
-	if err := os.MkdirAll(path, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create checkpoint directory: %w", err)
-	}
-
-	return &FileCheckpointStore{
-		path: path,
-	}, nil
-}
-
-// Save implements CheckpointStore interface for file storage
-func (f *FileCheckpointStore) Save(_ context.Context, checkpoint *Checkpoint) error {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-
-	// Create filename from ID
-	filename := filepath.Join(f.path, fmt.Sprintf("%s.json", checkpoint.ID))
-
-	data, err := json.Marshal(checkpoint)
-	if err != nil {
-		return fmt.Errorf("failed to marshal checkpoint: %w", err)
-	}
-
-	if err := os.WriteFile(filename, data, 0600); err != nil {
-		return fmt.Errorf("failed to write checkpoint file: %w", err)
-	}
-
-	return nil
-}
-
-// Load implements CheckpointStore interface for file storage
-func (f *FileCheckpointStore) Load(_ context.Context, checkpointID string) (*Checkpoint, error) {
-	f.mutex.RLock()
-	defer f.mutex.RUnlock()
-
-	filename := filepath.Join(f.path, fmt.Sprintf("%s.json", checkpointID))
-
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("checkpoint not found: %s", checkpointID)
-		}
-		return nil, fmt.Errorf("failed to read checkpoint file: %w", err)
-	}
-
-	var checkpoint Checkpoint
-	err = json.Unmarshal(data, &checkpoint)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal checkpoint: %w", err)
-	}
-
-	return &checkpoint, nil
-}
-
-// List implements CheckpointStore interface for file storage
-func (f *FileCheckpointStore) List(_ context.Context, executionID string) ([]*Checkpoint, error) {
-	f.mutex.RLock()
-	defer f.mutex.RUnlock()
-
-	files, err := os.ReadDir(f.path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read checkpoint directory: %w", err)
-	}
-
-	var checkpoints []*Checkpoint
-
-	for _, file := range files {
-		if !file.IsDir() && filepath.Ext(file.Name()) == ".json" {
-			data, err := os.ReadFile(filepath.Join(f.path, file.Name()))
-			if err != nil {
-				// Skip unreadable files
-				continue
-			}
-
-			var checkpoint Checkpoint
-			if err := json.Unmarshal(data, &checkpoint); err != nil {
-				// Skip invalid files
-				continue
-			}
-
-			// Filter by executionID or threadID
-			execID, _ := checkpoint.Metadata["execution_id"].(string)
-			threadID, _ := checkpoint.Metadata["thread_id"].(string)
-
-			if execID == executionID || threadID == executionID {
-				checkpoints = append(checkpoints, &checkpoint)
-			}
-		}
-	}
-
-	// Sort by version (ascending order) so latest is last
-	sort.Slice(checkpoints, func(i, j int) bool {
-		return checkpoints[i].Version < checkpoints[j].Version
-	})
-
-	return checkpoints, nil
-}
-
-// Delete implements CheckpointStore interface for file storage
-func (f *FileCheckpointStore) Delete(_ context.Context, checkpointID string) error {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-
-	filename := filepath.Join(f.path, fmt.Sprintf("%s.json", checkpointID))
-
-	if err := os.Remove(filename); err != nil {
-		if os.IsNotExist(err) {
-			// If file doesn't exist, we consider it deleted
-			return nil
-		}
-		return fmt.Errorf("failed to delete checkpoint file: %w", err)
-	}
-
-	return nil
-}
-
-// Clear implements CheckpointStore interface for file storage
-func (f *FileCheckpointStore) Clear(ctx context.Context, executionID string) error {
-	// We iterate through all files using List (which already filters and reads),
-	// but we should probably do a raw read here to avoid overhead if list is slow,
-	// however, List Logic is fine for now as it reuses logic.
-	// Actually, let's just re-implement simple loop to avoid locking recursion if we called f.Delete inside f.List loop scope if we weren't careful.
-	// But List is read-lock. Delete is write-lock. upgrading lock is dangerous.
-	// So we should get IDs first, then delete.
-
-	checkpoints, err := f.List(ctx, executionID)
-	if err != nil {
-		return err
-	}
-
-	var errs []error
-	for _, cp := range checkpoints {
-		if err := f.Delete(ctx, cp.ID); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("failed to clear some checkpoints: %v", errs)
-	}
-
-	return nil
+func NewFileCheckpointStore(path string) (CheckpointStore, error) {
+	return file.NewFileCheckpointStore(path)
 }
 
 // CheckpointConfig configures checkpointing behavior
