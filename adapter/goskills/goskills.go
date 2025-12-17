@@ -108,15 +108,6 @@ func (t *SkillTool) Call(ctx context.Context, input string) (string, error) {
 		}
 		return "", err
 
-	case "duckduckgo_search":
-		var params struct {
-			Query string `json:"query"`
-		}
-		if err := json.Unmarshal([]byte(input), &params); err != nil {
-			return "", fmt.Errorf("failed to unmarshal duckduckgo_search arguments: %w", err)
-		}
-		return tool.DuckDuckGoSearch(params.Query)
-
 	case "wikipedia_search":
 		var params struct {
 			Query string `json:"query"`
@@ -165,7 +156,7 @@ func (t *SkillTool) Call(ctx context.Context, input string) (string, error) {
 }
 
 // SkillsToTools converts a goskills.SkillPackage to a slice of tools.Tool.
-func SkillsToTools(skill goskills.SkillPackage) ([]tools.Tool, error) {
+func SkillsToTools(skill *goskills.SkillPackage) ([]tools.Tool, error) {
 	availableTools, scriptMap := goskills.GenerateToolDefinitions(skill)
 	var result []tools.Tool
 

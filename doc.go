@@ -65,14 +65,14 @@
 //
 // # Core Concepts
 //
-// Graph Structure
+// # Graph Structure
 //
 // LangGraph Go uses a directed graph structure where:
 //   - Nodes represent processing units (agents, tools, functions)
 //   - Edges define the flow of execution
 //   - State flows through the graph and evolves at each node
 //
-// State Management
+// # State Management
 //
 // State can be managed in different ways:
 //
@@ -82,7 +82,7 @@
 //
 // # Package Structure
 //
-// Core Packages
+// # Core Packages
 //
 // graph/
 // The core graph construction and execution engine
@@ -156,7 +156,7 @@
 //	searchTool, _ := tool.NewTavilySearchTool(apiKey)
 //	agent, _ := prebuilt.CreateReactAgent(llm, []tools.Tool{searchTool}, 10)
 //
-// Storage Packages
+// # Storage Packages
 //
 // store/
 // Checkpoint persistence implementations
@@ -175,7 +175,7 @@
 //
 //	g.WithCheckpointing(graph.CheckpointConfig{Store: store})
 //
-// Adapter Packages
+// # Adapter Packages
 //
 // adapter/
 // Integration adapters for external systems
@@ -190,7 +190,7 @@
 //	skills, _ := goskills.LoadSkillsFromDir("./skills")
 //	tools, _ := goskills.ConvertToLangChainTools(skills)
 //
-// Specialized Packages
+// # Specialized Packages
 //
 // ptc/
 // Programmatic Tool Calling - agents generate code to use tools

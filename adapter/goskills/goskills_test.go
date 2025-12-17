@@ -175,27 +175,6 @@ func TestSkillTool_Call_WriteFile(t *testing.T) {
 	assert.Equal(t, testContent, string(content))
 }
 
-// TestSkillTool_Call_DuckDuckGoSearch tests the duckduckgo_search case
-func TestSkillTool_Call_DuckDuckGoSearch(t *testing.T) {
-	tool := &SkillTool{
-		name: "duckduckgo_search",
-	}
-
-	params := map[string]string{
-		"query": "test query",
-	}
-	input, err := json.Marshal(params)
-	require.NoError(t, err)
-
-	// This might fail due to network issues, but shouldn't panic
-	result, err := tool.Call(context.Background(), string(input))
-	if err != nil {
-		t.Logf("DuckDuckGo search failed (might be network issues): %v", err)
-	} else {
-		t.Logf("DuckDuckGo search result: %s", result)
-	}
-}
-
 // TestSkillTool_Call_UnknownTool tests unknown tool case
 func TestSkillTool_Call_UnknownTool(t *testing.T) {
 	tool := &SkillTool{
@@ -241,7 +220,7 @@ func TestSkillsToTools(t *testing.T) {
 
 	t.Run("function_signature", func(t *testing.T) {
 		// Verify the function exists by checking its type
-		var _ func(goskills.SkillPackage) ([]tools.Tool, error) = SkillsToTools
+		var _ func(*goskills.SkillPackage) ([]tools.Tool, error) = SkillsToTools
 		// This will compile if the function exists with the correct signature
 	})
 }

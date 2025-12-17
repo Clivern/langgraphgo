@@ -160,7 +160,7 @@ func CreateAgent(model llms.Model, inputTools []tools.Tool, opts ...CreateAgentO
 			}
 
 			// Convert skill to tools
-			skillTools, err := adapter.SkillsToTools(*selectedSkill)
+			skillTools, err := adapter.SkillsToTools(selectedSkill)
 			if err != nil {
 				return nil, fmt.Errorf("failed to convert skill to tools: %w", err)
 			}

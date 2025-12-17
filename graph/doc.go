@@ -147,7 +147,7 @@
 //		fmt.Printf("Event: %v\n", event)
 //	}
 //
-// Listener System
+// # Listener System
 //
 // The package provides a powerful listener system for monitoring and reacting to graph events:
 //
@@ -164,7 +164,7 @@
 //   - Interrupt handling for pausing execution
 //   - Comprehensive error context in events
 //
-// Visualization
+// # Visualization
 //
 // Export graphs for documentation and debugging:
 //
@@ -178,7 +178,7 @@
 //		Direction: "LR", // Left to right
 //	})
 //
-// Thread Safety
+// # Thread Safety
 //
 // All graph structures are thread-safe for read operations. Write operations (adding nodes,
 // edges, or listeners) should be performed before compilation or protected by external synchronization.
