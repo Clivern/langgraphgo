@@ -118,8 +118,8 @@ github.com/russross/blackfriday/v2 v2.1.0 h1:JIOH55/0cWyOuilr9/qlrm0BSXldqnqwMsf
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/sashabaranov/go-openai v1.41.2 h1:vfPRBZNMpnqu8ELsclWcAvF19lDNgh1t6TVfFFOPiSM=
 github.com/sashabaranov/go-openai v1.41.2/go.mod h1:lj5b/K+zjTSFxVLijLSTDZuP7adOgerWeFyZLUhAKRg=
-github.com/smallnest/goskills v0.3.5 h1:Ne54DDHddI1MNEkPhxE7CrVnp+dICdp+MdL0yxUlAH4=
-github.com/smallnest/goskills v0.3.5/go.mod h1:mJZpNyBtB4o8qgqNHHwmfx9K2KFu3ufbAMQPeAjbfMQ=
+github.com/smallnest/goskills v0.4.1 h1:uUAiSsy07YaXopv/rXAe39sYUFcbzm0RCMt7Ecv899w=
+github.com/smallnest/goskills v0.4.1/go.mod h1:ubGLXgaBvUilnckwu3osVlFrWlBRHVcGdBEnn1uLLtw=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.5.2 h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=
 github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=

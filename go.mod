@@ -14,7 +14,7 @@ require (
 	github.com/pashagolub/pgxmock/v3 v3.4.0
 	github.com/redis/go-redis/v9 v9.17.1
 	github.com/sashabaranov/go-openai v1.41.2
-	github.com/smallnest/goskills v0.3.5
+	github.com/smallnest/goskills v0.4.1
 	github.com/stretchr/testify v1.11.1
 	github.com/tmc/langchaingo v0.1.14
 )
