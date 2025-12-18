@@ -773,11 +773,31 @@ body {
     gap: 5px;
 }
 
+@keyframes logo-pulse {
+    0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.3)); }
+    50% { transform: scale(1.05); filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6)); }
+    100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.3)); }
+}
+
 .app-logo {
     height: 40px;
     width: auto;
     border-radius: 8px;
     object-fit: contain;
+    animation: logo-pulse 3s infinite ease-in-out;
+}
+
+@keyframes hover-breathe {
+    0% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.1) rotate(5deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
+.app-logo:hover, .avatar:hover {
+    animation: hover-breathe 2s infinite ease-in-out !important;
+    cursor: pointer;
+    filter: drop-shadow(0 0 12px var(--accent-primary));
+    z-index: 10;
 }
 
 .chat-header-right {
@@ -925,6 +945,44 @@ body {
     position: relative;
     word-wrap: break-word;
     word-break: break-word;
+}
+
+@keyframes avatar-pop {
+    0% { transform: scale(0); opacity: 0; }
+    70% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    color: white;
+    animation: avatar-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.message.assistant .avatar {
+    margin-right: 15px;
+    background-color: var(--bg-tertiary);
+}
+
+.message.user .avatar {
+    margin-left: 15px;
+    background-color: var(--accent-primary);
+}
+
+.avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .message.user .message-content {

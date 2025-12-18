@@ -1080,10 +1080,16 @@
                                     messageDiv = document.createElement('div');
                                     messageDiv.className = 'message assistant';
 
+                                    // Create Avatar
+                                    const avatarDiv = document.createElement('div');
+                                    avatarDiv.className = 'avatar assistant-avatar';
+                                    avatarDiv.innerHTML = '<img src="/static/images/robot.png" alt="AI">';
+
                                     messageContentDiv = document.createElement('div');
                                     messageContentDiv.className = 'message-content';
                                     messageContentDiv.innerHTML = '';
 
+                                    messageDiv.appendChild(avatarDiv);
                                     messageDiv.appendChild(messageContentDiv);
                                     document.getElementById('messages').appendChild(messageDiv);
                                     scrollToBottom();
@@ -1414,6 +1420,15 @@
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role}`;
 
+            // Create Avatar
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'avatar';
+            if (role === 'assistant') {
+                avatarDiv.innerHTML = '<img src="/static/images/robot.png" alt="AI">';
+            } else {
+                avatarDiv.innerHTML = '<span>You</span>';
+            }
+
             const time = new Date(timestamp).toLocaleTimeString();
             let processedContent = '';
             let extractedArtifacts = [];
@@ -1513,7 +1528,14 @@
                 `;
             }
 
-            messageDiv.appendChild(messageContentDiv);
+            if (role === 'assistant') {
+                messageDiv.appendChild(avatarDiv);
+                messageDiv.appendChild(messageContentDiv);
+            } else {
+                messageDiv.appendChild(messageContentDiv);
+                messageDiv.appendChild(avatarDiv);
+            }
+            
             messagesDiv.appendChild(messageDiv);
 
             // Add click handler for artifact placeholders
