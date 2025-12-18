@@ -236,6 +236,119 @@ body {
     background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 50%, var(--bg-primary) 100%);
 }
 
+[data-theme="default-light"] body {
+    background: linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)), url('/static/images/bamboo.jpg') no-repeat center center fixed;
+    background-size: cover;
+}
+
+[data-theme="default-light"] .container {
+    background: rgba(255, 255, 255, 0.92);
+}
+
+[data-theme="blue-light"] body {
+    background: linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)), url('/static/images/blue.jpg') no-repeat center center fixed;
+    background-size: cover;
+}
+
+[data-theme="blue-light"] .container {
+    background: rgba(255, 255, 255, 0.92);
+}
+
+[data-theme="purple-light"] body {
+    background: linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)), url('/static/images/purple.jpg') no-repeat center center fixed;
+    background-size: cover;
+}
+
+[data-theme="purple-light"] .container {
+    background: rgba(255, 255, 255, 0.92);
+}
+
+[data-theme="rose-light"] body {
+    background: linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)), url('/static/images/yu.jpg') no-repeat center center fixed;
+    background-size: cover;
+}
+
+[data-theme="rose-light"] .container {
+    background: rgba(255, 255, 255, 0.92);
+}
+
+[data-theme="sapphire-light"] body {
+    background: linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)), url('/static/images/baoshi.jpg') no-repeat center center fixed;
+    background-size: cover;
+}
+
+[data-theme="sapphire-light"] .container {
+    background: rgba(255, 255, 255, 0.92);
+}
+
+[data-theme="sapphire-light"] .messages {
+    background: linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)), url('/static/images/bear.jpg') no-repeat center center;
+    background-size: cover;
+}
+
+[data-theme="modern-dark"] body {
+    background: linear-gradient(rgba(15, 23, 42, 0.5), rgba(15, 23, 42, 0.5)), url('/static/images/aurora.jpg') no-repeat center center fixed;
+    background-size: cover;
+}
+
+[data-theme="modern-dark"] .container {
+    background: rgba(15, 23, 42, 0.92);
+}
+
+[data-theme="blue-dark"] body {
+    background: linear-gradient(rgba(12, 18, 34, 0.5), rgba(12, 18, 34, 0.5)), url('/static/images/nightsky.jpg') no-repeat center center fixed;
+    background-size: cover;
+}
+
+[data-theme="blue-dark"] .container {
+    background: rgba(12, 18, 34, 0.92);
+}
+
+[data-theme="cyberpunk-dark"] body {
+    background: linear-gradient(rgba(10, 10, 10, 0.7), rgba(10, 10, 10, 0.7)), url('/static/images/cyberpunk.jpg') no-repeat center center fixed;
+    background-size: cover;
+}
+
+[data-theme="cyberpunk-dark"] .container {
+    background: rgba(10, 10, 10, 0.92);
+}
+
+[data-theme="matrix-dark"] body {
+    background: linear-gradient(rgba(0, 5, 0, 0.7), rgba(0, 5, 0, 0.7)), url('/static/images/matrix.jpg') no-repeat center center fixed;
+    background-size: cover;
+}
+
+[data-theme="matrix-dark"] .container {
+    background: rgba(0, 5, 0, 0.92);
+}
+
+[data-theme="claude-light"] body {
+    background: linear-gradient(rgba(255, 251, 235, 0.5), rgba(255, 251, 235, 0.5)), url('/static/images/wall.jpg') no-repeat center center fixed;
+    background-size: cover;
+}
+
+[data-theme="claude-light"] .container {
+    background: rgba(255, 251, 235, 0.92);
+}
+
+[data-theme="apple-silver"] body {
+    background: linear-gradient(rgba(245, 245, 247, 0.5), rgba(245, 245, 247, 0.5)), url('/static/images/silver.jpg') no-repeat center center fixed;
+    background-size: cover;
+}
+
+[data-theme="apple-silver"] .container {
+    background: rgba(255, 255, 255, 0.92);
+}
+
+[data-theme="chinese-classic"] body {
+    background: linear-gradient(rgba(249, 246, 240, 0.5), rgba(249, 246, 240, 0.5)), url('/static/images/panda.jpg') no-repeat center center fixed;
+    background-size: cover;
+}
+
+[data-theme="chinese-classic"] .container {
+    background: rgba(249, 246, 240, 0.92);
+}
+
 .container {
     background: var(--bg-primary);
     box-shadow: var(--shadow-lg);

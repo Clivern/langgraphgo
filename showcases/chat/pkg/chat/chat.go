@@ -1220,7 +1220,7 @@ func (a *SimpleChatAgent) loadSkillTools(skillName string) ([]tools.Tool, error)
 		if strings.EqualFold(a.skills[i].Name, skillName) {
 			if !a.skills[i].Loaded {
 				// Convert skill to tools
-				skillTools, err := adaptergoskills.SkillsToTools(*a.skills[i].Package)
+				skillTools, err := adaptergoskills.SkillsToTools(a.skills[i].Package)
 				if err != nil {
 					return nil, fmt.Errorf("failed to convert skill '%s' to tools: %w", skillName, err)
 				}
