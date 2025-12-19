@@ -7,15 +7,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/smallnest/langgraphgo/showcases/chat/pkg/auth"
 )
-
-// JWTClaims represents the JWT claims structure
-type JWTClaims struct {
-	UserID   string   `json:"user_id"`
-	Username string   `json:"username"`
-	Roles    []string `json:"roles"`
-	jwt.RegisteredClaims
-}
 
 // AuthMiddleware provides JWT authentication middleware
 type AuthMiddleware struct {
@@ -35,7 +28,7 @@ func NewAuthMiddleware(secretKey string, tokenExpiry, refreshExpiry time.Duratio
 
 // GenerateToken generates a new JWT token for the given user
 func (a *AuthMiddleware) GenerateToken(userID, username string, roles []string) (string, error) {
-	claims := JWTClaims{
+	claims := auth.JWTClaims{
 		UserID:   userID,
 		Username: username,
 		Roles:    roles,
@@ -53,8 +46,8 @@ func (a *AuthMiddleware) GenerateToken(userID, username string, roles []string) 
 }
 
 // ValidateToken validates the JWT token and returns the claims
-func (a *AuthMiddleware) ValidateToken(tokenString string) (*JWTClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+func (a *AuthMiddleware) ValidateToken(tokenString string) (*auth.JWTClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &auth.JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, jwt.ErrSignatureInvalid
 		}
@@ -65,7 +58,7 @@ func (a *AuthMiddleware) ValidateToken(tokenString string) (*JWTClaims, error) {
 		return nil, err
 	}
 
-	if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(*auth.JWTClaims); ok && token.Valid {
 		return claims, nil
 	}
 
@@ -83,18 +76,25 @@ func (a *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 
 		// Extract token from Authorization header
 		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			http.Error(w, "Authorization header required", http.StatusUnauthorized)
-			return
+		var tokenString string
+
+		if authHeader != "" {
+			// Check if the token has the Bearer prefix
+			if !strings.HasPrefix(authHeader, "Bearer ") {
+				http.Error(w, "Invalid authorization header format", http.StatusUnauthorized)
+				return
+			}
+			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
+		} else {
+			// Check for token in cookie
+			cookie, err := r.Cookie("access_token")
+			if err != nil {
+				http.Error(w, "Authorization header or cookie required", http.StatusUnauthorized)
+				return
+			}
+			tokenString = cookie.Value
 		}
 
-		// Check if the token has the Bearer prefix
-		if !strings.HasPrefix(authHeader, "Bearer ") {
-			http.Error(w, "Invalid authorization header format", http.StatusUnauthorized)
-			return
-		}
-
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		claims, err := a.ValidateToken(tokenString)
 		if err != nil {
 			http.Error(w, "Invalid token", http.StatusUnauthorized)
@@ -134,13 +134,13 @@ type contextKey string
 const userContextKey contextKey = "user"
 
 // setUserContext adds user information to the request context
-func (a *AuthMiddleware) setUserContext(ctx context.Context, claims *JWTClaims) context.Context {
+func (a *AuthMiddleware) setUserContext(ctx context.Context, claims *auth.JWTClaims) context.Context {
 	return context.WithValue(ctx, userContextKey, claims)
 }
 
 // GetUserFromContext retrieves user information from the request context
-func GetUserFromContext(ctx context.Context) (*JWTClaims, bool) {
-	user, ok := ctx.Value(userContextKey).(*JWTClaims)
+func GetUserFromContext(ctx context.Context) (*auth.JWTClaims, bool) {
+	user, ok := ctx.Value(userContextKey).(*auth.JWTClaims)
 	return user, ok
 }
 

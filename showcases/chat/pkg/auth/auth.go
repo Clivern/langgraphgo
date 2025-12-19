@@ -6,6 +6,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // User represents a user in the system
@@ -19,6 +21,14 @@ type User struct {
 	UpdatedAt time.Time `json:"updated_at"`
 	LastLogin *time.Time `json:"last_login,omitempty"`
 	Active    bool      `json:"active"`
+}
+
+// JWTClaims represents the JWT claims structure (must match middleware)
+type JWTClaims struct {
+	UserID   string   `json:"user_id"`
+	Username string   `json:"username"`
+	Roles    []string `json:"roles"`
+	jwt.RegisteredClaims
 }
 
 // LoginRequest represents a login request
@@ -290,7 +300,19 @@ func (a *AuthService) verifyPassword(password, hash string) bool {
 }
 
 func (a *AuthService) generateAccessToken(user *User) (string, error) {
-	// This would use the JWT middleware in a real implementation
-	// For now, return a simple token
-	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s:%d", user.ID, user.Username, time.Now().Unix()))), nil
+	claims := JWTClaims{
+		UserID:   user.ID,
+		Username: user.Username,
+		Roles:    user.Roles,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(a.tokenExpiry)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+			Issuer:    "chat-agent",
+			Subject:   user.ID,
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(a.secretKey))
 }

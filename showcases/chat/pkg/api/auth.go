@@ -197,11 +197,11 @@ func (a *AuthAPI) HandleRegisterPage(w http.ResponseWriter, r *http.Request) {
 
 // HTML templates for login and register pages
 const loginPageHTML = `<!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Chat Agent</title>
+    <title>登录 - 聊天智能体</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -311,32 +311,32 @@ const loginPageHTML = `<!DOCTYPE html>
 <body>
     <div class="login-container">
         <div class="login-header">
-            <h1>🤖 Chat Agent</h1>
-            <p>Sign in to your account</p>
+            <h1>🤖 聊天智能体</h1>
+            <p>登录您的账号</p>
         </div>
 
         <div class="demo-info">
-            <strong>Demo Accounts:</strong><br>
-            Admin: username <code>admin</code>, password <code>admin123</code><br>
-            User: username <code>user</code>, password <code>user123</code>
+            <strong>演示账号:</strong><br>
+            管理员: 用户名 <code>admin</code>, 密码 <code>admin123</code><br>
+            普通用户: 用户名 <code>user</code>, 密码 <code>user123</code>
         </div>
 
         <div class="error-message" id="error-message"></div>
 
         <form id="login-form">
             <div class="form-group">
-                <label for="username">Username</label>
+                <label for="username">用户名</label>
                 <input type="text" id="username" name="username" required>
             </div>
             <div class="form-group">
-                <label for="password">Password</label>
+                <label for="password">密码</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            <button type="submit" class="login-button">Sign In</button>
+            <button type="submit" class="login-button">登录</button>
         </form>
 
         <div class="login-footer">
-            <p>Don't have an account? <a href="/register">Sign up</a></p>
+            <p>还没有账号？<a href="/register">立即注册</a></p>
         </div>
     </div>
 
@@ -372,11 +372,11 @@ const loginPageHTML = `<!DOCTYPE html>
                     // Redirect to main app
                     window.location.href = '/';
                 } else {
-                    errorDiv.textContent = data.error || 'Login failed';
+                    errorDiv.textContent = data.error || '登录失败';
                     errorDiv.style.display = 'block';
                 }
             } catch (error) {
-                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.textContent = '网络错误，请稍后重试。';
                 errorDiv.style.display = 'block';
             }
         });
@@ -385,11 +385,11 @@ const loginPageHTML = `<!DOCTYPE html>
 </html>`
 
 const registerPageHTML = `<!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - Chat Agent</title>
+    <title>注册 - 聊天智能体</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -483,30 +483,30 @@ const registerPageHTML = `<!DOCTYPE html>
 <body>
     <div class="register-container">
         <div class="register-header">
-            <h1>🤖 Chat Agent</h1>
-            <p>Create your account</p>
+            <h1>🤖 聊天智能体</h1>
+            <p>创建您的账号</p>
         </div>
 
         <div class="error-message" id="error-message"></div>
 
         <form id="register-form">
             <div class="form-group">
-                <label for="username">Username</label>
+                <label for="username">用户名</label>
                 <input type="text" id="username" name="username" required>
             </div>
             <div class="form-group">
-                <label for="email">Email</label>
+                <label for="email">电子邮箱</label>
                 <input type="email" id="email" name="email" required>
             </div>
             <div class="form-group">
-                <label for="password">Password</label>
+                <label for="password">密码</label>
                 <input type="password" id="password" name="password" required minlength="6">
             </div>
-            <button type="submit" class="register-button">Sign Up</button>
+            <button type="submit" class="register-button">注册</button>
         </form>
 
         <div class="register-footer">
-            <p>Already have an account? <a href="/login">Sign in</a></p>
+            <p>已有账号？<a href="/login">立即登录</a></p>
         </div>
     </div>
 
@@ -543,11 +543,11 @@ const registerPageHTML = `<!DOCTYPE html>
                     // Redirect to main app
                     window.location.href = '/';
                 } else {
-                    errorDiv.textContent = data.error || 'Registration failed';
+                    errorDiv.textContent = data.error || '注册失败';
                     errorDiv.style.display = 'block';
                 }
             } catch (error) {
-                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.textContent = '网络错误，请稍后重试。';
                 errorDiv.style.display = 'block';
             }
         });

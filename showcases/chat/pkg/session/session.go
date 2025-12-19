@@ -50,7 +50,7 @@ func NewSessionManager(sessionDir string, maxHistory int) *SessionManager {
 
 	// Don't load all sessions at startup anymore
 	// Sessions will be loaded on-demand to improve startup performance
-	// sm.loadSessions()
+	sm.loadSessions()
 
 	return sm
 }

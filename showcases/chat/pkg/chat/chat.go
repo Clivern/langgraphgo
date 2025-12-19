@@ -653,9 +653,23 @@ func NewChatServer(sessionDir string, maxHistory int, port string) (*ChatServer,
 	}
 	config := configManager.Get()
 
-	// Check API key
+	// Check API key and fallback to environment variable if not set
 	if config.LLM.APIKey == "" {
-		return nil, fmt.Errorf("LLM API key not set in configuration")
+		config.LLM.APIKey = os.Getenv("OPENAI_API_KEY")
+	}
+
+	if config.LLM.APIKey == "" {
+		return nil, fmt.Errorf("LLM API key not set in configuration or environment (OPENAI_API_KEY)")
+	}
+
+	// Check model and fallback to environment variable if not set
+	if config.LLM.Model == "" {
+		config.LLM.Model = os.Getenv("OPENAI_MODEL")
+	}
+
+	// Check BaseURL and fallback to environment variable if not set
+	if config.LLM.BaseURL == "" {
+		config.LLM.BaseURL = os.Getenv("OPENAI_API_BASE")
 	}
 
 	// Create OpenAI LLM (works with OpenAI-compatible APIs like Baidu)
@@ -1465,8 +1479,8 @@ func (cs *ChatServer) HandleFeedback(w http.ResponseWriter, r *http.Request) {
 func (cs *ChatServer) HandleConfig(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{
-		"chatTitle":      "LangGraphGo Chat Agent",
-		"appLogo":        "/static/logo.png",
+		"chatTitle":      "聊天智能体",
+		"appLogo":        "/static/images/logo.png",
 		"enableFeedback": false, // TODO: Add feedback feature to config
 		"environment":    "development", // TODO: Get from config manager
 		"llmModel":       cs.config.LLM.Model,
@@ -1518,7 +1532,6 @@ func (cs *ChatServer) Start(staticFS fs.FS) error {
 	mux.HandleFunc("/api/auth/register", cs.authAPI.HandleRegister)
 	mux.HandleFunc("/api/auth/refresh", cs.authAPI.HandleRefresh)
 	mux.HandleFunc("/api/auth/logout", cs.authAPI.HandleLogout)
-	mux.HandleFunc("/api/auth/me", cs.authAPI.HandleGetCurrentUser)
 
 	// Public endpoints
 	mux.HandleFunc("/health", cs.HandleHealth)
@@ -1561,6 +1574,7 @@ func (cs *ChatServer) Start(staticFS fs.FS) error {
 	// Protected routes (require authentication)
 	protectedMux := http.NewServeMux()
 	protectedMux.HandleFunc("/api/client-id", cs.HandleGetClientID)
+	protectedMux.HandleFunc("/api/auth/me", cs.authAPI.HandleGetCurrentUser)
 	protectedMux.HandleFunc("/api/sessions/new", cs.HandleNewSession)
 	protectedMux.HandleFunc("/api/sessions", cs.HandleListSessions)
 	protectedMux.HandleFunc("/api/sessions/", func(w http.ResponseWriter, r *http.Request) {
