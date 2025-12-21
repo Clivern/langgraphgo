@@ -3,130 +3,124 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
 
-	"github.com/smallnest/langgraphgo/graph"
-	"github.com/tmc/langchaingo/llms"
+	"github.com/smallnest/langgraphgo/rag"
+	"github.com/smallnest/langgraphgo/rag/loader"
+	"github.com/smallnest/langgraphgo/rag/retriever"
+	"github.com/smallnest/langgraphgo/rag/splitter"
+	"github.com/smallnest/langgraphgo/rag/store"
+	"github.com/tmc/langchaingo/embeddings"
 	"github.com/tmc/langchaingo/llms/openai"
 )
 
-// DocumentState represents the state flowing through the RAG pipeline
-type DocumentState struct {
-	Query          string
-	Documents      []string
-	RelevanceScore float64
-	Answer         string
-	Citations      []string
-}
-
 func main() {
-	// Initialize the LLM
-	model, err := openai.New()
+	ctx := context.Background()
+
+	// 1. Initialize LLM and Embedder
+	// Make sure OPENAI_API_KEY is set in your environment
+	llm, err := openai.New()
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to create llm: %v", err)
 	}
 
-	// Create the graph
-	g := graph.NewStateGraph()
+	openaiEmbedder, err := embeddings.NewEmbedder(llm)
+	if err != nil {
+		log.Fatalf("failed to create embedder: %v", err)
+	}
+	// Wrap langchaingo embedder with our adapter
+	embedder := rag.NewLangChainEmbedder(openaiEmbedder)
 
-	// Query Classification - Route based on intent
-	g.AddNode("query_classifier", "query_classifier", func(ctx context.Context, state any) (any, error) {
-		docs := state.(DocumentState)
-		// Classify query type (factual, analytical, etc.)
-		docs.Query = "classified: " + docs.Query
-		return docs, nil
-	})
+	// 2. Initialize Components
+	// In-memory vector store
+	vectorStore := store.NewInMemoryVectorStore(embedder)
 
-	// Document Retrieval - Vector search
-	g.AddNode("retrieve_docs", "retrieve_docs", func(ctx context.Context, state any) (any, error) {
-		docs := state.(DocumentState)
-		// Perform vector similarity search
-		docs.Documents = []string{"doc1", "doc2", "doc3"}
-		return docs, nil
-	})
-
-	// Document Reranking - Score relevance
-	g.AddNode("rerank_docs", "rerank_docs", func(ctx context.Context, state any) (any, error) {
-		docs := state.(DocumentState)
-		// Calculate relevance scores
-		docs.RelevanceScore = 0.85 // Example score
-		return docs, nil
-	})
-
-	// Web Search Fallback - External sources
-	g.AddNode("fallback_search", "fallback_search", func(ctx context.Context, state any) (any, error) {
-		docs := state.(DocumentState)
-		// Search external sources
-		docs.Documents = append(docs.Documents, "web_result1", "web_result2")
-		return docs, nil
-	})
-
-	// Generate Answer - LLM with context
-	g.AddNode("generate_answer", "generate_answer", func(ctx context.Context, state any) (any, error) {
-		docs := state.(DocumentState)
-
-		// Build context from documents
-		context := fmt.Sprintf("Query: %s\nContext: %v", docs.Query, docs.Documents)
-
-		messages := []llms.MessageContent{
-			llms.TextParts("system", "Answer based on the provided context."),
-			llms.TextParts("human", context),
-		}
-
-		response, err := model.GenerateContent(ctx, messages)
+	// 3. Build Knowledge Base (Ingestion)
+	fmt.Println("=== Ingesting Documents ===")
+	dataDir := "./data"
+	err = filepath.Walk(dataDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return nil, err
+			return err
 		}
-		docs.Answer = response.Choices[0].Content
-		return docs, nil
-	})
+		if !info.IsDir() && filepath.Ext(path) == ".txt" {
+			fmt.Printf("Processing %s...\n", path)
+			
+			// Load
+			l := loader.NewTextLoader(path)
+			docs, err := l.Load(ctx)
+			if err != nil {
+				return err
+			}
 
-	// Format Response - Add citations
-	g.AddNode("format_response", "format_response", func(ctx context.Context, state any) (any, error) {
-		docs := state.(DocumentState)
-		docs.Citations = []string{"[1] doc1", "[2] doc2"}
-		return docs, nil
-	})
+			// Split
+			s := splitter.NewRecursiveCharacterTextSplitter(
+				splitter.WithChunkSize(500),
+				splitter.WithChunkOverlap(50),
+			)
+			chunks := s.SplitDocuments(docs)
 
-	// Build the pipeline flow
-	g.SetEntryPoint("query_classifier")
-	g.AddEdge("query_classifier", "retrieve_docs")
-	g.AddEdge("retrieve_docs", "rerank_docs")
-
-	// Conditional routing based on relevance
-	g.AddConditionalEdge("rerank_docs", func(ctx context.Context, state any) string {
-		docs := state.(DocumentState)
-		if docs.RelevanceScore > 0.7 {
-			return "generate_answer"
+			// Store (Embeds automatically if vectorStore has embedder)
+			err = vectorStore.Add(ctx, chunks)
+			if err != nil {
+				return err
+			}
 		}
-		return "fallback_search"
+		return nil
 	})
-
-	g.AddEdge("fallback_search", "generate_answer")
-	g.AddEdge("generate_answer", "format_response")
-	g.AddEdge("format_response", graph.END)
-
-	// Compile and visualize
-	runnable, err := g.Compile()
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to ingest documents: %v", err)
 	}
-
-	// Export visualization
-	exporter := graph.NewExporter(g)
-	fmt.Println("Graph Visualization (Mermaid):")
-	fmt.Println(exporter.DrawMermaid())
+	fmt.Println("Ingestion complete.")
 	fmt.Println()
 
-	// Execute the pipeline
-	result, err := runnable.Invoke(context.Background(), DocumentState{
-		Query: "What are the benefits of graph-based AI pipelines?",
+	// 4. Set up Q&A Pipeline
+	// Create retriever
+	r := retriever.NewVectorRetriever(vectorStore, embedder, rag.RetrievalConfig{
+		K:              3,
+		ScoreThreshold: 0.5,
 	})
+
+	// Configure pipeline
+	config := rag.DefaultPipelineConfig()
+	config.LLM = llm
+	config.Retriever = r
+	config.IncludeCitations = true
+
+	pipeline := rag.NewRAGPipeline(config)
+	err = pipeline.BuildBasicRAG()
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to build pipeline: %v", err)
 	}
 
-	finalState := result.(DocumentState)
-	fmt.Printf("Query: %s\n", finalState.Query)
-	fmt.Printf("Answer: %s\n", finalState.Answer)
-	fmt.Printf("Citations: %v\n", finalState.Citations)
+	runnable, err := pipeline.Compile()
+	if err != nil {
+		log.Fatalf("failed to compile pipeline: %v", err)
+	}
+
+	// 5. Intelligent Q&A
+	fmt.Println("=== Intelligent Q&A ===")
+	query := "What is LangGraphGo and what are its main features?"
+	fmt.Printf("Query: %s\n", query)
+
+	result, err := runnable.Invoke(ctx, rag.RAGState{
+		Query: query,
+	})
+	if err != nil {
+		log.Fatalf("failed to invoke pipeline: %v", err)
+	}
+
+	finalState := result.(rag.RAGState)
+	fmt.Printf("\nAnswer:\n%s\n", finalState.Answer)
+	
+	if len(finalState.Citations) > 0 {
+		fmt.Println("\nCitations:")
+		for _, citation := range finalState.Citations {
+			fmt.Printf("- %s\n", citation)
+		}
+	}
 }
+
+// Ensure rag.Embedder is satisfied by LangChainEmbedder
+var _ rag.Embedder = (*rag.LangChainEmbedder)(nil)

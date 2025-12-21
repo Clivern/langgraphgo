@@ -1,0 +1,1 @@
+LangGraphGo is a Go library for building stateful, multi-agent applications with LLMs. It is inspired by LangGraph but tailored for the Go programming language. It provides features like state management, checkpointing, and human-in-the-loop workflows.
