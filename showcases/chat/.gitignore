@@ -1,7 +1,0 @@
-.env
-sessions/
-chat
-chat-server
-*.log
-
-!chat/

@@ -7,7 +7,10 @@ import (
 	"strings"
 
 	"github.com/smallnest/langgraphgo/graph"
-	"github.com/smallnest/langgraphgo/prebuilt"
+	"github.com/smallnest/langgraphgo/rag"
+	"github.com/smallnest/langgraphgo/rag/retriever"
+	"github.com/smallnest/langgraphgo/rag/splitter"
+	"github.com/smallnest/langgraphgo/rag/store"
 	"github.com/tmc/langchaingo/llms/openai"
 )
 
@@ -23,9 +26,9 @@ func main() {
 	fmt.Println("LLM Initialized.")
 
 	// Create a larger document corpus
-	documents := []prebuilt.Document{
+	documents := []rag.Document{
 		{
-			PageContent: "LangGraph is a library for building stateful, multi-actor applications with LLMs. " +
+			Content: "LangGraph is a library for building stateful, multi-actor applications with LLMs. " +
 				"It extends LangChain Expression Language with the ability to coordinate multiple chains " +
 				"across multiple steps of computation in a cyclic manner. LangGraph is particularly useful " +
 				"for building complex agent workflows and multi-agent systems.",
@@ -36,7 +39,7 @@ func main() {
 			},
 		},
 		{
-			PageContent: "RAG (Retrieval-Augmented Generation) is a technique that combines information retrieval " +
+			Content: "RAG (Retrieval-Augmented Generation) is a technique that combines information retrieval " +
 				"with text generation. It retrieves relevant documents from a knowledge base and uses them " +
 				"to augment the context provided to a language model for generation. This approach helps " +
 				"reduce hallucinations and provides more factual, grounded responses.",
@@ -47,7 +50,7 @@ func main() {
 			},
 		},
 		{
-			PageContent: "Vector databases store embeddings, which are numerical representations of text. " +
+			Content: "Vector databases store embeddings, which are numerical representations of text. " +
 				"They enable efficient similarity search by comparing vector distances using metrics like " +
 				"cosine similarity or Euclidean distance. Popular vector databases include Pinecone, Weaviate, " +
 				"Chroma, and Qdrant. These databases are essential for RAG systems.",
@@ -58,7 +61,7 @@ func main() {
 			},
 		},
 		{
-			PageContent: "Text embeddings are dense vector representations of text that capture semantic meaning. " +
+			Content: "Text embeddings are dense vector representations of text that capture semantic meaning. " +
 				"Models like OpenAI's text-embedding-ada-002, sentence transformers, or Cohere embeddings " +
 				"can generate these embeddings. Similar texts have similar embeddings in the vector space, " +
 				"which enables semantic search.",
@@ -69,7 +72,7 @@ func main() {
 			},
 		},
 		{
-			PageContent: "Document reranking is a technique to improve retrieval quality by re-scoring retrieved " +
+			Content: "Document reranking is a technique to improve retrieval quality by re-scoring retrieved " +
 				"documents based on their relevance to the query. Cross-encoder models are often used for " +
 				"reranking as they can better capture query-document interactions compared to bi-encoders " +
 				"used for initial retrieval.",
@@ -80,7 +83,7 @@ func main() {
 			},
 		},
 		{
-			PageContent: "Multi-agent systems involve multiple AI agents working together to solve complex problems. " +
+			Content: "Multi-agent systems involve multiple AI agents working together to solve complex problems. " +
 				"Each agent can have specialized roles and capabilities. LangGraph provides excellent support " +
 				"for building multi-agent systems with its graph-based architecture and state management.",
 			Metadata: map[string]any{
@@ -92,22 +95,19 @@ func main() {
 	}
 
 	// Split documents into smaller chunks
-	splitter := prebuilt.NewSimpleTextSplitter(200, 50)
-	chunks, err := splitter.SplitDocuments(documents)
-	if err != nil {
-		log.Fatalf("Failed to split documents: %v", err)
-	}
+	splitter := splitter.NewSimpleTextSplitter(200, 50)
+	chunks := splitter.SplitDocuments(documents)
 
 	fmt.Printf("Split %d documents into %d chunks\n\n", len(documents), len(chunks))
 
 	// Create embedder and vector store
-	embedder := prebuilt.NewMockEmbedder(256) // Higher dimension for better quality
-	vectorStore := prebuilt.NewInMemoryVectorStore(embedder)
+	embedder := store.NewMockEmbedder(256) // Higher dimension for better quality
+	vectorStore := store.NewInMemoryVectorStore(embedder)
 
 	// Generate embeddings and add chunks to vector store
 	texts := make([]string, len(chunks))
 	for i, chunk := range chunks {
-		texts[i] = chunk.PageContent
+		texts[i] = chunk.Content
 	}
 
 	embeddings, err := embedder.EmbedDocuments(ctx, texts)
@@ -115,17 +115,17 @@ func main() {
 		log.Fatalf("Failed to generate embeddings: %v", err)
 	}
 
-	err = vectorStore.AddDocuments(ctx, chunks, embeddings)
+	err = vectorStore.AddBatch(ctx, chunks, embeddings)
 	if err != nil {
 		log.Fatalf("Failed to add documents to vector store: %v", err)
 	}
 
 	// Create retriever and reranker
-	retriever := prebuilt.NewVectorStoreRetriever(vectorStore, 5)
-	reranker := prebuilt.NewSimpleReranker()
+	retriever := retriever.NewVectorStoreRetriever(vectorStore, embedder, 5)
+	reranker := store.NewSimpleReranker()
 
 	// Configure advanced RAG pipeline with reranking and citations
-	config := prebuilt.DefaultRAGConfig()
+	config := rag.DefaultPipelineConfig()
 	config.Retriever = retriever
 	config.Reranker = reranker
 	config.LLM = llm
@@ -137,7 +137,7 @@ func main() {
 		"enough information, acknowledge the limitations and provide what you can."
 
 	// Build advanced RAG pipeline
-	pipeline := prebuilt.NewRAGPipeline(config)
+	pipeline := rag.NewRAGPipeline(config)
 	err = pipeline.BuildAdvancedRAG()
 	if err != nil {
 		log.Fatalf("Failed to build advanced RAG pipeline: %v", err)
@@ -167,7 +167,7 @@ func main() {
 		fmt.Printf("=== Query %d ===\n", i+1)
 		fmt.Printf("Question: %s\n\n", query)
 
-		result, err := runnable.Invoke(ctx, prebuilt.RAGState{
+		result, err := runnable.Invoke(ctx, rag.RAGState{
 			Query: query,
 		})
 		if err != nil {
@@ -175,7 +175,7 @@ func main() {
 			continue
 		}
 
-		finalState := result.(prebuilt.RAGState)
+		finalState := result.(rag.RAGState)
 
 		fmt.Println("Retrieved and Reranked Documents:")
 		for j, doc := range finalState.Documents {
@@ -188,7 +188,7 @@ func main() {
 				category = fmt.Sprintf("%v", c)
 			}
 			fmt.Printf("  [%d] %s (Category: %s)\n", j+1, source, category)
-			fmt.Printf("      %s\n", truncate(doc.PageContent, 120))
+			fmt.Printf("      %s\n", truncate(doc.Content, 120))
 		}
 
 		if len(finalState.RankedDocuments) > 0 {

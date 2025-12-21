@@ -18,13 +18,13 @@ LangChain Go (`github.com/tmc/langchaingo`) provides excellent document loaders 
 
 ### Adapter Classes
 
-We provide two adapter classes in `prebuilt/rag_langchain_adapter.go`:
+We provide two adapter classes in `rag/adapters.go`:
 
 1. **LangChainDocumentLoader**: Adapts `documentloaders.Loader` to our `DocumentLoader` interface
 2. **LangChainTextSplitter**: Adapts `textsplitter.TextSplitter` to our `TextSplitter` interface
 
 These adapters handle conversion between:
-- `schema.Document` (LangChain) ↔ `prebuilt.Document` (our type)
+- `schema.Document` (LangChain) ↔ `rag.Document` (our type)
 
 ## Usage
 
@@ -33,7 +33,7 @@ These adapters handle conversion between:
 ```go
 import (
     "github.com/tmc/langchaingo/documentloaders"
-    "github.com/smallnest/langgraphgo/prebuilt"
+    "github.com/smallnest/langgraphgo/rag"
 )
 
 // Create LangChain loader
@@ -41,7 +41,7 @@ textReader := strings.NewReader(content)
 lcLoader := documentloaders.NewText(textReader)
 
 // Wrap with adapter
-loader := prebuilt.NewLangChainDocumentLoader(lcLoader)
+loader := rag.NewLangChainDocumentLoader(lcLoader)
 
 // Use with our interface
 docs, err := loader.Load(ctx)
@@ -67,10 +67,10 @@ chunks, err := loader.LoadAndSplit(ctx, splitter)
 ```go
 // Create splitter adapter
 lcSplitter := textsplitter.NewRecursiveCharacter(...)
-splitterAdapter := prebuilt.NewLangChainTextSplitter(lcSplitter)
+splitterAdapter := rag.NewLangChainTextSplitter(lcSplitter)
 
 // Use with our Document type
-chunks, err := splitterAdapter.SplitDocuments(documents)
+chunks := splitterAdapter.SplitDocuments(documents)
 ```
 
 ## Running the Example
@@ -86,7 +86,7 @@ go run main.go
 Load plain text documents:
 ```go
 textLoader := documentloaders.NewText(reader)
-loader := prebuilt.NewLangChainDocumentLoader(textLoader)
+loader := rag.NewLangChainDocumentLoader(textLoader)
 docs, _ := loader.Load(ctx)
 ```
 
@@ -94,7 +94,7 @@ docs, _ := loader.Load(ctx)
 Load structured data from CSV:
 ```go
 csvLoader := documentloaders.NewCSV(reader)
-loader := prebuilt.NewLangChainDocumentLoader(csvLoader)
+loader := rag.NewLangChainDocumentLoader(csvLoader)
 docs, _ := loader.Load(ctx)
 ```
 
@@ -115,16 +115,16 @@ Build a full RAG system with LangChain components:
 chunks, _ := loader.LoadAndSplit(ctx, splitter)
 
 // Create RAG pipeline
-config := prebuilt.DefaultRAGConfig()
+config := rag.DefaultPipelineConfig()
 config.Retriever = retriever
 config.LLM = llm
 
-pipeline := prebuilt.NewRAGPipeline(config)
+pipeline := rag.NewRAGPipeline(config)
 pipeline.BuildBasicRAG()
 runnable, _ := pipeline.Compile()
 
 // Query
-result, _ := runnable.Invoke(ctx, prebuilt.RAGState{
+result, _ := runnable.Invoke(ctx, rag.RAGState{
     Query: "What is LangGraph?",
 })
 ```
@@ -214,10 +214,10 @@ allDocs := append(textDocs, csvDocs...)
 ### Without Adapter (Manual Conversion)
 ```go
 lcDocs, _ := lcLoader.Load(ctx)
-docs := make([]prebuilt.Document, len(lcDocs))
+docs := make([]rag.Document, len(lcDocs))
 for i, d := range lcDocs {
-    docs[i] = prebuilt.Document{
-        PageContent: d.PageContent,
+    docs[i] = rag.Document{
+        Content:  d.PageContent,
         Metadata: d.Metadata,
     }
 }
@@ -225,7 +225,7 @@ for i, d := range lcDocs {
 
 ### With Adapter (Clean)
 ```go
-loader := prebuilt.NewLangChainDocumentLoader(lcLoader)
+loader := rag.NewLangChainDocumentLoader(lcLoader)
 docs, _ := loader.Load(ctx)
 ```
 

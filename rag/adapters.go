@@ -263,9 +263,91 @@ func (l *LangChainVectorStore) Add(ctx context.Context, docs []Document) error {
 
 // Search performs similarity search
 func (l *LangChainVectorStore) Search(ctx context.Context, query []float32, k int) ([]DocumentSearchResult, error) {
-	// Simple implementation that returns empty results
-	// In a real implementation, you'd need to use the specific vector store's methods
+	// Vector search not supported by generic LangChain adapter as the interface differs
 	return []DocumentSearchResult{}, nil
+}
+
+// LangChainRetriever adapts langchaingo's vectorstores.VectorStore to our Retriever interface
+type LangChainRetriever struct {
+	store vectorstores.VectorStore
+	topK  int
+}
+
+// NewLangChainRetriever creates a new adapter for langchaingo vector stores as a retriever
+func NewLangChainRetriever(store vectorstores.VectorStore, topK int) *LangChainRetriever {
+	if topK <= 0 {
+		topK = 4
+	}
+	return &LangChainRetriever{
+		store: store,
+		topK:  topK,
+	}
+}
+
+// Retrieve retrieves documents based on a query
+func (r *LangChainRetriever) Retrieve(ctx context.Context, query string) ([]Document, error) {
+	return r.RetrieveWithK(ctx, query, r.topK)
+}
+
+// RetrieveWithK retrieves exactly k documents
+func (r *LangChainRetriever) RetrieveWithK(ctx context.Context, query string, k int) ([]Document, error) {
+	docs, err := r.store.SimilaritySearch(ctx, query, k)
+	if err != nil {
+		return nil, err
+	}
+	return convertSchemaDocuments(docs), nil
+}
+
+// RetrieveWithConfig retrieves documents with custom configuration
+func (r *LangChainRetriever) RetrieveWithConfig(ctx context.Context, query string, config *RetrievalConfig) ([]DocumentSearchResult, error) {
+	k := r.topK
+	if config != nil && config.K > 0 {
+		k = config.K
+	}
+
+	// Use SimilaritySearch
+	// Note: Generic SimilaritySearch doesn't return scores. 
+	// If the underlying store supports SimilaritySearchWithScore, we can't access it via the generic interface easily here.
+	docs, err := r.store.SimilaritySearch(ctx, query, k)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]DocumentSearchResult, len(docs))
+	for i, doc := range docs {
+		// Try to extract score from metadata if present (some stores put it there)
+		score := 0.0
+		if s, ok := doc.Metadata["_score"]; ok {
+			if f, ok := s.(float64); ok {
+				score = f
+			}
+		} else if s, ok := doc.Metadata["score"]; ok {
+			if f, ok := s.(float64); ok {
+				score = f
+			}
+		}
+
+		results[i] = DocumentSearchResult{
+			Document: Document{
+				Content:  doc.PageContent,
+				Metadata: convertSchemaMetadata(doc.Metadata),
+			},
+			Score: score,
+		}
+	}
+	
+	// Apply threshold if possible (post-filtering)
+	if config != nil && config.ScoreThreshold > 0 {
+		var filtered []DocumentSearchResult
+		for _, res := range results {
+			if res.Score >= config.ScoreThreshold {
+				filtered = append(filtered, res)
+			}
+		}
+		results = filtered
+	}
+
+	return results, nil
 }
 
 // SearchWithFilter performs similarity search with filters

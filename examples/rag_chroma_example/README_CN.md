@@ -53,21 +53,25 @@ chromaStore, err := chroma.New(
 )
 
 // 使用适配器封装
-vectorStore := prebuilt.NewLangChainVectorStore(chromaStore)
+vectorStore := rag.NewLangChainVectorStore(chromaStore)
 ```
 
 ### 添加文档
 
 ```go
-err = vectorStore.AddDocuments(ctx, chunks, embeddings)
+// 适配器/存储内部处理嵌入
+err = vectorStore.Add(ctx, chunks)
 ```
 
 ### 相似度搜索
 
 ```go
-results, err := vectorStore.SimilaritySearchWithScore(ctx, query, k)
+// 使用检索器进行搜索
+retriever := rag.NewLangChainRetriever(chromaStore, 3)
+results, err := retriever.RetrieveWithConfig(ctx, query, &rag.RetrievalConfig{K: 5})
+
 for _, result := range results {
-    fmt.Printf("分数: %.4f - %s\n", result.Score, result.Document.PageContent)
+    fmt.Printf("分数: %.4f - %s\n", result.Score, result.Document.Content)
 }
 ```
 

@@ -6,7 +6,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/smallnest/langgraphgo/prebuilt"
+	"github.com/smallnest/langgraphgo/graph"
+	"github.com/smallnest/langgraphgo/rag"
 	"github.com/tmc/langchaingo/documentloaders"
 	"github.com/tmc/langchaingo/embeddings"
 	"github.com/tmc/langchaingo/llms/openai"
@@ -64,7 +65,7 @@ Popular Go frameworks and libraries:
 	fmt.Println("Loading and splitting documents...")
 	textReader := strings.NewReader(textContent)
 	textLoader := documentloaders.NewText(textReader)
-	loader := prebuilt.NewLangChainDocumentLoader(textLoader)
+	loader := rag.NewLangChainDocumentLoader(textLoader)
 
 	splitter := textsplitter.NewRecursiveCharacter(
 		textsplitter.WithChunkSize(250),
@@ -94,21 +95,13 @@ Popular Go frameworks and libraries:
 	}
 
 	// Wrap with our adapter
-	vectorStore := prebuilt.NewLangChainVectorStore(chromaStore)
+	vectorStore := rag.NewLangChainVectorStore(chromaStore)
 
 	// Add documents to Chroma
 	fmt.Println("Adding documents to Chroma...")
-	texts := make([]string, len(chunks))
-	for i, chunk := range chunks {
-		texts[i] = chunk.PageContent
-	}
-
-	embeddings, err := prebuilt.NewLangChainEmbedder(embedder).EmbedDocuments(ctx, texts)
-	if err != nil {
-		log.Fatalf("Failed to generate embeddings: %v", err)
-	}
-
-	err = vectorStore.AddDocuments(ctx, chunks, embeddings)
+	
+	// LangChain adapter/store handles embeddings
+	err = vectorStore.Add(ctx, chunks)
 	if err != nil {
 		log.Fatalf("Failed to add documents to Chroma: %v", err)
 	}
@@ -117,16 +110,18 @@ Popular Go frameworks and libraries:
 
 	// Build RAG pipeline
 	fmt.Println("Building RAG pipeline...")
-	retriever := prebuilt.NewVectorStoreRetriever(vectorStore, 3)
+	
+	// Use LangChain retriever adapter
+	retriever := rag.NewLangChainRetriever(chromaStore, 3)
 
-	config := prebuilt.DefaultRAGConfig()
+	config := rag.DefaultPipelineConfig()
 	config.Retriever = retriever
 	config.LLM = llm
 	config.TopK = 3
 	config.SystemPrompt = "You are a helpful AI assistant. Answer questions about Go programming based on the provided context."
 	config.IncludeCitations = true
 
-	pipeline := prebuilt.NewRAGPipeline(config)
+	pipeline := rag.NewRAGPipeline(config)
 	err = pipeline.BuildAdvancedRAG()
 	if err != nil {
 		log.Fatalf("Failed to build RAG pipeline: %v", err)
@@ -138,6 +133,12 @@ Popular Go frameworks and libraries:
 	}
 
 	fmt.Println("Pipeline ready!")
+
+	// Visualize the pipeline
+	exporter := graph.NewExporter(pipeline.GetGraph())
+	fmt.Println("=== Pipeline Visualization ===")
+	fmt.Println(exporter.DrawMermaid())
+	fmt.Println()
 
 	// Test queries
 	queries := []string{
@@ -152,7 +153,7 @@ Popular Go frameworks and libraries:
 		fmt.Printf("Query %d: %s\n", i+1, query)
 		fmt.Println(strings.Repeat("-", 80))
 
-		result, err := runnable.Invoke(ctx, prebuilt.RAGState{
+		result, err := runnable.Invoke(ctx, rag.RAGState{
 			Query: query,
 		})
 		if err != nil {
@@ -160,11 +161,11 @@ Popular Go frameworks and libraries:
 			continue
 		}
 
-		finalState := result.(prebuilt.RAGState)
+		finalState := result.(rag.RAGState)
 
 		fmt.Printf("\nRetrieved %d documents from Chroma:\n", len(finalState.Documents))
 		for j, doc := range finalState.Documents {
-			fmt.Printf("  [%d] %s\n", j+1, truncate(doc.PageContent, 100))
+			fmt.Printf("  [%d] %s\n", j+1, truncate(doc.Content, 100))
 		}
 
 		fmt.Printf("\nAnswer:\n%s\n", finalState.Answer)
@@ -184,7 +185,8 @@ Popular Go frameworks and libraries:
 	fmt.Println(strings.Repeat("-", 80))
 
 	searchQuery := "concurrency in Go"
-	results, err := vectorStore.SimilaritySearchWithScore(ctx, searchQuery, 5)
+	
+	results, err := retriever.RetrieveWithConfig(ctx, searchQuery, &rag.RetrievalConfig{K: 5})
 	if err != nil {
 		log.Printf("Search failed: %v", err)
 	} else {
@@ -192,7 +194,7 @@ Popular Go frameworks and libraries:
 		fmt.Printf("Found %d results:\n\n", len(results))
 		for i, result := range results {
 			fmt.Printf("[%d] Score: %.4f\n", i+1, result.Score)
-			fmt.Printf("    Content: %s\n\n", truncate(result.Document.PageContent, 150))
+			fmt.Printf("    Content: %s\n\n", truncate(result.Document.Content, 150))
 		}
 	}
 

@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	"github.com/smallnest/langgraphgo/graph"
-	"github.com/smallnest/langgraphgo/prebuilt"
+	"github.com/smallnest/langgraphgo/rag"
+	"github.com/smallnest/langgraphgo/rag/retriever"
+	"github.com/smallnest/langgraphgo/rag/store"
 	"github.com/tmc/langchaingo/llms/openai"
 )
 
@@ -21,9 +23,9 @@ func main() {
 	}
 
 	// Create sample documents
-	documents := []prebuilt.Document{
+	documents := []rag.Document{
 		{
-			PageContent: "LangGraph is a library for building stateful, multi-actor applications with LLMs. " +
+			Content: "LangGraph is a library for building stateful, multi-actor applications with LLMs. " +
 				"It extends LangChain Expression Language with the ability to coordinate multiple chains " +
 				"(or actors) across multiple steps of computation in a cyclic manner.",
 			Metadata: map[string]any{
@@ -32,7 +34,7 @@ func main() {
 			},
 		},
 		{
-			PageContent: "RAG (Retrieval-Augmented Generation) is a technique that combines information retrieval " +
+			Content: "RAG (Retrieval-Augmented Generation) is a technique that combines information retrieval " +
 				"with text generation. It retrieves relevant documents from a knowledge base and uses them " +
 				"to augment the context provided to a language model for generation.",
 			Metadata: map[string]any{
@@ -41,7 +43,7 @@ func main() {
 			},
 		},
 		{
-			PageContent: "Vector databases store embeddings, which are numerical representations of text. " +
+			Content: "Vector databases store embeddings, which are numerical representations of text. " +
 				"They enable efficient similarity search by comparing vector distances. " +
 				"Popular vector databases include Pinecone, Weaviate, and Chroma.",
 			Metadata: map[string]any{
@@ -50,7 +52,7 @@ func main() {
 			},
 		},
 		{
-			PageContent: "Text embeddings are dense vector representations of text that capture semantic meaning. " +
+			Content: "Text embeddings are dense vector representations of text that capture semantic meaning. " +
 				"Models like OpenAI's text-embedding-ada-002 or sentence transformers can generate these embeddings. " +
 				"Similar texts have similar embeddings in the vector space.",
 			Metadata: map[string]any{
@@ -61,13 +63,13 @@ func main() {
 	}
 
 	// Create embedder and vector store
-	embedder := prebuilt.NewMockEmbedder(128)
-	vectorStore := prebuilt.NewInMemoryVectorStore(embedder)
+	embedder := store.NewMockEmbedder(128)
+	vectorStore := store.NewInMemoryVectorStore(embedder)
 
 	// Generate embeddings and add documents to vector store
 	texts := make([]string, len(documents))
 	for i, doc := range documents {
-		texts[i] = doc.PageContent
+		texts[i] = doc.Content
 	}
 
 	embeddings, err := embedder.EmbedDocuments(ctx, texts)
@@ -75,16 +77,16 @@ func main() {
 		log.Fatalf("Failed to generate embeddings: %v", err)
 	}
 
-	err = vectorStore.AddDocuments(ctx, documents, embeddings)
+	err = vectorStore.AddBatch(ctx, documents, embeddings)
 	if err != nil {
 		log.Fatalf("Failed to add documents to vector store: %v", err)
 	}
 
 	// Create retriever
-	retriever := prebuilt.NewVectorStoreRetriever(vectorStore, 3)
+	retriever := retriever.NewVectorStoreRetriever(vectorStore, embedder, 3)
 
 	// Configure RAG pipeline
-	config := prebuilt.DefaultRAGConfig()
+	config := rag.DefaultPipelineConfig()
 	config.Retriever = retriever
 	config.LLM = llm
 	config.TopK = 3
@@ -92,7 +94,7 @@ func main() {
 		"If the context doesn't contain enough information to answer the question, say so."
 
 	// Build basic RAG pipeline
-	pipeline := prebuilt.NewRAGPipeline(config)
+	pipeline := rag.NewRAGPipeline(config)
 	err = pipeline.BuildBasicRAG()
 	if err != nil {
 		log.Fatalf("Failed to build RAG pipeline: %v", err)
@@ -121,7 +123,7 @@ func main() {
 		fmt.Printf("=== Query %d ===\n", i+1)
 		fmt.Printf("Question: %s\n\n", query)
 
-		result, err := runnable.Invoke(ctx, prebuilt.RAGState{
+		result, err := runnable.Invoke(ctx, rag.RAGState{
 			Query: query,
 		})
 		if err != nil {
@@ -129,7 +131,7 @@ func main() {
 			continue
 		}
 
-		finalState := result.(prebuilt.RAGState)
+		finalState := result.(rag.RAGState)
 
 		fmt.Println("Retrieved Documents:")
 		for j, doc := range finalState.Documents {
@@ -138,7 +140,7 @@ func main() {
 				source = fmt.Sprintf("%v", s)
 			}
 			fmt.Printf("  [%d] %s\n", j+1, source)
-			fmt.Printf("      %s...\n", truncate(doc.PageContent, 100))
+			fmt.Printf("      %s...\n", truncate(doc.Content, 100))
 		}
 
 		fmt.Printf("\nAnswer: %s\n", finalState.Answer)

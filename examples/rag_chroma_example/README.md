@@ -53,21 +53,25 @@ chromaStore, err := chroma.New(
 )
 
 // Wrap with adapter
-vectorStore := prebuilt.NewLangChainVectorStore(chromaStore)
+vectorStore := rag.NewLangChainVectorStore(chromaStore)
 ```
 
 ### Adding Documents
 
 ```go
-err = vectorStore.AddDocuments(ctx, chunks, embeddings)
+// Embeddings are handled internally by the adapter/store
+err = vectorStore.Add(ctx, chunks)
 ```
 
 ### Similarity Search
 
 ```go
-results, err := vectorStore.SimilaritySearchWithScore(ctx, query, k)
+// Use retriever for search
+retriever := rag.NewLangChainRetriever(chromaStore, 3)
+results, err := retriever.RetrieveWithConfig(ctx, query, &rag.RetrievalConfig{K: 5})
+
 for _, result := range results {
-    fmt.Printf("Score: %.4f - %s\n", result.Score, result.Document.PageContent)
+    fmt.Printf("Score: %.4f - %s\n", result.Score, result.Document.Content)
 }
 ```
 

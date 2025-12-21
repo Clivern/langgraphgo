@@ -59,7 +59,7 @@ func main() {
 
 	for _, skill := range packages {
 		fmt.Printf("Loading skill: %s\n", skill.Meta.Name)
-		skillTools, err := adapter.SkillsToTools(*skill)
+		skillTools, err := adapter.SkillsToTools(skill)
 		if err != nil {
 			log.Printf("Failed to convert skill %s to tools: %v", skill.Meta.Name, err)
 			continue

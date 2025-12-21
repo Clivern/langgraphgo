@@ -8,7 +8,9 @@ import (
 	"strings"
 
 	"github.com/smallnest/langgraphgo/graph"
-	"github.com/smallnest/langgraphgo/prebuilt"
+	"github.com/smallnest/langgraphgo/rag"
+	"github.com/smallnest/langgraphgo/rag/retriever"
+	"github.com/smallnest/langgraphgo/rag/store"
 	"github.com/tmc/langchaingo/documentloaders"
 	"github.com/tmc/langchaingo/embeddings"
 	"github.com/tmc/langchaingo/llms/openai"
@@ -32,6 +34,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create embedder: %v", err)
 	}
+	ragEmbedder := rag.NewLangChainEmbedder(embedder)
 
 	// Example 1: Using LangChain In-Memory VectorStore
 	fmt.Println("Example 1: In-Memory VectorStore with LangChain Integration")
@@ -65,7 +68,7 @@ The library provides prebuilt components like:
 	// Load and split documents
 	textReader := strings.NewReader(textContent)
 	textLoader := documentloaders.NewText(textReader)
-	loader := prebuilt.NewLangChainDocumentLoader(textLoader)
+	loader := rag.NewLangChainDocumentLoader(textLoader)
 
 	splitter := textsplitter.NewRecursiveCharacter(
 		textsplitter.WithChunkSize(200),
@@ -85,20 +88,20 @@ The library provides prebuilt components like:
 
 	// Since langchaingo's in-memory store might not be directly available,
 	// we'll demonstrate with our wrapper approach
-	inMemStore := prebuilt.NewInMemoryVectorStore(prebuilt.NewLangChainEmbedder(embedder))
+	inMemStore := store.NewInMemoryVectorStore(ragEmbedder)
 
 	// Add documents to vector store
 	texts := make([]string, len(chunks))
 	for i, chunk := range chunks {
-		texts[i] = chunk.PageContent
+		texts[i] = chunk.Content
 	}
 
-	embeddings, err := prebuilt.NewLangChainEmbedder(embedder).EmbedDocuments(ctx, texts)
+	embeddings, err := ragEmbedder.EmbedDocuments(ctx, texts)
 	if err != nil {
 		log.Fatalf("Failed to generate embeddings: %v", err)
 	}
 
-	err = inMemStore.AddDocuments(ctx, chunks, embeddings)
+	err = inMemStore.AddBatch(ctx, chunks, embeddings)
 	if err != nil {
 		log.Fatalf("Failed to add documents: %v", err)
 	}
@@ -111,10 +114,10 @@ The library provides prebuilt components like:
 	fmt.Println(strings.Repeat("-", 80))
 
 	// Create retriever
-	retriever := prebuilt.NewVectorStoreRetriever(inMemStore, 3)
+	retriever := retriever.NewVectorStoreRetriever(inMemStore, ragEmbedder, 3)
 
 	// Configure RAG pipeline
-	config := prebuilt.DefaultRAGConfig()
+	config := rag.DefaultPipelineConfig()
 	config.Retriever = retriever
 	config.LLM = llm
 	config.TopK = 3
@@ -122,7 +125,7 @@ The library provides prebuilt components like:
 	config.IncludeCitations = true
 
 	// Build advanced RAG pipeline
-	pipeline := prebuilt.NewRAGPipeline(config)
+	pipeline := rag.NewRAGPipeline(config)
 	err = pipeline.BuildAdvancedRAG()
 	if err != nil {
 		log.Fatalf("Failed to build RAG pipeline: %v", err)
@@ -149,7 +152,7 @@ The library provides prebuilt components like:
 	for i, query := range queries {
 		fmt.Printf("Query %d: %s\n", i+1, query)
 
-		result, err := runnable.Invoke(ctx, prebuilt.RAGState{
+		result, err := runnable.Invoke(ctx, rag.RAGState{
 			Query: query,
 		})
 		if err != nil {
@@ -157,11 +160,11 @@ The library provides prebuilt components like:
 			continue
 		}
 
-		finalState := result.(prebuilt.RAGState)
+		finalState := result.(rag.RAGState)
 
 		fmt.Printf("Retrieved %d documents:\n", len(finalState.Documents))
 		for j, doc := range finalState.Documents {
-			fmt.Printf("  [%d] %s\n", j+1, truncate(doc.PageContent, 100))
+			fmt.Printf("  [%d] %s\n", j+1, truncate(doc.Content, 100))
 		}
 
 		fmt.Printf("\nAnswer: %s\n", finalState.Answer)
@@ -196,23 +199,27 @@ The library provides prebuilt components like:
 			log.Printf("Failed to create Weaviate store: %v", err)
 		} else {
 			// Wrap with our adapter
-			wrappedStore := prebuilt.NewLangChainVectorStore(weaviateStore)
+			wrappedStore := rag.NewLangChainVectorStore(weaviateStore)
 
 			// Add documents
-			err = wrappedStore.AddDocuments(ctx, chunks, embeddings)
+			// LangChain adapter handles embedding implicitly if embedder was configured in weaviate
+			err = wrappedStore.Add(ctx, chunks)
 			if err != nil {
 				log.Printf("Failed to add documents to Weaviate: %v", err)
 			} else {
 				fmt.Println("Successfully added documents to Weaviate")
 
 				// Search
-				results, err := wrappedStore.SimilaritySearch(ctx, "What is LangGraph?", 3)
+				// Need to embed query first for generic Search
+				q := "What is LangGraph?"
+				emb, _ := ragEmbedder.EmbedDocument(ctx, q)
+				results, err := wrappedStore.Search(ctx, emb, 3)
 				if err != nil {
 					log.Printf("Search failed: %v", err)
 				} else {
 					fmt.Printf("Found %d results from Weaviate\n", len(results))
 					for i, doc := range results {
-						fmt.Printf("  [%d] %s\n", i+1, truncate(doc.PageContent, 80))
+						fmt.Printf("  [%d] %s\n", i+1, truncate(doc.Document.Content, 80))
 					}
 				}
 			}
@@ -229,7 +236,9 @@ The library provides prebuilt components like:
 	fmt.Println(strings.Repeat("-", 80))
 
 	query := "checkpointing and persistence"
-	results, err := inMemStore.SimilaritySearchWithScore(ctx, query, 5)
+	
+	// Use retriever to search with scores
+	results, err := retriever.RetrieveWithConfig(ctx, query, &rag.RetrievalConfig{K: 5, IncludeScores: true})
 	if err != nil {
 		log.Printf("Search failed: %v", err)
 	} else {
@@ -237,7 +246,7 @@ The library provides prebuilt components like:
 		fmt.Printf("Found %d results:\n\n", len(results))
 		for i, result := range results {
 			fmt.Printf("[%d] Score: %.4f\n", i+1, result.Score)
-			fmt.Printf("    Content: %s\n", truncate(result.Document.PageContent, 120))
+			fmt.Printf("    Content: %s\n", truncate(result.Document.Content, 120))
 			fmt.Println()
 		}
 	}

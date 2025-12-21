@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	"github.com/smallnest/langgraphgo/graph"
-	"github.com/smallnest/langgraphgo/prebuilt"
+	"github.com/smallnest/langgraphgo/rag"
+	"github.com/smallnest/langgraphgo/rag/retriever"
+	"github.com/smallnest/langgraphgo/rag/store"
 	"github.com/tmc/langchaingo/llms/openai"
 )
 
@@ -21,9 +23,9 @@ func main() {
 	}
 
 	// Create document corpus focused on specific topics
-	documents := []prebuilt.Document{
+	documents := []rag.Document{
 		{
-			PageContent: "LangGraph provides built-in support for checkpointing, which allows you to save and " +
+			Content: "LangGraph provides built-in support for checkpointing, which allows you to save and " +
 				"restore the state of your graph execution. This is crucial for long-running workflows, " +
 				"error recovery, and implementing human-in-the-loop patterns.",
 			Metadata: map[string]any{
@@ -32,7 +34,7 @@ func main() {
 			},
 		},
 		{
-			PageContent: "The StateGraph in LangGraph allows you to define complex workflows with typed state. " +
+			Content: "The StateGraph in LangGraph allows you to define complex workflows with typed state. " +
 				"You can add nodes, edges, and conditional edges to create sophisticated control flow. " +
 				"The graph compiles into a runnable that can be invoked with initial state.",
 			Metadata: map[string]any{
@@ -41,7 +43,7 @@ func main() {
 			},
 		},
 		{
-			PageContent: "Human-in-the-loop workflows allow AI systems to pause execution and request human input " +
+			Content: "Human-in-the-loop workflows allow AI systems to pause execution and request human input " +
 				"or approval before continuing. LangGraph supports this through interrupts and the Command API, " +
 				"enabling you to build interactive AI applications.",
 			Metadata: map[string]any{
@@ -52,13 +54,13 @@ func main() {
 	}
 
 	// Create embedder and vector store
-	embedder := prebuilt.NewMockEmbedder(128)
-	vectorStore := prebuilt.NewInMemoryVectorStore(embedder)
+	embedder := store.NewMockEmbedder(128)
+	vectorStore := store.NewInMemoryVectorStore(embedder)
 
 	// Generate embeddings and add documents
 	texts := make([]string, len(documents))
 	for i, doc := range documents {
-		texts[i] = doc.PageContent
+		texts[i] = doc.Content
 	}
 
 	embeddings, err := embedder.EmbedDocuments(ctx, texts)
@@ -66,17 +68,17 @@ func main() {
 		log.Fatalf("Failed to generate embeddings: %v", err)
 	}
 
-	err = vectorStore.AddDocuments(ctx, documents, embeddings)
+	err = vectorStore.AddBatch(ctx, documents, embeddings)
 	if err != nil {
 		log.Fatalf("Failed to add documents to vector store: %v", err)
 	}
 
 	// Create retriever and reranker
-	retriever := prebuilt.NewVectorStoreRetriever(vectorStore, 2)
-	reranker := prebuilt.NewSimpleReranker()
+	retriever := retriever.NewVectorStoreRetriever(vectorStore, embedder, 2)
+	reranker := store.NewSimpleReranker()
 
 	// Configure conditional RAG pipeline
-	config := prebuilt.DefaultRAGConfig()
+	config := rag.DefaultPipelineConfig()
 	config.Retriever = retriever
 	config.Reranker = reranker
 	config.LLM = llm
@@ -90,7 +92,7 @@ func main() {
 		"acknowledge this and provide general guidance."
 
 	// Build conditional RAG pipeline
-	pipeline := prebuilt.NewRAGPipeline(config)
+	pipeline := rag.NewRAGPipeline(config)
 	err = pipeline.BuildConditionalRAG()
 	if err != nil {
 		log.Fatalf("Failed to build conditional RAG pipeline: %v", err)
@@ -140,7 +142,7 @@ func main() {
 		fmt.Printf("Question: %s\n", q.question)
 		fmt.Printf("Expected: %s\n\n", q.expected)
 
-		result, err := runnable.Invoke(ctx, prebuilt.RAGState{
+		result, err := runnable.Invoke(ctx, rag.RAGState{
 			Query: q.question,
 		})
 		if err != nil {
@@ -148,7 +150,7 @@ func main() {
 			continue
 		}
 
-		finalState := result.(prebuilt.RAGState)
+		finalState := result.(rag.RAGState)
 
 		fmt.Println("Retrieved Documents:")
 		for j, doc := range finalState.RetrievedDocuments {

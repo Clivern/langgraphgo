@@ -18,7 +18,7 @@ LangChain Go provides excellent embedding models from various providers (OpenAI,
 
 ### Adapter Class
 
-The `LangChainEmbedder` adapter in `prebuilt/rag_langchain_adapter.go`:
+The `LangChainEmbedder` adapter in `rag/adapters.go`:
 
 ```go
 type LangChainEmbedder struct {
@@ -29,7 +29,7 @@ type LangChainEmbedder struct {
 **Key Features**:
 - Wraps any LangChain embedder
 - Implements our `Embedder` interface
-- Converts `float32` (LangChain) ↔ `float64` (our type)
+- Converts types automatically
 - Zero overhead, simple pass-through
 
 ## Usage
@@ -40,41 +40,47 @@ type LangChainEmbedder struct {
 import (
     "github.com/tmc/langchaingo/embeddings"
     "github.com/tmc/langchaingo/llms/openai"
-    "github.com/smallnest/langgraphgo/prebuilt"
+    "github.com/smallnest/langgraphgo/rag"
 )
 
 // Create LangChain embedder
 lcEmbedder, _ := embeddings.NewEmbedder(openai.New())
 
 // Wrap with adapter
-embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
+embedder := rag.NewLangChainEmbedder(lcEmbedder)
 
 // Use with our interface
-queryEmb, _ := embedder.EmbedQuery(ctx, "What is AI?")
+queryEmb, _ := embedder.EmbedDocument(ctx, "What is AI?")
 docsEmb, _ := embedder.EmbedDocuments(ctx, texts)
 ```
 
 ### In RAG Pipeline
 
 ```go
+import (
+    "github.com/smallnest/langgraphgo/rag"
+    "github.com/smallnest/langgraphgo/rag/store"
+    "github.com/smallnest/langgraphgo/rag/retriever"
+)
+
 // Create embedder
 lcEmbedder, _ := embeddings.NewEmbedder(openai.New())
-embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
+embedder := rag.NewLangChainEmbedder(lcEmbedder)
 
 // Create vector store with LangChain embeddings
-vectorStore := prebuilt.NewInMemoryVectorStore(embedder)
+vectorStore := store.NewInMemoryVectorStore(embedder)
 
 // Generate embeddings
 embeds, _ := embedder.EmbedDocuments(ctx, texts)
-vectorStore.AddDocuments(ctx, documents, embeds)
+vectorStore.AddBatch(ctx, documents, embeds)
 
 // Build RAG pipeline
-retriever := prebuilt.NewVectorStoreRetriever(vectorStore, 3)
-config := prebuilt.DefaultRAGConfig()
+retriever := retriever.NewVectorStoreRetriever(vectorStore, embedder, 3)
+config := rag.DefaultPipelineConfig()
 config.Retriever = retriever
 config.LLM = llm
 
-pipeline := prebuilt.NewRAGPipeline(config)
+pipeline := rag.NewRAGPipeline(config)
 pipeline.BuildBasicRAG()
 ```
 
@@ -105,9 +111,9 @@ go run main.go
 Test OpenAI's text-embedding-ada-002 model:
 ```go
 openaiEmbedder, _ := embeddings.NewEmbedder(openai.New())
-embedder := prebuilt.NewLangChainEmbedder(openaiEmbedder)
+embedder := rag.NewLangChainEmbedder(openaiEmbedder)
 
-queryEmb, _ := embedder.EmbedQuery(ctx, "What is machine learning?")
+queryEmb, _ := embedder.EmbedDocument(ctx, "What is machine learning?")
 // Returns 1536-dimensional embedding
 ```
 
@@ -115,12 +121,12 @@ queryEmb, _ := embedder.EmbedQuery(ctx, "What is machine learning?")
 Build a full RAG system with real embeddings:
 ```go
 // Use OpenAI embeddings if available, otherwise mock
-vectorStore := prebuilt.NewInMemoryVectorStore(embedder)
+vectorStore := store.NewInMemoryVectorStore(embedder)
 embeds, _ := embedder.EmbedDocuments(ctx, texts)
-vectorStore.AddDocuments(ctx, documents, embeds)
+vectorStore.AddBatch(ctx, documents, embeds)
 
 // Query with semantic search
-result, _ := runnable.Invoke(ctx, prebuilt.RAGState{
+result, _ := runnable.Invoke(ctx, rag.RAGState{
     Query: "What is LangGraph?",
 })
 ```
@@ -148,7 +154,7 @@ The adapter works with all LangChain embedding providers:
 import "github.com/tmc/langchaingo/llms/openai"
 
 lcEmbedder, _ := embeddings.NewEmbedder(openai.New())
-embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
+embedder := rag.NewLangChainEmbedder(lcEmbedder)
 ```
 
 **Models**:
@@ -161,7 +167,7 @@ embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
 import "github.com/tmc/langchaingo/llms/cohere"
 
 lcEmbedder, _ := embeddings.NewEmbedder(cohere.New())
-embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
+embedder := rag.NewLangChainEmbedder(lcEmbedder)
 ```
 
 ### HuggingFace
@@ -169,7 +175,7 @@ embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
 import "github.com/tmc/langchaingo/llms/huggingface"
 
 lcEmbedder, _ := embeddings.NewEmbedder(huggingface.New())
-embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
+embedder := rag.NewLangChainEmbedder(lcEmbedder)
 ```
 
 ### Vertex AI
@@ -177,7 +183,7 @@ embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
 import "github.com/tmc/langchaingo/llms/vertexai"
 
 lcEmbedder, _ := embeddings.NewEmbedder(vertexai.New())
-embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
+embedder := rag.NewLangChainEmbedder(lcEmbedder)
 ```
 
 ## Type Conversion
@@ -189,8 +195,8 @@ The adapter handles automatic type conversion:
 // LangChain returns [][]float32
 lcEmbeds := [][]float32{{0.1, 0.2, 0.3}}
 
-// Adapter converts to [][]float64
-ourEmbeds := [][]float64{{0.1, 0.2, 0.3}}
+// Adapter converts to [][]float64 (actually internally uses float32 now in new RAG package)
+ourEmbeds := [][]float32{{0.1, 0.2, 0.3}}
 ```
 
 ### Performance
@@ -230,13 +236,13 @@ embeds, _ := embedder.EmbedDocuments(ctx, texts)
 ### 3. Caching
 ```go
 // Cache embeddings for frequently used texts
-cache := make(map[string][]float64)
+cache := make(map[string][]float32)
 
-func getEmbedding(text string) []float64 {
+func getEmbedding(text string) []float32 {
     if emb, ok := cache[text]; ok {
         return emb
     }
-    emb, _ := embedder.EmbedQuery(ctx, text)
+    emb, _ := embedder.EmbedDocument(ctx, text)
     cache[text] = emb
     return emb
 }
@@ -256,7 +262,7 @@ if err != nil {
 
 ### Mock Embeddings (Development)
 ```go
-embedder := prebuilt.NewMockEmbedder(1536)
+embedder := store.NewMockEmbedder(1536)
 ```
 - ✅ Fast, no API calls
 - ✅ Deterministic
@@ -266,7 +272,7 @@ embedder := prebuilt.NewMockEmbedder(1536)
 ### Real Embeddings (Production)
 ```go
 lcEmbedder, _ := embeddings.NewEmbedder(openai.New())
-embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
+embedder := rag.NewLangChainEmbedder(lcEmbedder)
 ```
 - ✅ Semantically meaningful
 - ✅ High quality retrieval
@@ -291,7 +297,7 @@ Error: embedding dimension mismatch
 **Solution**: Ensure vector store dimension matches model:
 ```go
 // For OpenAI ada-002
-vectorStore := prebuilt.NewInMemoryVectorStore(embedder)
+vectorStore := store.NewInMemoryVectorStore(embedder)
 // Embedder will return 1536-dimensional vectors
 ```
 

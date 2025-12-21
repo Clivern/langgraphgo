@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	"github.com/smallnest/langgraphgo/graph"
-	"github.com/smallnest/langgraphgo/prebuilt"
+	"github.com/smallnest/langgraphgo/rag"
+	"github.com/smallnest/langgraphgo/rag/retriever"
+	"github.com/smallnest/langgraphgo/rag/store"
 	"github.com/tmc/langchaingo/documentloaders"
 	"github.com/tmc/langchaingo/llms/openai"
 	"github.com/tmc/langchaingo/textsplitter"
@@ -45,7 +47,7 @@ Key features of LangGraph include:
 	textLoader := documentloaders.NewText(textReader)
 
 	// Wrap with our adapter
-	loader := prebuilt.NewLangChainDocumentLoader(textLoader)
+	loader := rag.NewLangChainDocumentLoader(textLoader)
 
 	// Load documents
 	docs, err := loader.Load(ctx)
@@ -55,7 +57,7 @@ Key features of LangGraph include:
 
 	fmt.Printf("Loaded %d document(s)\n", len(docs))
 	for i, doc := range docs {
-		fmt.Printf("Document %d: %d characters\n", i+1, len(doc.PageContent))
+		fmt.Printf("Document %d: %d characters\n", i+1, len(doc.Content))
 	}
 	fmt.Println()
 
@@ -66,7 +68,7 @@ Key features of LangGraph include:
 	// Create a new text loader
 	textReader2 := strings.NewReader(textContent)
 	textLoader2 := documentloaders.NewText(textReader2)
-	loader2 := prebuilt.NewLangChainDocumentLoader(textLoader2)
+	loader2 := rag.NewLangChainDocumentLoader(textLoader2)
 
 	// Create LangChain's RecursiveCharacterTextSplitter
 	splitter := textsplitter.NewRecursiveCharacter(
@@ -82,8 +84,8 @@ Key features of LangGraph include:
 
 	fmt.Printf("Split into %d chunks\n", len(chunks))
 	for i, chunk := range chunks {
-		fmt.Printf("Chunk %d: %d characters\n", i+1, len(chunk.PageContent))
-		fmt.Printf("  Preview: %s...\n", truncate(chunk.PageContent, 80))
+		fmt.Printf("Chunk %d: %d characters\n", i+1, len(chunk.Content))
+		fmt.Printf("  Preview: %s...\n", truncate(chunk.Content, 80))
 	}
 	fmt.Println()
 
@@ -92,13 +94,13 @@ Key features of LangGraph include:
 	fmt.Println(strings.Repeat("-", 80))
 
 	// Create embedder and vector store
-	embedder := prebuilt.NewMockEmbedder(128)
-	vectorStore := prebuilt.NewInMemoryVectorStore(embedder)
+	embedder := store.NewMockEmbedder(128)
+	vectorStore := store.NewInMemoryVectorStore(embedder)
 
 	// Generate embeddings for chunks
 	texts := make([]string, len(chunks))
 	for i, chunk := range chunks {
-		texts[i] = chunk.PageContent
+		texts[i] = chunk.Content
 	}
 
 	embeddings, err := embedder.EmbedDocuments(ctx, texts)
@@ -106,23 +108,24 @@ Key features of LangGraph include:
 		log.Fatalf("Failed to generate embeddings: %v", err)
 	}
 
-	err = vectorStore.AddDocuments(ctx, chunks, embeddings)
+	err = vectorStore.AddBatch(ctx, chunks, embeddings)
 	if err != nil {
 		log.Fatalf("Failed to add documents to vector store: %v", err)
 	}
 
 	// Create retriever
-	retriever := prebuilt.NewVectorStoreRetriever(vectorStore, 3)
+	retriever := retriever.NewVectorStoreRetriever(vectorStore, embedder, 3)
 
 	// Configure RAG pipeline
-	config := prebuilt.DefaultRAGConfig()
+	config := rag.DefaultPipelineConfig()
 	config.Retriever = retriever
 	config.LLM = llm
 	config.TopK = 3
 	config.SystemPrompt = "You are a helpful AI assistant. Answer questions based on the provided context about LangGraph."
 
 	// Build pipeline
-	pipeline := prebuilt.NewRAGPipeline(config)
+
+pipeline := rag.NewRAGPipeline(config)
 	err = pipeline.BuildBasicRAG()
 	if err != nil {
 		log.Fatalf("Failed to build RAG pipeline: %v", err)
@@ -149,7 +152,7 @@ Key features of LangGraph include:
 	for i, query := range queries {
 		fmt.Printf("Query %d: %s\n", i+1, query)
 
-		result, err := runnable.Invoke(ctx, prebuilt.RAGState{
+		result, err := runnable.Invoke(ctx, rag.RAGState{
 			Query: query,
 		})
 		if err != nil {
@@ -157,11 +160,11 @@ Key features of LangGraph include:
 			continue
 		}
 
-		finalState := result.(prebuilt.RAGState)
+		finalState := result.(rag.RAGState)
 
 		fmt.Printf("Retrieved %d documents:\n", len(finalState.Documents))
 		for j, doc := range finalState.Documents {
-			fmt.Printf("  [%d] %s\n", j+1, truncate(doc.PageContent, 100))
+			fmt.Printf("  [%d] %s\n", j+1, truncate(doc.Content, 100))
 		}
 
 		fmt.Printf("\nAnswer: %s\n", finalState.Answer)
@@ -180,7 +183,7 @@ Integration,LangGraph integrates with LangChain components,Guide`
 
 	csvReader := strings.NewReader(csvContent)
 	csvLoader := documentloaders.NewCSV(csvReader)
-	csvLoaderAdapter := prebuilt.NewLangChainDocumentLoader(csvLoader)
+	csvLoaderAdapter := rag.NewLangChainDocumentLoader(csvLoader)
 
 	csvDocs, err := csvLoaderAdapter.Load(ctx)
 	if err != nil {
@@ -189,7 +192,7 @@ Integration,LangGraph integrates with LangChain components,Guide`
 		fmt.Printf("Loaded %d documents from CSV\n", len(csvDocs))
 		for i, doc := range csvDocs {
 			fmt.Printf("Document %d:\n", i+1)
-			fmt.Printf("  Content: %s\n", doc.PageContent)
+			fmt.Printf("  Content: %s\n", doc.Content)
 			fmt.Printf("  Metadata: %v\n", doc.Metadata)
 		}
 	}
@@ -204,25 +207,21 @@ Integration,LangGraph integrates with LangChain components,Guide`
 		textsplitter.WithChunkSize(150),
 		textsplitter.WithChunkOverlap(30),
 	)
-	splitterAdapter := prebuilt.NewLangChainTextSplitter(lcSplitter)
+	splitterAdapter := rag.NewLangChainTextSplitter(lcSplitter)
 
 	// Use it with our Document type
-	testDocs := []prebuilt.Document{
+	testDocs := []rag.Document{
 		{
-			PageContent: textContent,
-			Metadata:    map[string]any{"source": "test.txt"},
+			Content:  textContent,
+			Metadata: map[string]any{"source": "test.txt"},
 		},
 	}
 
-	splitDocs, err := splitterAdapter.SplitDocuments(testDocs)
-	if err != nil {
-		log.Printf("Failed to split: %v", err)
-	} else {
-		fmt.Printf("Split into %d chunks using LangChain splitter\n", len(splitDocs))
-		for i, doc := range splitDocs {
-			fmt.Printf("Chunk %d: %d chars, source: %v\n",
-				i+1, len(doc.PageContent), doc.Metadata["source"])
-		}
+	splitDocs := splitterAdapter.SplitDocuments(testDocs)
+	fmt.Printf("Split into %d chunks using LangChain splitter\n", len(splitDocs))
+	for i, doc := range splitDocs {
+		fmt.Printf("Chunk %d: %d chars, source: %v\n",
+			i+1, len(doc.Content), doc.Metadata["source"])
 	}
 
 	fmt.Println("\n=== Example Complete ===")

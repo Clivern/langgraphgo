@@ -88,7 +88,7 @@ embedder, err := embeddings.NewEmbedder(llm)
 ```go
 // 使用 LangChain 加载器加载文档
 textLoader := documentloaders.NewText(textReader)
-loader := prebuilt.NewLangChainDocumentLoader(textLoader)
+loader := rag.NewLangChainDocumentLoader(textLoader)
 
 // 使用 LangChain 分割器分割
 splitter := textsplitter.NewRecursiveCharacter(
@@ -103,8 +103,8 @@ chunks, err := loader.LoadAndSplit(ctx, splitter)
 
 ```go
 // 方式 1：内存存储
-inMemStore := prebuilt.NewInMemoryVectorStore(
-    prebuilt.NewLangChainEmbedder(embedder),
+inMemStore := store.NewInMemoryVectorStore(
+    rag.NewLangChainEmbedder(embedder),
 )
 
 // 方式 2：外部存储（Weaviate）
@@ -115,33 +115,34 @@ weaviateStore, err := weaviate.New(
 )
 
 // 使用适配器封装
-wrappedStore := prebuilt.NewLangChainVectorStore(weaviateStore)
+wrappedStore := rag.NewLangChainVectorStore(weaviateStore)
 ```
 
 ### 4. 添加文档到向量存储
 
 ```go
-// 生成嵌入
+// 生成嵌入 (对于内存存储)
 embeddings, err := embedder.EmbedDocuments(ctx, texts)
+err = inMemStore.AddBatch(ctx, chunks, embeddings)
 
-// 添加到存储
-err = vectorStore.AddDocuments(ctx, chunks, embeddings)
+// 对于 LangChain 封装器 (如果配置了嵌入器，内部处理嵌入)
+err = wrappedStore.Add(ctx, chunks)
 ```
 
 ### 5. 构建 RAG 管道
 
 ```go
 // 创建检索器
-retriever := prebuilt.NewVectorStoreRetriever(vectorStore, 3)
+retriever := retriever.NewVectorStoreRetriever(vectorStore, ragEmbedder, 3)
 
 // 配置管道
-config := prebuilt.DefaultRAGConfig()
+config := rag.DefaultPipelineConfig()
 config.Retriever = retriever
 config.LLM = llm
 config.IncludeCitations = true
 
 // 构建和编译
-pipeline := prebuilt.NewRAGPipeline(config)
+pipeline := rag.NewRAGPipeline(config)
 pipeline.BuildAdvancedRAG()
 runnable, err := pipeline.Compile()
 ```
@@ -149,11 +150,11 @@ runnable, err := pipeline.Compile()
 ### 6. 查询管道
 
 ```go
-result, err := runnable.Invoke(ctx, prebuilt.RAGState{
+result, err := runnable.Invoke(ctx, rag.RAGState{
     Query: "什么是 LangGraph？",
 })
 
-finalState := result.(prebuilt.RAGState)
+finalState := result.(rag.RAGState)
 fmt.Println(finalState.Answer)
 ```
 
@@ -179,10 +180,11 @@ store, err := <vectorstore>.New(
 )
 
 // 2. 使用适配器封装
-adaptedStore := prebuilt.NewLangChainVectorStore(store)
+adaptedStore := rag.NewLangChainVectorStore(store)
 
 // 3. 在 RAG 管道中使用
-retriever := prebuilt.NewVectorStoreRetriever(adaptedStore, topK)
+// 从存储创建检索器 (需要嵌入器来嵌入查询)
+retriever := retriever.NewVectorStoreRetriever(adaptedStore, ragEmbedder, topK)
 ```
 
 ## 示例输出
@@ -223,9 +225,10 @@ graph TD
 ### 带分数的相似度搜索
 
 ```go
-results, err := vectorStore.SimilaritySearchWithScore(ctx, query, k)
+// 使用检索器获取带分数的结果
+results, err := retriever.RetrieveWithConfig(ctx, query, &rag.RetrievalConfig{K: 5})
 for _, result := range results {
-    fmt.Printf("分数: %.4f - %s\n", result.Score, result.Document.PageContent)
+    fmt.Printf("分数: %.4f - %s\n", result.Score, result.Document.Content)
 }
 ```
 

@@ -88,7 +88,7 @@ embedder, err := embeddings.NewEmbedder(llm)
 ```go
 // Load documents using LangChain loader
 textLoader := documentloaders.NewText(textReader)
-loader := prebuilt.NewLangChainDocumentLoader(textLoader)
+loader := rag.NewLangChainDocumentLoader(textLoader)
 
 // Split with LangChain splitter
 splitter := textsplitter.NewRecursiveCharacter(
@@ -103,8 +103,8 @@ chunks, err := loader.LoadAndSplit(ctx, splitter)
 
 ```go
 // Option 1: In-memory store
-inMemStore := prebuilt.NewInMemoryVectorStore(
-    prebuilt.NewLangChainEmbedder(embedder),
+inMemStore := store.NewInMemoryVectorStore(
+    rag.NewLangChainEmbedder(embedder),
 )
 
 // Option 2: External store (Weaviate)
@@ -115,33 +115,34 @@ weaviateStore, err := weaviate.New(
 )
 
 // Wrap with adapter
-wrappedStore := prebuilt.NewLangChainVectorStore(weaviateStore)
+wrappedStore := rag.NewLangChainVectorStore(weaviateStore)
 ```
 
 ### 4. Add Documents to Vector Store
 
 ```go
-// Generate embeddings
+// Generate embeddings (for in-memory store)
 embeddings, err := embedder.EmbedDocuments(ctx, texts)
+err = inMemStore.AddBatch(ctx, chunks, embeddings)
 
-// Add to store
-err = vectorStore.AddDocuments(ctx, chunks, embeddings)
+// For LangChain wrapper (embeddings handled internally if configured)
+err = wrappedStore.Add(ctx, chunks)
 ```
 
 ### 5. Build RAG Pipeline
 
 ```go
 // Create retriever
-retriever := prebuilt.NewVectorStoreRetriever(vectorStore, 3)
+retriever := retriever.NewVectorStoreRetriever(vectorStore, ragEmbedder, 3)
 
 // Configure pipeline
-config := prebuilt.DefaultRAGConfig()
+config := rag.DefaultPipelineConfig()
 config.Retriever = retriever
 config.LLM = llm
 config.IncludeCitations = true
 
 // Build and compile
-pipeline := prebuilt.NewRAGPipeline(config)
+pipeline := rag.NewRAGPipeline(config)
 pipeline.BuildAdvancedRAG()
 runnable, err := pipeline.Compile()
 ```
@@ -149,11 +150,11 @@ runnable, err := pipeline.Compile()
 ### 6. Query the Pipeline
 
 ```go
-result, err := runnable.Invoke(ctx, prebuilt.RAGState{
+result, err := runnable.Invoke(ctx, rag.RAGState{
     Query: "What is LangGraph?",
 })
 
-finalState := result.(prebuilt.RAGState)
+finalState := result.(rag.RAGState)
 fmt.Println(finalState.Answer)
 ```
 
@@ -179,10 +180,11 @@ store, err := <vectorstore>.New(
 )
 
 // 2. Wrap with adapter
-adaptedStore := prebuilt.NewLangChainVectorStore(store)
+adaptedStore := rag.NewLangChainVectorStore(store)
 
 // 3. Use in RAG pipeline
-retriever := prebuilt.NewVectorStoreRetriever(adaptedStore, topK)
+// Create a retriever from the store (needs embedder for query embedding)
+retriever := retriever.NewVectorStoreRetriever(adaptedStore, ragEmbedder, topK)
 ```
 
 ## Example Output
@@ -224,9 +226,10 @@ Citations:
 ### Similarity Search with Scores
 
 ```go
-results, err := vectorStore.SimilaritySearchWithScore(ctx, query, k)
+// Use retriever to get results with scores
+results, err := retriever.RetrieveWithConfig(ctx, query, &rag.RetrievalConfig{K: 5})
 for _, result := range results {
-    fmt.Printf("Score: %.4f - %s\n", result.Score, result.Document.PageContent)
+    fmt.Printf("Score: %.4f - %s\n", result.Score, result.Document.Content)
 }
 ```
 

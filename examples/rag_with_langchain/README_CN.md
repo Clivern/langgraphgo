@@ -18,13 +18,13 @@ LangChain Go (`github.com/tmc/langchaingo`) 提供了优秀的文档加载器，
 
 ### 适配器类
 
-我们在 `prebuilt/rag_langchain_adapter.go` 中提供了两个适配器类：
+我们在 `rag/adapters.go` 中提供了两个适配器类：
 
 1. **LangChainDocumentLoader**: 将 `documentloaders.Loader` 适配到我们的 `DocumentLoader` 接口
 2. **LangChainTextSplitter**: 将 `textsplitter.TextSplitter` 适配到我们的 `TextSplitter` 接口
 
 这些适配器处理以下类型之间的转换：
-- `schema.Document` (LangChain) ↔ `prebuilt.Document` (我们的类型)
+- `schema.Document` (LangChain) ↔ `rag.Document` (我们的类型)
 
 ## 使用方法
 
@@ -33,7 +33,7 @@ LangChain Go (`github.com/tmc/langchaingo`) 提供了优秀的文档加载器，
 ```go
 import (
     "github.com/tmc/langchaingo/documentloaders"
-    "github.com/smallnest/langgraphgo/prebuilt"
+    "github.com/smallnest/langgraphgo/rag"
 )
 
 // 创建 LangChain 加载器
@@ -41,7 +41,7 @@ textReader := strings.NewReader(content)
 lcLoader := documentloaders.NewText(textReader)
 
 // 使用适配器包装
-loader := prebuilt.NewLangChainDocumentLoader(lcLoader)
+loader := rag.NewLangChainDocumentLoader(lcLoader)
 
 // 使用我们的接口
 docs, err := loader.Load(ctx)
@@ -67,10 +67,10 @@ chunks, err := loader.LoadAndSplit(ctx, splitter)
 ```go
 // 创建分割器适配器
 lcSplitter := textsplitter.NewRecursiveCharacter(...)
-splitterAdapter := prebuilt.NewLangChainTextSplitter(lcSplitter)
+splitterAdapter := rag.NewLangChainTextSplitter(lcSplitter)
 
 // 使用我们的 Document 类型
-chunks, err := splitterAdapter.SplitDocuments(documents)
+chunks := splitterAdapter.SplitDocuments(documents)
 ```
 
 ## 运行示例
@@ -86,7 +86,7 @@ go run main.go
 加载纯文本文档：
 ```go
 textLoader := documentloaders.NewText(reader)
-loader := prebuilt.NewLangChainDocumentLoader(textLoader)
+loader := rag.NewLangChainDocumentLoader(textLoader)
 docs, _ := loader.Load(ctx)
 ```
 
@@ -94,7 +94,7 @@ docs, _ := loader.Load(ctx)
 从 CSV 加载结构化数据：
 ```go
 csvLoader := documentloaders.NewCSV(reader)
-loader := prebuilt.NewLangChainDocumentLoader(csvLoader)
+loader := rag.NewLangChainDocumentLoader(csvLoader)
 docs, _ := loader.Load(ctx)
 ```
 
@@ -115,16 +115,16 @@ chunks, _ := loader.LoadAndSplit(ctx, splitter)
 chunks, _ := loader.LoadAndSplit(ctx, splitter)
 
 // 创建 RAG 流水线
-config := prebuilt.DefaultRAGConfig()
+config := rag.DefaultPipelineConfig()
 config.Retriever = retriever
 config.LLM = llm
 
-pipeline := prebuilt.NewRAGPipeline(config)
+pipeline := rag.NewRAGPipeline(config)
 pipeline.BuildBasicRAG()
 runnable, _ := pipeline.Compile()
 
 // 查询
-result, _ := runnable.Invoke(ctx, prebuilt.RAGState{
+result, _ := runnable.Invoke(ctx, rag.RAGState{
     Query: "什么是 LangGraph？",
 })
 ```
@@ -214,10 +214,10 @@ allDocs := append(textDocs, csvDocs...)
 ### 不使用适配器（手动转换）
 ```go
 lcDocs, _ := lcLoader.Load(ctx)
-docs := make([]prebuilt.Document, len(lcDocs))
+docs := make([]rag.Document, len(lcDocs))
 for i, d := range lcDocs {
-    docs[i] = prebuilt.Document{
-        PageContent: d.PageContent,
+    docs[i] = rag.Document{
+        Content:  d.PageContent,
         Metadata: d.Metadata,
     }
 }
@@ -225,7 +225,7 @@ for i, d := range lcDocs {
 
 ### 使用适配器（简洁）
 ```go
-loader := prebuilt.NewLangChainDocumentLoader(lcLoader)
+loader := rag.NewLangChainDocumentLoader(lcLoader)
 docs, _ := loader.Load(ctx)
 ```
 

@@ -25,14 +25,34 @@ func NewInMemoryVectorStore(embedder rag.Embedder) *InMemoryVectorStore {
 	}
 }
 
-// Add adds a document to the in-memory vector store
-func (s *InMemoryVectorStore) Add(ctx context.Context, doc rag.Document, embedding []float32) error {
+// AddWithEmbedding adds a document to the in-memory vector store with an explicit embedding
+func (s *InMemoryVectorStore) AddWithEmbedding(ctx context.Context, doc rag.Document, embedding []float32) error {
 	s.documents = append(s.documents, doc)
 	s.embeddings = append(s.embeddings, embedding)
 	return nil
 }
 
-// AddBatch adds multiple documents to the in-memory vector store
+// Add adds multiple documents to the in-memory vector store
+func (s *InMemoryVectorStore) Add(ctx context.Context, documents []rag.Document) error {
+	for _, doc := range documents {
+		embedding := doc.Embedding
+		if len(embedding) == 0 {
+			if s.embedder == nil {
+				return fmt.Errorf("no embedder configured and document has no embedding")
+			}
+			var err error
+			embedding, err = s.embedder.EmbedDocument(ctx, doc.Content)
+			if err != nil {
+				return fmt.Errorf("failed to embed document: %w", err)
+			}
+		}
+		s.documents = append(s.documents, doc)
+		s.embeddings = append(s.embeddings, embedding)
+	}
+	return nil
+}
+
+// AddBatch adds multiple documents with explicit embeddings
 func (s *InMemoryVectorStore) AddBatch(ctx context.Context, documents []rag.Document, embeddings [][]float32) error {
 	if len(documents) != len(embeddings) {
 		return fmt.Errorf("documents and embeddings must have same length")
@@ -149,20 +169,29 @@ func (s *InMemoryVectorStore) SearchWithFilter(ctx context.Context, queryEmbeddi
 }
 
 // Delete removes a document by ID
-func (s *InMemoryVectorStore) Delete(ctx context.Context, id string) error {
+func (s *InMemoryVectorStore) Delete(ctx context.Context, ids []string) error {
+	idMap := make(map[string]bool)
+	for _, id := range ids {
+		idMap[id] = true
+	}
+
+	var newDocs []rag.Document
+	var newEmbeddings [][]float32
+
 	for i, doc := range s.documents {
-		if doc.ID == id {
-			// Remove document and embedding
-			s.documents = append(s.documents[:i], s.documents[i+1:]...)
-			s.embeddings = append(s.embeddings[:i], s.embeddings[i+1:]...)
-			return nil
+		if !idMap[doc.ID] {
+			newDocs = append(newDocs, doc)
+			newEmbeddings = append(newEmbeddings, s.embeddings[i])
 		}
 	}
-	return fmt.Errorf("document not found: %s", id)
+	
+	s.documents = newDocs
+	s.embeddings = newEmbeddings
+	return nil
 }
 
-// Update updates a document and its embedding
-func (s *InMemoryVectorStore) Update(ctx context.Context, doc rag.Document, embedding []float32) error {
+// UpdateWithEmbedding updates a document and its embedding
+func (s *InMemoryVectorStore) UpdateWithEmbedding(ctx context.Context, doc rag.Document, embedding []float32) error {
 	for i, existingDoc := range s.documents {
 		if existingDoc.ID == doc.ID {
 			s.documents[i] = doc
@@ -171,6 +200,37 @@ func (s *InMemoryVectorStore) Update(ctx context.Context, doc rag.Document, embe
 		}
 	}
 	return fmt.Errorf("document not found: %s", doc.ID)
+}
+
+// Update updates documents in the vector store
+func (s *InMemoryVectorStore) Update(ctx context.Context, documents []rag.Document) error {
+	for _, doc := range documents {
+		embedding := doc.Embedding
+		if len(embedding) == 0 {
+			if s.embedder == nil {
+				return fmt.Errorf("no embedder configured and document %s has no embedding", doc.ID)
+			}
+			var err error
+			embedding, err = s.embedder.EmbedDocument(ctx, doc.Content)
+			if err != nil {
+				return fmt.Errorf("failed to embed document %s: %w", doc.ID, err)
+			}
+		}
+		
+		found := false
+		for i, existingDoc := range s.documents {
+			if existingDoc.ID == doc.ID {
+				s.documents[i] = doc
+				s.embeddings[i] = embedding
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("document not found: %s", doc.ID)
+		}
+	}
+	return nil
 }
 
 // GetStats returns statistics about the vector store

@@ -18,7 +18,7 @@ LangChain Go 提供了来自各种提供商（OpenAI、Cohere、HuggingFace 等�
 
 ### 适配器类
 
-`prebuilt/rag_langchain_adapter.go` 中的 `LangChainEmbedder` 适配器：
+`rag/adapters.go` 中的 `LangChainEmbedder` 适配器：
 
 ```go
 type LangChainEmbedder struct {
@@ -29,7 +29,7 @@ type LangChainEmbedder struct {
 **主要特性**:
 - 包装任何 LangChain 嵌入器
 - 实现我们的 `Embedder` 接口
-- 转换 `float32` (LangChain) ↔ `float64` (我们的类型)
+- 自动转换类型
 - 零开销，简单的传递
 
 ## 使用方法
@@ -40,41 +40,47 @@ type LangChainEmbedder struct {
 import (
     "github.com/tmc/langchaingo/embeddings"
     "github.com/tmc/langchaingo/llms/openai"
-    "github.com/smallnest/langgraphgo/prebuilt"
+    "github.com/smallnest/langgraphgo/rag"
 )
 
 // 创建 LangChain 嵌入器
 lcEmbedder, _ := embeddings.NewEmbedder(openai.New())
 
 // 使用适配器包装
-embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
+embedder := rag.NewLangChainEmbedder(lcEmbedder)
 
 // 使用我们的接口
-queryEmb, _ := embedder.EmbedQuery(ctx, "什么是 AI？")
+queryEmb, _ := embedder.EmbedDocument(ctx, "什么是 AI？")
 docsEmb, _ := embedder.EmbedDocuments(ctx, texts)
 ```
 
 ### 在 RAG 流水线中使用
 
 ```go
+import (
+    "github.com/smallnest/langgraphgo/rag"
+    "github.com/smallnest/langgraphgo/rag/store"
+    "github.com/smallnest/langgraphgo/rag/retriever"
+)
+
 // 创建嵌入器
 lcEmbedder, _ := embeddings.NewEmbedder(openai.New())
-embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
+embedder := rag.NewLangChainEmbedder(lcEmbedder)
 
 // 使用 LangChain 嵌入创建向量存储
-vectorStore := prebuilt.NewInMemoryVectorStore(embedder)
+vectorStore := store.NewInMemoryVectorStore(embedder)
 
 // 生成嵌入
 embeds, _ := embedder.EmbedDocuments(ctx, texts)
-vectorStore.AddDocuments(ctx, documents, embeds)
+vectorStore.AddBatch(ctx, documents, embeds)
 
 // 构建 RAG 流水线
-retriever := prebuilt.NewVectorStoreRetriever(vectorStore, 3)
-config := prebuilt.DefaultRAGConfig()
+retriever := retriever.NewVectorStoreRetriever(vectorStore, embedder, 3)
+config := rag.DefaultPipelineConfig()
 config.Retriever = retriever
 config.LLM = llm
 
-pipeline := prebuilt.NewRAGPipeline(config)
+pipeline := rag.NewRAGPipeline(config)
 pipeline.BuildBasicRAG()
 ```
 
@@ -105,9 +111,9 @@ go run main.go
 测试 OpenAI 的 text-embedding-ada-002 模型：
 ```go
 openaiEmbedder, _ := embeddings.NewEmbedder(openai.New())
-embedder := prebuilt.NewLangChainEmbedder(openaiEmbedder)
+embedder := rag.NewLangChainEmbedder(openaiEmbedder)
 
-queryEmb, _ := embedder.EmbedQuery(ctx, "什么是机器学习？")
+queryEmb, _ := embedder.EmbedDocument(ctx, "什么是机器学习？")
 // 返回 1536 维嵌入
 ```
 
@@ -115,12 +121,12 @@ queryEmb, _ := embedder.EmbedQuery(ctx, "什么是机器学习？")
 使用真实嵌入构建完整的 RAG 系统：
 ```go
 // 如果可用则使用 OpenAI 嵌入，否则使用模拟
-vectorStore := prebuilt.NewInMemoryVectorStore(embedder)
+vectorStore := store.NewInMemoryVectorStore(embedder)
 embeds, _ := embedder.EmbedDocuments(ctx, texts)
-vectorStore.AddDocuments(ctx, documents, embeds)
+vectorStore.AddBatch(ctx, documents, embeds)
 
 // 使用语义搜索查询
-result, _ := runnable.Invoke(ctx, prebuilt.RAGState{
+result, _ := runnable.Invoke(ctx, rag.RAGState{
     Query: "什么是 LangGraph？",
 })
 ```
@@ -148,7 +154,7 @@ similarity := cosineSimilarity(embeds[0], embeds[1])
 import "github.com/tmc/langchaingo/llms/openai"
 
 lcEmbedder, _ := embeddings.NewEmbedder(openai.New())
-embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
+embedder := rag.NewLangChainEmbedder(lcEmbedder)
 ```
 
 **模型**:
@@ -161,7 +167,7 @@ embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
 import "github.com/tmc/langchaingo/llms/cohere"
 
 lcEmbedder, _ := embeddings.NewEmbedder(cohere.New())
-embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
+embedder := rag.NewLangChainEmbedder(lcEmbedder)
 ```
 
 ### HuggingFace
@@ -169,7 +175,7 @@ embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
 import "github.com/tmc/langchaingo/llms/huggingface"
 
 lcEmbedder, _ := embeddings.NewEmbedder(huggingface.New())
-embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
+embedder := rag.NewLangChainEmbedder(lcEmbedder)
 ```
 
 ### Vertex AI
@@ -177,7 +183,7 @@ embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
 import "github.com/tmc/langchaingo/llms/vertexai"
 
 lcEmbedder, _ := embeddings.NewEmbedder(vertexai.New())
-embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
+embedder := rag.NewLangChainEmbedder(lcEmbedder)
 ```
 
 ## 类型转换
@@ -189,8 +195,8 @@ embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
 // LangChain 返回 [][]float32
 lcEmbeds := [][]float32{{0.1, 0.2, 0.3}}
 
-// 适配器转换为 [][]float64
-ourEmbeds := [][]float64{{0.1, 0.2, 0.3}}
+// 适配器转换为 [][]float32 (新版 RAG 包内部使用 float32)
+ourEmbeds := [][]float32{{0.1, 0.2, 0.3}}
 ```
 
 ### 性能
@@ -230,13 +236,13 @@ embeds, _ := embedder.EmbedDocuments(ctx, texts)
 ### 3. 缓存
 ```go
 // 缓存常用文本的嵌入
-cache := make(map[string][]float64)
+cache := make(map[string][]float32)
 
-func getEmbedding(text string) []float64 {
+func getEmbedding(text string) []float32 {
     if emb, ok := cache[text]; ok {
         return emb
     }
-    emb, _ := embedder.EmbedQuery(ctx, text)
+    emb, _ := embedder.EmbedDocument(ctx, text)
     cache[text] = emb
     return emb
 }
@@ -256,7 +262,7 @@ if err != nil {
 
 ### 模拟嵌入（开发）
 ```go
-embedder := prebuilt.NewMockEmbedder(1536)
+embedder := store.NewMockEmbedder(1536)
 ```
 - ✅ 快速，无 API 调用
 - ✅ 确定性
@@ -266,7 +272,7 @@ embedder := prebuilt.NewMockEmbedder(1536)
 ### 真实嵌入（生产）
 ```go
 lcEmbedder, _ := embeddings.NewEmbedder(openai.New())
-embedder := prebuilt.NewLangChainEmbedder(lcEmbedder)
+embedder := rag.NewLangChainEmbedder(lcEmbedder)
 ```
 - ✅ 语义有意义
 - ✅ 高质量检索
@@ -291,7 +297,7 @@ export OPENAI_API_KEY=your_key
 **解决方案**: 确保向量存储维度与模型匹配：
 ```go
 // 对于 OpenAI ada-002
-vectorStore := prebuilt.NewInMemoryVectorStore(embedder)
+vectorStore := store.NewInMemoryVectorStore(embedder)
 // 嵌入器将返回 1536 维向量
 ```
 
