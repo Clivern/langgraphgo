@@ -81,12 +81,79 @@ func main() {
 	}
 
 	// 3. Create Supervisor
-	members := map[string]*graph.StateRunnable{
-		"MathExpert":       mathAgent,
-		"GeneralAssistant": generalAgent,
+	// Manually implemented to fix "did not select next step" error and add debug info
+	g := graph.NewStateGraph()
+
+	agentNode := func(agent *graph.StateRunnable) func(context.Context, any) (any, error) {
+		return func(ctx context.Context, state any) (any, error) {
+			return agent.Invoke(ctx, state)
+		}
 	}
 
-	supervisor, err := prebuilt.CreateSupervisor(model, members)
+	g.AddNode("MathExpert", "Math Agent", agentNode(mathAgent))
+	g.AddNode("GeneralAssistant", "General Agent", agentNode(generalAgent))
+
+	supervisorNode := func(ctx context.Context, state any) (any, error) {
+		mState := state.(map[string]any)
+		messages := mState["messages"].([]llms.MessageContent)
+
+		systemPrompt := `You are a supervisor tasked with managing a conversation between the following workers:
+- MathExpert
+- GeneralAssistant
+
+Given the conversation, decide who should act next.
+If the task is finished, return FINISH.
+
+Return only the name of the next actor or FINISH.`
+
+		// Combine system prompt with history
+		msgs := []llms.MessageContent{
+			llms.TextParts(llms.ChatMessageTypeSystem, systemPrompt),
+		}
+		msgs = append(msgs, messages...)
+
+		resp, err := model.GenerateContent(ctx, msgs)
+		if err != nil {
+			return nil, err
+		}
+
+		choice := strings.TrimSpace(resp.Choices[0].Content)
+		fmt.Printf("DEBUG: Supervisor choice raw: %q\n", choice)
+
+		// Robust parsing
+		choiceLower := strings.ToLower(choice)
+		if strings.Contains(choiceLower, "mathexpert") {
+			choice = "MathExpert"
+		} else if strings.Contains(choiceLower, "generalassistant") {
+			choice = "GeneralAssistant"
+		} else if strings.Contains(choiceLower, "finish") {
+			choice = "FINISH"
+		} else {
+			fmt.Printf("WARNING: Supervisor returned unknown choice: %s. Defaulting to FINISH.\n", choice)
+			choice = "FINISH"
+		}
+
+		mState["next"] = choice
+		return mState, nil
+	}
+
+	g.AddNode("Supervisor", "Supervisor", supervisorNode)
+
+	g.SetEntryPoint("Supervisor")
+
+	g.AddConditionalEdge("Supervisor", func(ctx context.Context, state any) string {
+		mState := state.(map[string]any)
+		next, _ := mState["next"].(string)
+		if next == "FINISH" {
+			return graph.END
+		}
+		return next
+	})
+
+	g.AddEdge("MathExpert", "Supervisor")
+	g.AddEdge("GeneralAssistant", "Supervisor")
+
+	supervisor, err := g.Compile()
 	if err != nil {
 		log.Fatal(err)
 	}

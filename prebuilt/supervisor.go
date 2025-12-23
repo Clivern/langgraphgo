@@ -70,10 +70,16 @@ func CreateSupervisor(model llms.Model, members map[string]*graph.StateRunnable)
 		}
 		inputMessages = append(inputMessages, messages...)
 
-		// Call model
+		// Call model - force tool choice to ensure the model uses the route tool
+		toolChoice := llms.ToolChoice{
+			Type: "function",
+			Function: &llms.FunctionReference{
+				Name: "route",
+			},
+		}
 		resp, err := model.GenerateContent(ctx, inputMessages,
 			llms.WithTools([]llms.Tool{routeTool}),
-			llms.WithToolChoice("auto"), // Let model decide, but prompt strongly encourages it
+			llms.WithToolChoice(toolChoice),
 		)
 		if err != nil {
 			return nil, err
