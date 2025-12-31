@@ -63,7 +63,10 @@ func CreateTreeOfThoughtsAgentMap(config TreeOfThoughtsConfig) (*graph.StateRunn
 
 	workflow.AddNode("expand", "Expand paths", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		activePaths, _ := state["active_paths"].([]SearchPath)
-		visitedStates, _ := state["visited_states"].(map[string]bool)
+		visitedStates, ok := state["visited_states"].(map[string]bool)
+		if !ok || visitedStates == nil {
+			visitedStates = make(map[string]bool)
+		}
 		iteration, _ := state["iteration"].(int)
 
 		var newPaths []SearchPath

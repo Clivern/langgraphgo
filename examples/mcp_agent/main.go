@@ -17,7 +17,7 @@ func main() {
 	ctx := context.Background()
 
 	// 1. Create MCP client from Claude's config file
-	projectRoot := filepath.Join("..", "..")
+	projectRoot := ".."
 	configPath := filepath.Join(projectRoot, "testdata", "mcp", "mcp.json")
 
 	mcpClient, err := mcp.NewClientFromConfig(ctx, configPath)

@@ -19,7 +19,7 @@ func main() {
 	}
 
 	// Create LLM
-	model, err := openai.New(openai.WithModel("gpt-4"))
+	model, err := openai.New()
 	if err != nil {
 		log.Fatalf("Failed to create OpenAI client: %v", err)
 	}

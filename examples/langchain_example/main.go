@@ -28,11 +28,9 @@ func OpenAIExample() {
 	}
 
 	// Create a graph that uses the LLM
-	g := graph.NewStateGraph()
+	g := graph.NewStateGraph[[]llms.MessageContent]()
 
-	g.AddNode("chat", "chat", func(ctx context.Context, state any) (any, error) {
-		messages := state.([]llms.MessageContent)
-
+	g.AddNode("chat", "chat", func(ctx context.Context, messages []llms.MessageContent) ([]llms.MessageContent, error) {
 		// Use LangChain's GenerateContent method
 		response, err := model.GenerateContent(ctx, messages,
 			llms.WithTemperature(0.7),
@@ -68,7 +66,7 @@ func OpenAIExample() {
 	}
 
 	// Print the conversation
-	messages := result.([]llms.MessageContent)
+	messages := result
 	for _, msg := range messages {
 		fmt.Printf("%s: %s\n", msg.Role, msg.Parts[0])
 	}
@@ -88,11 +86,9 @@ func GoogleAIExample() {
 	}
 
 	// Create a streaming graph with Google AI
-	g := graph.NewListenableMessageGraph()
+	g := graph.NewListenableStateGraph[[]llms.MessageContent]()
 
-	node := g.AddNode("gemini", "gemini", func(ctx context.Context, state any) (any, error) {
-		messages := state.([]llms.MessageContent)
-
+	node := g.AddNode("gemini", "gemini", func(ctx context.Context, messages []llms.MessageContent) ([]llms.MessageContent, error) {
 		// Use LangChain's GenerateContent with Google AI
 		response, err := model.GenerateContent(ctx, messages,
 			llms.WithTemperature(0.9),
@@ -108,9 +104,19 @@ func GoogleAIExample() {
 	})
 
 	// Add a progress listener for streaming feedback
-	progressListener := graph.NewProgressListener().WithTiming(true)
-	progressListener.SetNodeStep("gemini", "🤔 Thinking with Gemini...")
-	node.AddListener(progressListener)
+	// Note: ProgressListener expects map[string]any state, but here we have []llms.MessageContent.
+	// We can't use the standard ProgressListener directly if it's strict.
+	// However, in my recent fix, I made ProgressListener implement NodeListener[map[string]any].
+	// This graph expects NodeListener[[]llms.MessageContent].
+	// So we can't use standard ProgressListener here directly.
+	// We will create a custom listener for this example.
+	
+	listener := graph.NodeListenerFunc[[]llms.MessageContent](func(ctx context.Context, event graph.NodeEvent, nodeName string, state []llms.MessageContent, err error) {
+		if event == graph.NodeEventStart {
+			fmt.Printf("🤔 Thinking with Gemini... (Node: %s)\n", nodeName)
+		}
+	})
+	node.AddListener(listener)
 
 	g.AddEdge("gemini", graph.END)
 	g.SetEntryPoint("gemini")
@@ -131,7 +137,7 @@ func GoogleAIExample() {
 	}
 
 	// Print the response
-	messages := result.([]llms.MessageContent)
+	messages := result
 	fmt.Printf("\nGemini's Response:\n%s\n", messages[len(messages)-1].Parts[0])
 }
 
@@ -162,11 +168,10 @@ func MultiStepReasoningExample() {
 	}
 
 	// Create a multi-step reasoning graph
-	g := graph.NewCheckpointableStateGraph()
+	g := graph.NewCheckpointableStateGraph[map[string]any]()
 
 	// Step 1: Analyze the problem
-	g.AddNode("analyze", "analyze", func(ctx context.Context, state any) (any, error) {
-		data := state.(map[string]any)
+	g.AddNode("analyze", "analyze", func(ctx context.Context, data map[string]any) (map[string]any, error) {
 		messages := []llms.MessageContent{
 			llms.TextParts("system", "You are a helpful assistant that breaks down problems step by step."),
 			llms.TextParts("human", data["problem"].(string)),
@@ -184,8 +189,7 @@ func MultiStepReasoningExample() {
 	})
 
 	// Step 2: Generate solution
-	g.AddNode("solve", "solve", func(ctx context.Context, state any) (any, error) {
-		data := state.(map[string]any)
+	g.AddNode("solve", "solve", func(ctx context.Context, data map[string]any) (map[string]any, error) {
 		messages := []llms.MessageContent{
 			llms.TextParts("system", "Based on the analysis, provide a clear solution."),
 			llms.TextParts("human", fmt.Sprintf(
@@ -206,8 +210,7 @@ func MultiStepReasoningExample() {
 	})
 
 	// Step 3: Verify solution
-	g.AddNode("verify", "verify", func(ctx context.Context, state any) (any, error) {
-		data := state.(map[string]any)
+	g.AddNode("verify", "verify", func(ctx context.Context, data map[string]any) (map[string]any, error) {
 		messages := []llms.MessageContent{
 			llms.TextParts("system", "Verify if the solution is correct and complete."),
 			llms.TextParts("human", fmt.Sprintf(
@@ -255,7 +258,7 @@ func MultiStepReasoningExample() {
 	}
 
 	// Display results
-	data := result.(map[string]any)
+	data := result
 	fmt.Printf("\n📊 Analysis:\n%s\n", data["analysis"])
 	fmt.Printf("\n💡 Solution:\n%s\n", data["solution"])
 	fmt.Printf("\n✅ Verification:\n%s\n", data["verification"])

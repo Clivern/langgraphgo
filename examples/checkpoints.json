@@ -1,0 +1,56 @@
+{
+  "checkpoint_20b55ea9-9e6e-4ab9-b145-24e48592d284": {
+    "id": "checkpoint_20b55ea9-9e6e-4ab9-b145-24e48592d284",
+    "node_name": "step_3",
+    "state": {
+      "steps": [
+        "Start",
+        "Step 1 Completed",
+        "Step 2 Completed",
+        "Step 3 Completed"
+      ]
+    },
+    "metadata": {
+      "event": "step",
+      "execution_id": "exec_1767144382517053000",
+      "thread_id": "durable-job-1"
+    },
+    "timestamp": "2025-12-31T09:26:24.024906+08:00",
+    "version": 1
+  },
+  "checkpoint_4ddc1c51-0cdd-48df-9cb0-271c2ffb8d91": {
+    "id": "checkpoint_4ddc1c51-0cdd-48df-9cb0-271c2ffb8d91",
+    "node_name": "step_1",
+    "state": {
+      "steps": [
+        "Start",
+        "Step 1 Completed"
+      ]
+    },
+    "metadata": {
+      "event": "step",
+      "execution_id": "exec_1767144382517053000",
+      "thread_id": "durable-job-1"
+    },
+    "timestamp": "2025-12-31T09:26:23.019241+08:00",
+    "version": 1
+  },
+  "checkpoint_67bf89ca-1dba-4840-960e-7d79f41ee811": {
+    "id": "checkpoint_67bf89ca-1dba-4840-960e-7d79f41ee811",
+    "node_name": "step_2",
+    "state": {
+      "steps": [
+        "Start",
+        "Step 1 Completed",
+        "Step 2 Completed"
+      ]
+    },
+    "metadata": {
+      "event": "step",
+      "execution_id": "exec_1767144382517053000",
+      "thread_id": "durable-job-1"
+    },
+    "timestamp": "2025-12-31T09:26:23.52321+08:00",
+    "version": 1
+  }
+}

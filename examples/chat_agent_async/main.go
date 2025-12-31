@@ -54,9 +54,13 @@ func main() {
 		log.Fatalf("AsyncChatWithChunks failed: %v", err)
 	}
 
+	start := time.Now()
 	for word := range respChan2 {
 		fmt.Print(word)
 		time.Sleep(100 * time.Millisecond) // Simulate thinking/typing
+		if time.Since(start) > 5*time.Second {
+			break
+		}
 	}
 	fmt.Println("")
 
@@ -70,12 +74,16 @@ func main() {
 		log.Fatalf("AsyncChatWithChunks failed: %v", err)
 	}
 
+	start = time.Now()
 	var fullResponse string
 	chunkCount := 0
 	for chunk := range respChan3 {
 		fullResponse += chunk
 		chunkCount++
 		fmt.Print(chunk)
+		if time.Since(start) > 5*time.Second {
+			break
+		}
 		time.Sleep(80 * time.Millisecond)
 	}
 	fmt.Printf("\n\n[Received %d chunks, total length: %d characters]\n\n", chunkCount, len(fullResponse))
@@ -94,11 +102,15 @@ func main() {
 		log.Fatalf("AsyncChat failed: %v", err)
 	}
 
+	start = time.Now()
 	receivedChunks := 0
 	for char := range respChan4 {
 		fmt.Print(char)
 		receivedChunks++
 		time.Sleep(30 * time.Millisecond)
+		if time.Since(start) > 5*time.Second {
+			break
+		}
 	}
 
 	fmt.Printf("\n\n[Stream was interrupted after receiving %d characters due to context timeout]\n\n", receivedChunks)
@@ -108,7 +120,7 @@ func main() {
 	fmt.Println("User: One more question please")
 	fmt.Print("Agent (regular Chat): ")
 
-	start := time.Now()
+	start = time.Now()
 	regularResp, err := agent.Chat(context.Background(), "One more question please")
 	if err != nil {
 		log.Fatalf("Chat failed: %v", err)

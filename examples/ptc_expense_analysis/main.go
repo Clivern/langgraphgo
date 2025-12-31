@@ -15,7 +15,7 @@ import (
 func main() {
 	fmt.Println("=== PTC (Programmatic Tool Calling) Example ===")
 	fmt.Println("This example demonstrates how PTC reduces latency and token usage")
-	fmt.Println("by allowing the LLM to write code that calls tools programmatically.\n")
+	fmt.Println("by allowing the LLM to write code that calls tools programmatically.")
 
 	// Initialize OpenAI model
 	model, err := openai.New()

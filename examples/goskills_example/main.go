@@ -32,7 +32,7 @@ func main() {
 	// Let's assume the user has some skills in "./skills".
 	// If not, we can try to create a temporary skill for demonstration.
 
-	skillsDir := "skills"
+	skillsDir := "goskills_example/skills"
 	if _, err := os.Stat(skillsDir); os.IsNotExist(err) {
 		// Create a dummy skill for demonstration
 		err = createDummySkill(skillsDir)

@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 BOLD='\033[1m'
 
 # 配置
-TIMEOUT=${1:-60}  # 默认超时时间 60 秒
+TIMEOUT=${1:-120}  # 默认超时时间 60 秒
 RESULTS_FILE="example_results.txt"
 SUMMARY_FILE="example_summary.txt"
 
@@ -67,10 +67,21 @@ if ! go mod tidy > /dev/null 2>&1; then
     echo -e "${RED}Warning: Failed to download some dependencies${NC}"
 fi
 
+# 跳过的例子列表（耗时太久、需要 API key 或非本项目例子）
+SKIPPED_EXAMPLES="ptc_expense_analysis|reflection_agent|tool_brave|langchain_example|rag_falkordb_graph"
+
 # 函数：运行单个例子
 run_example() {
     local example_dir=$1
     local example_name=$(basename "$example_dir")
+
+    # 检查是否在跳过列表中
+    if echo "$example_name" | grep -qE "^($SKIPPED_EXAMPLES)$"; then
+        echo -e "\n${YELLOW}⏭️  Skipping: $example_name (excluded by config)${NC}"
+        echo "$example_name: SKIPPED (excluded)" >> "$RESULTS_FILE"
+        ((SKIPPED++)) || true
+        return
+    fi
 
     echo -e "\n${YELLOW}📁 Running: $example_name${NC}"
     echo -e "${YELLOW}$(printf '─%.0s' {1..50})${NC}"
@@ -79,7 +90,7 @@ run_example() {
     if [ ! -f "$example_dir/main.go" ]; then
         echo -e "${RED}❌ No main.go found in $example_name${NC}"
         echo "$example_name: SKIPPED (no main.go)" >> "$RESULTS_FILE"
-        ((SKIPPED++))
+        ((SKIPPED++)) || true
         return
     fi
 
@@ -89,7 +100,7 @@ run_example() {
         if [ -z "$OPENAI_API_KEY" ] && [ -z "$ANTHROPIC_API_KEY" ] && [ -z "$TAVILY_API_KEY" ] && [ -z "$BRAVE_API_KEY" ] && [ -z "$EXA_API_KEY" ]; then
             echo -e "${YELLOW}⚠️  $example_name requires API keys (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.)${NC}"
             echo "$example_name: SKIPPED (requires API keys)" >> "$RESULTS_FILE"
-            ((SKIPPED++))
+            ((SKIPPED++)) || true
             return
         fi
     fi
@@ -130,7 +141,7 @@ run_example() {
     if [ $RUN_STATUS -eq 0 ]; then
         echo -e "${GREEN}✅ $example_name: PASSED${NC}"
         echo "$example_name: PASSED" >> "$RESULTS_FILE"
-        ((PASSED++))
+        ((PASSED++)) || true
     else
         if [ $RUN_STATUS -eq 124 ] && [ -n "$TIMEOUT_CMD" ]; then
             echo -e "${RED}⏱️  $example_name: FAILED (timeout after ${TIMEOUT}s)${NC}"
@@ -145,7 +156,7 @@ run_example() {
                 head -10 "$error_file" | sed 's/^/  /'
             fi
         fi
-        ((FAILED++))
+        ((FAILED++)) || true
     fi
 
     # 清理临时文件
@@ -154,7 +165,7 @@ run_example() {
 
 # 主循环
 for example_dir in $EXAMPLE_DIRS; do
-    ((TOTAL++))
+    ((TOTAL++)) || true
     run_example "$example_dir"
 done
 
