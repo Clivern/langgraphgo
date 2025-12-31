@@ -32,7 +32,7 @@ func main() {
 	// Let's assume the user has some skills in "./skills".
 	// If not, we can try to create a temporary skill for demonstration.
 
-	skillsDir := "skills"
+	skillsDir := "goskills_example/skills"
 	if _, err := os.Stat(skillsDir); os.IsNotExist(err) {
 		// Create a dummy skill for demonstration
 		err = createDummySkill(skillsDir)
@@ -77,8 +77,10 @@ func main() {
 		log.Fatal("No tools found from skills")
 	}
 
-	// 4. Create Agent
-	agent, err := prebuilt.CreateAgent(llm, allTools, prebuilt.WithSystemMessage(allSystemMessages.String()))
+	// 3. Create Agent with all skills
+	agent, err := prebuilt.CreateAgentMap(llm, allTools,
+		prebuilt.WithSystemMessage("You are a powerful AI assistant with many skills. Use them wisely."),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
