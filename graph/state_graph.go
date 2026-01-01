@@ -261,12 +261,24 @@ func (r *StateRunnable[S]) InvokeWithConfig(ctx context.Context, initialState S,
 		// Execute nodes in parallel
 		results, errorsList := r.executeNodesParallel(ctx, currentNodes, state, config, runID)
 
-		// Check for errors
+		// Process results (including results from interrupted nodes)
+		processedResults, nextNodesFromCommands := r.processNodeResults(results)
+
+		// Merge results into state (this preserves state updates from interrupted nodes)
+		var mergeErr error
+		state, mergeErr = r.mergeState(ctx, state, processedResults)
+		if mergeErr != nil {
+			var zero S
+			return zero, mergeErr
+		}
+
+		// Now check for errors after merging state
 		for _, err := range errorsList {
 			if err != nil {
 				// Check for NodeInterrupt
 				var nodeInterrupt *NodeInterrupt
 				if errors.As(err, &nodeInterrupt) {
+					// Return GraphInterrupt with the merged state
 					return state, &GraphInterrupt{
 						Node:           nodeInterrupt.Node,
 						State:          state,
@@ -284,17 +296,6 @@ func (r *StateRunnable[S]) InvokeWithConfig(ctx context.Context, initialState S,
 				var zero S
 				return zero, err
 			}
-		}
-
-		// Process results
-		processedResults, nextNodesFromCommands := r.processNodeResults(results)
-
-		// Merge results
-		var err error
-		state, err = r.mergeState(ctx, state, processedResults)
-		if err != nil {
-			var zero S
-			return zero, err
 		}
 
 		// Determine next nodes
@@ -378,6 +379,13 @@ func (r *StateRunnable[S]) executeNodeWithRetry(ctx context.Context, node TypedN
 
 		if err == nil {
 			return result, nil
+		}
+
+		// For NodeInterrupt, return the result along with the error
+		// so that state updates made before the interrupt are preserved
+		var nodeInterrupt *NodeInterrupt
+		if errors.As(err, &nodeInterrupt) {
+			return result, err
 		}
 
 		lastErr = err
@@ -495,6 +503,8 @@ func (r *StateRunnable[S]) executeNodesParallel(ctx context.Context, nodes []str
 				var nodeInterrupt *NodeInterrupt
 				if errors.As(err, &nodeInterrupt) {
 					nodeInterrupt.Node = name
+					// For NodeInterrupt, save the result so state updates are preserved
+					results[idx] = res
 				}
 				errorsList[idx] = fmt.Errorf("error in node %s: %w", name, err)
 				return
