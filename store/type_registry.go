@@ -249,6 +249,18 @@ func (r *TypeRegistry) Unmarshal(data []byte) (any, error) {
 			return nil, fmt.Errorf("missing _value in wrapped data")
 		}
 
+		// For struct types, we need to unmarshal into a pointer
+		// CreateInstance returns a value, so we need to get a pointer to it
+		if t.Kind() == reflect.Struct {
+			// Create a pointer to the value
+			ptr := reflect.New(t).Interface()
+			if err := json.Unmarshal(valueBytes, ptr); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal value: %w", err)
+			}
+			// Dereference to get the value
+			return reflect.ValueOf(ptr).Elem().Interface(), nil
+		}
+
 		if err := json.Unmarshal(valueBytes, instance); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal value: %w", err)
 		}
@@ -372,6 +384,17 @@ func (cd *CheckpointData) ToValue() (any, error) {
 	}
 
 	// Use standard JSON unmarshaling
+	// For struct types, we need to unmarshal into a pointer
+	if t.Kind() == reflect.Struct {
+		// Create a pointer to the value
+		ptr := reflect.New(t).Interface()
+		if err := json.Unmarshal(cd.Data, ptr); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal value: %w", err)
+		}
+		// Dereference to get the value
+		return reflect.ValueOf(ptr).Elem().Interface(), nil
+	}
+
 	if err := json.Unmarshal(cd.Data, instance); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal value: %w", err)
 	}

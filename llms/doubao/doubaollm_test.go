@@ -809,3 +809,313 @@ func TestLLM_ConvertMessageWithToolResponse(t *testing.T) {
 		})
 	}
 }
+
+// TestGetContentString tests the getContentString helper function.
+func TestGetContentString(t *testing.T) {
+	textPartType := model.ChatCompletionMessageContentPartTypeText
+
+	tests := []struct {
+		name     string
+		content  *model.ChatCompletionMessageContent
+		expected string
+	}{
+		{
+			name:     "nil content",
+			content:  nil,
+			expected: "",
+		},
+		{
+			name: "string value",
+			content: &model.ChatCompletionMessageContent{
+				StringValue: stringPtr("Hello, world!"),
+			},
+			expected: "Hello, world!",
+		},
+		{
+			name: "nil string value",
+			content: &model.ChatCompletionMessageContent{
+				StringValue: nil,
+			},
+			expected: "",
+		},
+		{
+			name: "empty list value",
+			content: &model.ChatCompletionMessageContent{
+				ListValue: []*model.ChatCompletionMessageContentPart{},
+			},
+			expected: "",
+		},
+		{
+			name: "list value with text parts",
+			content: &model.ChatCompletionMessageContent{
+				ListValue: []*model.ChatCompletionMessageContentPart{
+					{
+						Type: textPartType,
+						Text: "Hello, ",
+					},
+					{
+						Type: textPartType,
+						Text: "world!",
+					},
+				},
+			},
+			expected: "Hello, world!",
+		},
+		{
+			name: "list value with mixed parts",
+			content: &model.ChatCompletionMessageContent{
+				ListValue: []*model.ChatCompletionMessageContentPart{
+					{
+						Type: textPartType,
+						Text: "Text part",
+					},
+					{
+						Type: "other_type",
+						Text: "ignored",
+					},
+				},
+			},
+			expected: "Text part",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getContentString(tt.content)
+			if result != tt.expected {
+				t.Errorf("getContentString() = %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+// TestLLM_Options tests various LLM options.
+func TestLLM_Options(t *testing.T) {
+	tests := []struct {
+		name    string
+		opts    []Option
+		wantErr bool
+		check   func(*testing.T, *LLM)
+	}{
+		{
+			name: "with embedding model",
+			opts: []Option{
+				WithAPIKey("test-key"),
+				WithEmbeddingModel("embedding-endpoint-id"),
+			},
+			wantErr: false,
+			check: func(t *testing.T, llm *LLM) {
+				if llm.embeddingModel != "embedding-endpoint-id" {
+					t.Errorf("embeddingModel = %q, want %q", llm.embeddingModel, "embedding-endpoint-id")
+				}
+			},
+		},
+		{
+			name: "with base URL",
+			opts: []Option{
+				WithAPIKey("test-key"),
+				WithBaseURL("https://custom.endpoint.com/api/v3"),
+			},
+			wantErr: false,
+			check: func(t *testing.T, llm *LLM) {
+				// Verify the LLM was created successfully
+				if llm == nil {
+					t.Error("LLM is nil")
+				}
+			},
+		},
+		{
+			name: "with region",
+			opts: []Option{
+				WithAPIKey("test-key"),
+				WithRegion("us-east-1"),
+			},
+			wantErr: false,
+			check: func(t *testing.T, llm *LLM) {
+				// Verify the LLM was created successfully
+				if llm == nil {
+					t.Error("LLM is nil")
+				}
+			},
+		},
+		{
+			name: "with all options",
+			opts: []Option{
+				WithAPIKey("test-key"),
+				WithModel("model-endpoint-id"),
+				WithEmbeddingModel("embedding-endpoint-id"),
+				WithBaseURL("https://custom.endpoint.com/api/v3"),
+				WithRegion("cn-shanghai"),
+			},
+			wantErr: false,
+			check: func(t *testing.T, llm *LLM) {
+				if llm.model != "model-endpoint-id" {
+					t.Errorf("model = %q, want %q", llm.model, "model-endpoint-id")
+				}
+				if llm.embeddingModel != "embedding-endpoint-id" {
+					t.Errorf("embeddingModel = %q, want %q", llm.embeddingModel, "embedding-endpoint-id")
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			llm, err := New(tt.opts...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				return
+			}
+			if tt.check != nil {
+				tt.check(t, llm)
+			}
+		})
+	}
+}
+
+// TestLLM_GenerateContent_EmptyMessages tests GenerateContent with empty messages.
+func TestLLM_GenerateContent_EmptyMessages(t *testing.T) {
+	llm, err := New(WithAPIKey("test-key"))
+	if err != nil {
+		t.Fatalf("Failed to create LLM: %v", err)
+	}
+
+	ctx := context.Background()
+	_, err = llm.GenerateContent(ctx, []llms.MessageContent{})
+	if err == nil {
+		t.Error("Expected error for empty messages, got nil")
+	}
+	if err != nil && err.Error() != "no messages provided" {
+		t.Errorf("Expected 'no messages provided' error, got %v", err)
+	}
+}
+
+// TestLLM_CreateEmbedding_EmptyTexts tests CreateEmbedding with empty texts.
+func TestLLM_CreateEmbedding_EmptyTexts(t *testing.T) {
+	llm, err := New(
+		WithAPIKey("test-key"),
+		WithEmbeddingModel("embedding-endpoint-id"),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create LLM: %v", err)
+	}
+
+	ctx := context.Background()
+	_, err = llm.CreateEmbedding(ctx, []string{})
+	if err == nil {
+		t.Error("Expected error for empty texts, got nil")
+	}
+}
+
+// TestLLM_ConvertMessage_Errors tests convertMessage error cases.
+func TestLLM_ConvertMessage_Errors(t *testing.T) {
+	tests := []struct {
+		name    string
+		msg     llms.MessageContent
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "message with no parts",
+			msg: llms.MessageContent{
+				Role:  llms.ChatMessageTypeHuman,
+				Parts: []llms.ContentPart{},
+			},
+			wantErr: true,
+			errMsg:  "message has no parts",
+		},
+		{
+			name: "message with empty content - actually works with empty string",
+			msg: llms.MessageContent{
+				Role:  llms.ChatMessageTypeHuman,
+				Parts: []llms.ContentPart{llms.TextPart("")},
+			},
+			wantErr: false, // The code allows empty strings, it creates content with empty string
+		},
+		{
+			name: "tool message with no valid content",
+			msg: llms.MessageContent{
+				Role:  llms.ChatMessageTypeTool,
+				Parts: []llms.ContentPart{},
+			},
+			wantErr: true,
+			errMsg:  "message has no parts",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := convertMessage(tt.msg)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("convertMessage() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && tt.errMsg != "" && err != nil {
+				if !containsString(err.Error(), tt.errMsg) {
+					t.Errorf("Expected error containing %q, got %q", tt.errMsg, err.Error())
+				}
+			}
+		})
+	}
+}
+
+// TestCreateMessageContent tests the createMessageContent helper function.
+func TestCreateMessageContent(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "normal text",
+			input: "Hello, world!",
+		},
+		{
+			name:  "empty string",
+			input: "",
+		},
+		{
+			name:  "special characters",
+			input: "Hello\nWorld\t!",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			content := createMessageContent(tt.input)
+			if content == nil {
+				t.Fatal("createMessageContent() returned nil")
+			}
+			if content.StringValue == nil {
+				t.Error("StringValue is nil")
+			} else if *content.StringValue != tt.input {
+				t.Errorf("StringValue = %q, want %q", *content.StringValue, tt.input)
+			}
+			if content.ListValue != nil {
+				t.Error("ListValue should be nil")
+			}
+		})
+	}
+}
+
+// Helper function to get a string pointer.
+func stringPtr(s string) *string {
+	return &s
+}
+
+// Helper function to check if a string contains a substring.
+func containsString(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
+		(len(s) > len(substr) && containsSubstring(s, substr)))
+}
+
+func containsSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}

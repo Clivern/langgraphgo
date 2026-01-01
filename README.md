@@ -113,43 +113,37 @@ func main() {
 
 ## 📚 Examples
 
-- **[Basic LLM](./examples/basic_llm/)** - Simple LangChain integration
+This project includes **70+ comprehensive examples** organized into categories:
+
+### Featured Examples
+
+- **[ReAct Agent](./examples/react_agent/)** - Reason and Action agent using tools
 - **[RAG Pipeline](./examples/rag_pipeline/)** - Complete retrieval-augmented generation
-- **[RAG with LangChain](./examples/rag_with_langchain/)** - LangChain components integration
-- **[RAG with VectorStores](./examples/rag_langchain_vectorstore_example/)** - LangChain VectorStore integration (New!)
-- **[RAG with Chroma](./examples/rag_chroma_example/)** - Chroma vector database integration (New!)
-- **[Tavily Search](./examples/tool_tavily/)** - Tavily search tool integration (New!)
-- **[Exa Search](./examples/tool_exa/)** - Exa search tool integration (New!)
-- **[Streaming](./examples/streaming_pipeline/)** - Real-time progress updates
-- **[Conditional Routing](./examples/conditional_routing/)** - Dynamic path selection
-- **[Parallel Execution](./examples/parallel_execution/)** - Fan-out/fan-in with state merging
-- **[Complex Parallel Execution](./examples/complex_parallel_execution/)** - Advanced parallel patterns with varying branch lengths (New!)
-- **[Checkpointing](./examples/checkpointing/)** - Save and resume state
-- **[Visualization](./examples/visualization/)** - Export graph diagrams
-- **[Listeners](./examples/listeners/)** - Progress, metrics, and logging
-- **[Subgraphs](./examples/subgraphs/)** - Nested graph composition
-- **[Swarm](./examples/swarm/)** - Multi-agent collaboration
-- **[Create Agent](./examples/create_agent/)** - Flexible agent creation with options (New!)
-- **[Dynamic Skill Agent](./examples/dynamic_skill_agent/)** - Agent with dynamic skill discovery and selection (New!)
-- **[Chat Agent](./examples/chat_agent/)** - Multi-turn conversation with session management (New!)
-- **[Chat Agent Async](./examples/chat_agent_async/)** - Async streaming chat agent (New!)
-- **[Chat Agent Dynamic Tools](./examples/chat_agent_dynamic_tools/)** - Chat agent with runtime tool management (New!)
-- **[State Schema](./examples/state_schema/)** - Complex state management with Reducers
-- **[Smart Messages](./examples/smart_messages/)** - Intelligent message merging (Upserts)
-- **[Command API](./examples/command_api/)** - Dynamic control flow
-- **[Ephemeral Channels](./examples/ephemeral_channels/)** - Temporary state management
-- **[Streaming Modes](./examples/streaming_modes/)** - Advanced streaming patterns
-- **[Time Travel / HITL](./examples/time_travel/)** - Inspect, edit, and fork state history
-- **[Dynamic Interrupt](./examples/dynamic_interrupt/)** - Pause execution from within a node
-- **[Durable Execution](./examples/durable_execution/)** - Crash recovery and resuming execution
-- **[GoSkills Integration](./examples/goskills_example/)** - Integration with GoSkills (New!)
-- **[PTC Basic](./examples/ptc_basic/)** - Programmatic Tool Calling for reduced latency (New!)
-- **[PTC Simple](./examples/ptc_simple/)** - Simple PTC example with calculator tools (New!)
-- **[PTC Expense Analysis](./examples/ptc_expense_analysis/)** - Complex PTC scenario with data processing (New!)
-- **[Tree of Thoughts](./examples/tree_of_thoughts/)** - Advanced reasoning with search tree exploration (New!)
-- **[PEV Agent](./examples/pev_agent/)** - Problem-Evidence-Verification agent (New!)
-- **[File Checkpointing](./examples/file_checkpointing/)** - File-based checkpointing (New!)
-- **[Generic State Graph](./examples/generic_state_graph/)** - Type-safe generic state management (New!)
+- **[Chat Agent](./examples/chat_agent/)** - Multi-turn conversation with session management
+- **[Supervisor](./examples/supervisor/)** - Multi-agent orchestration
+- **[Tree of Thoughts](./examples/tree_of_thoughts/)** - Search-based reasoning with multiple solution paths
+- **[Planning Agent](./examples/planning_agent/)** - Dynamic workflow plan creation
+- **[PEV Agent](./examples/pev_agent/)** - Plan-Execute-Verify with self-correction
+- **[Reflection Agent](./examples/reflection_agent/)** - Iterative improvement through self-reflection
+- **[Mental Loop](./examples/mental_loop/)** - Simulator-in-the-loop for safe action testing
+- **[Reflexive Metacognitive Agent](./examples/reflexive_metacognitive/)** - Self-aware agent with explicit capabilities model
+
+### Example Categories
+
+- **[Basic Concepts](./examples/README.md#basic-concepts)** - Simple LLM integration, LangChain compatibility
+- **[State Management](./examples/README.md#state-management)** - State schema, custom reducers, smart messages
+- **[Graph Structure](./examples/README.md#graph-structure--routing)** - Conditional routing, subgraphs, generics
+- **[Parallel Execution](./examples/README.md#parallel-execution)** - Fan-out/fan-in with state merging
+- **[Streaming & Events](./examples/README.md#streaming--events)** - Real-time updates, listeners, logging
+- **[Persistence](./examples/README.md#persistence-checkpointing)** - Checkpointing with file, memory, databases
+- **[Human-in-the-Loop](./examples/README.md#human-in-the-loop)** - Interrupts, approval, time travel
+- **[Pre-built Agents](./examples/README.md#pre-built-agents)** - ReAct, Supervisor, Chat, Planning agents
+- **[Programmatic Tool Calling](./examples/README.md#programmatic-tool-calling-ptc)** - PTC for 10x latency reduction
+- **[Memory](./examples/README.md#memory)** - Buffer, sliding window, summarization strategies
+- **[RAG](./examples/README.md#rag-retrieval-augmented-generation)** - Vector stores, GraphRAG with FalkorDB
+- **[Tools & Integrations](./examples/README.md#tools--integrations)** - Search tools, GoSkills, MCP
+
+**[View All 70+ Examples →](./examples/README.md)**
 
 ## 🔧 Key Concepts
 

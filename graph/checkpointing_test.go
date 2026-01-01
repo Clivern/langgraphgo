@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/smallnest/langgraphgo/graph"
+	st "github.com/smallnest/langgraphgo/store"
 )
 
 func TestMemoryCheckpointStore_SaveAndLoad(t *testing.T) {
@@ -16,7 +17,7 @@ func TestMemoryCheckpointStore_SaveAndLoad(t *testing.T) {
 	store := graph.NewMemoryCheckpointStore()
 	ctx := context.Background()
 
-	checkpoint := &graph.Checkpoint{
+	checkpoint := &st.Checkpoint{
 		ID:        "test_checkpoint_1",
 		NodeName:  testNode,
 		State:     "test_state",
@@ -76,7 +77,7 @@ func TestMemoryCheckpointStore_List(t *testing.T) {
 	executionID := "exec_123"
 
 	// Save multiple checkpoints
-	checkpoints := []*graph.Checkpoint{
+	checkpoints := []*st.Checkpoint{
 		{
 			ID: "checkpoint_1",
 			Metadata: map[string]any{
@@ -131,7 +132,7 @@ func TestMemoryCheckpointStore_Delete(t *testing.T) {
 	store := graph.NewMemoryCheckpointStore()
 	ctx := context.Background()
 
-	checkpoint := &graph.Checkpoint{
+	checkpoint := &st.Checkpoint{
 		ID: "test_checkpoint",
 	}
 
@@ -167,7 +168,7 @@ func TestMemoryCheckpointStore_Clear(t *testing.T) {
 	executionID := "exec_123"
 
 	// Save checkpoints
-	checkpoints := []*graph.Checkpoint{
+	checkpoints := []*st.Checkpoint{
 		{
 			ID: "checkpoint_1",
 			Metadata: map[string]any{
@@ -232,7 +233,7 @@ func TestFileCheckpointStore_SaveAndLoad(t *testing.T) {
 	}
 	ctx := context.Background()
 
-	checkpoint := &graph.Checkpoint{
+	checkpoint := &st.Checkpoint{
 		ID:       "test_checkpoint",
 		NodeName: testNode,
 		State:    "test_state",
@@ -268,7 +269,7 @@ func TestFileCheckpointStore_List(t *testing.T) {
 	executionID := "exec_123"
 
 	// Save multiple checkpoints
-	checkpoints := []*graph.Checkpoint{
+	checkpoints := []*st.Checkpoint{
 		{
 			ID: "checkpoint_1",
 			Metadata: map[string]any{
@@ -335,7 +336,7 @@ func TestFileCheckpointStore_Delete(t *testing.T) {
 	}
 	ctx := context.Background()
 
-	checkpoint := &graph.Checkpoint{
+	checkpoint := &st.Checkpoint{
 		ID: "test_checkpoint",
 	}
 
@@ -375,7 +376,7 @@ func TestFileCheckpointStore_Clear(t *testing.T) {
 	executionID := "exec_123"
 
 	// Save checkpoints
-	checkpoints := []*graph.Checkpoint{
+	checkpoints := []*st.Checkpoint{
 		{
 			ID: "checkpoint_1",
 			Metadata: map[string]any{
@@ -787,7 +788,7 @@ func TestCheckpointing_Integration(t *testing.T) {
 	}
 
 	// Verify each checkpoint has the correct state progression
-	checkpointsByNode := make(map[string]*graph.Checkpoint)
+	checkpointsByNode := make(map[string]*st.Checkpoint)
 	for _, checkpoint := range checkpoints {
 		checkpointsByNode[checkpoint.NodeName] = checkpoint
 	}

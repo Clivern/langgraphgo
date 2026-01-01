@@ -11,26 +11,26 @@ import (
 	"github.com/smallnest/langgraphgo/store/memory"
 )
 
-// Checkpoint represents a saved state at a specific point in execution
+// Checkpoint is an alias for store.Checkpoint
 type Checkpoint = store.Checkpoint
 
-// CheckpointStore defines the interface for checkpoint persistence
+// CheckpointStore is an alias for store.CheckpointStore
 type CheckpointStore = store.CheckpointStore
 
 // NewMemoryCheckpointStore creates a new in-memory checkpoint store
-func NewMemoryCheckpointStore() CheckpointStore {
+func NewMemoryCheckpointStore() store.CheckpointStore {
 	return memory.NewMemoryCheckpointStore()
 }
 
 // NewFileCheckpointStore creates a new file-based checkpoint store
-func NewFileCheckpointStore(path string) (CheckpointStore, error) {
+func NewFileCheckpointStore(path string) (store.CheckpointStore, error) {
 	return file.NewFileCheckpointStore(path)
 }
 
 // CheckpointConfig configures checkpointing behavior
 type CheckpointConfig struct {
 	// Store is the checkpoint storage backend
-	Store CheckpointStore
+	Store store.CheckpointStore
 
 	// AutoSave enables automatic checkpointing after each node
 	AutoSave bool
@@ -54,7 +54,7 @@ func DefaultCheckpointConfig() CheckpointConfig {
 
 // CheckpointListener automatically creates checkpoints during execution
 type CheckpointListener[S any] struct {
-	store       CheckpointStore
+	store       store.CheckpointStore
 	executionID string
 	threadID    string
 	autoSave    bool
@@ -105,7 +105,7 @@ func (cl *CheckpointListener[S]) saveCheckpoint(ctx context.Context, nodeName st
 		metadata["thread_id"] = cl.threadID
 	}
 
-	checkpoint := &Checkpoint{
+	checkpoint := &store.Checkpoint{
 		ID:        generateCheckpointID(),
 		NodeName:  nodeName,
 		State:     state,
@@ -259,7 +259,7 @@ func (cr *CheckpointableRunnable[S]) GetState(ctx context.Context, config *Confi
 		threadID = cr.executionID
 	}
 
-	var checkpoint *Checkpoint
+	var checkpoint *store.Checkpoint
 	var err error
 
 	if checkpointID != "" {
@@ -324,7 +324,7 @@ func (cr *CheckpointableRunnable[S]) SaveCheckpoint(ctx context.Context, nodeNam
 		}
 	}
 
-	checkpoint := &Checkpoint{
+	checkpoint := &store.Checkpoint{
 		ID:        generateCheckpointID(),
 		NodeName:  nodeName,
 		State:     state,
@@ -341,12 +341,12 @@ func (cr *CheckpointableRunnable[S]) SaveCheckpoint(ctx context.Context, nodeNam
 }
 
 // ListCheckpoints lists all checkpoints for the current execution
-func (cr *CheckpointableRunnable[S]) ListCheckpoints(ctx context.Context) ([]*Checkpoint, error) {
+func (cr *CheckpointableRunnable[S]) ListCheckpoints(ctx context.Context) ([]*store.Checkpoint, error) {
 	return cr.config.Store.List(ctx, cr.executionID)
 }
 
 // LoadCheckpoint loads a specific checkpoint
-func (cr *CheckpointableRunnable[S]) LoadCheckpoint(ctx context.Context, checkpointID string) (*Checkpoint, error) {
+func (cr *CheckpointableRunnable[S]) LoadCheckpoint(ctx context.Context, checkpointID string) (*store.Checkpoint, error) {
 	return cr.config.Store.Load(ctx, checkpointID)
 }
 
@@ -409,7 +409,7 @@ func (cr *CheckpointableRunnable[S]) UpdateState(ctx context.Context, config *Co
 	}
 
 	// Create new checkpoint
-	checkpoint := &Checkpoint{
+	checkpoint := &store.Checkpoint{
 		ID:        generateCheckpointID(),
 		NodeName:  asNode,
 		State:     newState,

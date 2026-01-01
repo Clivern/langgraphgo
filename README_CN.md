@@ -112,43 +112,37 @@ func main() {
 
 ## 📚 示例
 
-- **[基础 LLM](./examples/basic_llm/)** - 简单的 LangChain 集成
+本项目包含 **70+ 个综合示例**，按类别组织：
+
+### 精选示例
+
+- **[ReAct Agent](./examples/react_agent/)** - 推理与行动代理，使用工具
 - **[RAG 流程](./examples/rag_pipeline/)** - 完整的检索增强生成
-- **[RAG 与 LangChain](./examples/rag_with_langchain/)** - LangChain 组件集成
-- **[RAG 与 VectorStores](./examples/rag_langchain_vectorstore_example/)** - LangChain VectorStore 集成 (新增!)
-- **[RAG 与 Chroma](./examples/rag_chroma_example/)** - Chroma 向量数据库集成 (新增!)
-- **[Tavily 搜索](./examples/tool_tavily/)** - Tavily 搜索工具集成 (新增!)
-- **[Exa 搜索](./examples/tool_exa/)** - Exa 搜索工具集成 (新增!)
-- **[流式传输](./examples/streaming_pipeline/)** - 实时进度更新
-- **[条件路由](./examples/conditional_routing/)** - 动态路径选择
-- **[并行执行](./examples/parallel_execution/)** - 扇出/扇入与状态合并
-- **[复杂并行执行](./examples/complex_parallel_execution/)** - 不同长度分支的高级并行模式 (新增!)
-- **[Checkpointing](./examples/checkpointing/)** - 保存和恢复状态
-- **[可视化](./examples/visualization/)** - 导出图表
-- **[监听器](./examples/listeners/)** - 进度、指标和日志
-- **[子图](./examples/subgraphs/)** - 嵌套图组合
-- **[Swarm](./examples/swarm/)** - 多 Agent 协作
-- **[Create Agent](./examples/create_agent/)** - 使用选项灵活创建 Agent (新增!)
-- **[动态技能代理 (Dynamic Skill Agent)](./examples/dynamic_skill_agent/)** - 具有动态技能发现和选择功能的代理 (新增!)
-- **[Chat Agent](./examples/chat_agent/)** - 支持会话管理的多轮对话 (新增!)
-- **[Chat Agent Async](./examples/chat_agent_async/)** - 异步流式聊天代理 (新增!)
-- **[Chat Agent Dynamic Tools](./examples/chat_agent_dynamic_tools/)** - 支持运行时工具管理的聊天代理 (新增!)
-- **[State Schema](./examples/state_schema/)** - 使用 Reducer 进行复杂状态管理
-- **[智能消息](./examples/smart_messages/)** - 智能消息合并 (Upserts)
-- **[Command API](./examples/command_api/)** - 动态流控制
-- **[临时通道](./examples/ephemeral_channels/)** - 临时状态管理
-- **[流式模式](./examples/streaming_modes/)** - 高级流式模式
-- **[Time Travel / HITL](./examples/time_travel/)** - 检查、编辑和分叉状态历史
-- **[Dynamic Interrupt](./examples/dynamic_interrupt/)** - 在节点内部暂停执行
-- **[Durable Execution](./examples/durable_execution/)** - 崩溃恢复和从检查点恢复执行
-- **[GoSkills 集成](./examples/goskills_example/)** - GoSkills 集成 (新增!)
-- **[PTC Basic](./examples/ptc_basic/)** - 程序化工具调用，降低延迟 (新增!)
-- **[PTC Simple](./examples/ptc_simple/)** - PTC 简单示例，包含计算器工具 (新增!)
-- **[PTC Expense Analysis](./examples/ptc_expense_analysis/)** - PTC 复杂场景，数据处理 (新增!)
-- **[思维树 (Tree of Thoughts)](./examples/tree_of_thoughts/)** - 高级推理与搜索树探索 (新增!)
-- **[PEV Agent](./examples/pev_agent/)** - 问题-证据-验证代理 (新增!)
-- **[文件检查点 (File Checkpointing)](./examples/file_checkpointing/)** - 基于文件的检查点 (新增!)
-- **[泛型状态图 (Generic State Graph)](./examples/generic_state_graph/)** - 类型安全的泛型状态管理 (新增!)
+- **[Chat Agent](./examples/chat_agent/)** - 支持会话管理的多轮对话
+- **[Supervisor](./examples/supervisor/)** - 多 Agent 编排
+- **[思维树 (Tree of Thoughts)](./examples/tree_of_thoughts/)** - 多路径搜索推理
+- **[Planning Agent](./examples/planning_agent/)** - 动态工作流计划创建
+- **[PEV Agent](./examples/pev_agent/)** - 计划-执行-验证，支持自我纠错
+- **[Reflection Agent](./examples/reflection_agent/)** - 通过自我反思迭代改进
+- **[Mental Loop](./examples/mental_loop/)** - 模拟器在回路，安全测试行动
+- **[Reflexive Metacognitive Agent](./examples/reflexive_metacognitive/)** - 具有显式能力模型的自我感知代理
+
+### 示例分类
+
+- **[基础概念](./examples/README.md#basic-concepts)** - 简单的 LLM 集成、LangChain 兼容性
+- **[状态管理](./examples/README.md#state-management)** - 状态 Schema、自定义 Reducer、智能消息
+- **[图结构](./examples/README.md#graph-structure--routing)** - 条件路由、子图、泛型
+- **[并行执行](./examples/README.md#parallel-execution)** - 扇出/扇入与状态合并
+- **[流式传输与事件](./examples/README.md#streaming--events)** - 实时更新、监听器、日志
+- **[持久化](./examples/README.md#persistence-checkpointing)** - 文件、内存、数据库检查点
+- **[人在回路](./examples/README.md#human-in-the-loop)** - 中断、批准、时间旅行
+- **[预构建 Agent](./examples/README.md#pre-built-agents)** - ReAct、Supervisor、Chat、规划代理
+- **[程序化工具调用](./examples/README.md#programmatic-tool-calling-ptc)** - PTC 实现 10 倍延迟降低
+- **[内存管理](./examples/README.md#memory)** - 缓冲区、滑动窗口、摘要策略
+- **[RAG](./examples/README.md#rag-retrieval-augmented-generation)** - 向量存储、FalkorDB GraphRAG
+- **[工具与集成](./examples/README.md#tools--integrations)** - 搜索工具、GoSkills、MCP
+
+**[查看全部 70+ 示例 →](./examples/README.md)**
 
 ## 🔧 核心概念
 
