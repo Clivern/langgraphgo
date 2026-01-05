@@ -273,12 +273,48 @@ func (r *StateRunnable[S]) InvokeWithConfig(ctx context.Context, initialState S,
 		}
 
 		// Now check for errors after merging state
+		// We check here to determine if we should save checkpoints (for interrupts) or not (for regular errors)
+		var hasNodeInterrupt bool
+		var nodeInterrupt *NodeInterrupt
 		for _, err := range errorsList {
 			if err != nil {
-				// Check for NodeInterrupt
-				var nodeInterrupt *NodeInterrupt
 				if errors.As(err, &nodeInterrupt) {
+					hasNodeInterrupt = true
+					break
+				}
+			}
+		}
+
+		// Keep track of nodes that ran for callbacks and interrupts
+		nodesRan := make([]string, len(currentNodes))
+		copy(nodesRan, currentNodes)
+
+		// Notify callbacks of step completion (and save checkpoints)
+		// For NodeInterrupt: we DO want to save the checkpoint (Issue #70)
+		// For regular errors: we DON'T want to save checkpoints
+		if config != nil && len(config.Callbacks) > 0 {
+			if hasNodeInterrupt {
+				// Save checkpoint before returning the interrupt
+				for _, cb := range config.Callbacks {
+					if gcb, ok := cb.(GraphCallbackHandler); ok {
+						var nodeName string
+						if len(nodesRan) == 1 {
+							nodeName = nodesRan[0]
+						} else {
+							nodeName = fmt.Sprintf("step:%v", nodesRan)
+						}
+						gcb.OnGraphStep(ctx, nodeName, state)
+					}
+				}
+			}
+		}
+
+		// Now handle the errors
+		for _, err := range errorsList {
+			if err != nil {
+				if hasNodeInterrupt && nodeInterrupt != nil {
 					// Return GraphInterrupt with the merged state
+					// OnGraphStep has already been called, so checkpoint was saved
 					return state, &GraphInterrupt{
 						Node:           nodeInterrupt.Node,
 						State:          state,
@@ -287,6 +323,7 @@ func (r *StateRunnable[S]) InvokeWithConfig(ctx context.Context, initialState S,
 					}
 				}
 
+				// For regular errors (not interrupts), don't save checkpoint
 				// Notify callbacks of error
 				if config != nil && len(config.Callbacks) > 0 {
 					for _, cb := range config.Callbacks {
@@ -305,14 +342,10 @@ func (r *StateRunnable[S]) InvokeWithConfig(ctx context.Context, initialState S,
 			return zero, err
 		}
 
-		// Keep track of nodes that ran for callbacks and interrupts
-		nodesRan := make([]string, len(currentNodes))
-		copy(nodesRan, currentNodes)
-
 		// Update currentNodes
 		currentNodes = nextNodesList
 
-		// Notify callbacks of step completion
+		// Notify callbacks of step completion for normal execution (no errors)
 		if config != nil && len(config.Callbacks) > 0 {
 			for _, cb := range config.Callbacks {
 				if gcb, ok := cb.(GraphCallbackHandler); ok {
