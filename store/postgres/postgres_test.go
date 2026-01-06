@@ -40,6 +40,7 @@ func TestPostgresCheckpointStore_Save(t *testing.T) {
 		WithArgs(
 			cp.ID,
 			"exec-1",
+			"", // thread_id
 			cp.NodeName,
 			stateJSON,
 			metadataJSON,
@@ -114,6 +115,7 @@ func TestPostgresCheckpointStore_Save_WithoutExecutionID(t *testing.T) {
 		WithArgs(
 			cp.ID,
 			"", // empty execution_id
+			"", // empty thread_id
 			cp.NodeName,
 			stateJSON,
 			metadataJSON,
@@ -501,6 +503,7 @@ func TestPostgresCheckpointStore_InitSchema(t *testing.T) {
 		CREATE TABLE IF NOT EXISTS checkpoints (
 			id TEXT PRIMARY KEY,
 			execution_id TEXT NOT NULL,
+			thread_id TEXT,
 			node_name TEXT NOT NULL,
 			state JSONB NOT NULL,
 			metadata JSONB,
@@ -508,6 +511,8 @@ func TestPostgresCheckpointStore_InitSchema(t *testing.T) {
 			version INTEGER NOT NULL
 		);
 		CREATE INDEX IF NOT EXISTS idx_checkpoints_execution_id ON checkpoints (execution_id);
+		CREATE INDEX IF NOT EXISTS idx_checkpoints_thread_id ON checkpoints (thread_id);
+		CREATE INDEX IF NOT EXISTS idx_checkpoints_execution_thread ON checkpoints (execution_id, thread_id);
 	`)).
 		WillReturnResult(pgxmock.NewResult("CREATE", 0))
 
@@ -529,6 +534,7 @@ func TestPostgresCheckpointStore_InitSchema_CustomTable(t *testing.T) {
 		CREATE TABLE IF NOT EXISTS custom_checkpoints (
 			id TEXT PRIMARY KEY,
 			execution_id TEXT NOT NULL,
+			thread_id TEXT,
 			node_name TEXT NOT NULL,
 			state JSONB NOT NULL,
 			metadata JSONB,
@@ -536,6 +542,8 @@ func TestPostgresCheckpointStore_InitSchema_CustomTable(t *testing.T) {
 			version INTEGER NOT NULL
 		);
 		CREATE INDEX IF NOT EXISTS idx_custom_checkpoints_execution_id ON custom_checkpoints (execution_id);
+		CREATE INDEX IF NOT EXISTS idx_custom_checkpoints_thread_id ON custom_checkpoints (thread_id);
+		CREATE INDEX IF NOT EXISTS idx_custom_checkpoints_execution_thread ON custom_checkpoints (execution_id, thread_id);
 	`)).
 		WillReturnResult(pgxmock.NewResult("CREATE", 0))
 
@@ -614,6 +622,7 @@ func TestPostgresCheckpointStore_Save_Conflict(t *testing.T) {
 		WithArgs(
 			cp.ID,
 			"exec-1",
+			"", // thread_id
 			cp.NodeName,
 			stateJSON,
 			metadataJSON,
@@ -654,6 +663,7 @@ func TestPostgresCheckpointStore_Save_DatabaseError(t *testing.T) {
 		WithArgs(
 			cp.ID,
 			"exec-1",
+			"", // thread_id
 			cp.NodeName,
 			stateJSON,
 			metadataJSON,

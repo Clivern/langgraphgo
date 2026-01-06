@@ -264,22 +264,32 @@ func (cr *CheckpointableRunnable[S]) GetState(ctx context.Context, config *Confi
 
 	if checkpointID != "" {
 		checkpoint, err = cr.config.Store.Load(ctx, checkpointID)
-	} else {
-		// Get latest checkpoint for the thread
-		checkpoints, err := cr.config.Store.List(ctx, threadID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to list checkpoints: %w", err)
-		}
+	} else if threadID != "" {
+		// Try to use the optimized GetLatestByThread method first
+		if latestGetter, ok := cr.config.Store.(interface {
+			GetLatestByThread(ctx context.Context, threadID string) (*store.Checkpoint, error)
+		}); ok {
+			checkpoint, err = latestGetter.GetLatestByThread(ctx, threadID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get latest checkpoint by thread: %w", err)
+			}
+		} else {
+			// Fallback to List method for stores that don't implement GetLatestByThread
+			checkpoints, err := cr.config.Store.List(ctx, threadID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to list checkpoints: %w", err)
+			}
 
-		if len(checkpoints) == 0 {
-			return nil, fmt.Errorf("no checkpoints found for thread %s", threadID)
-		}
+			if len(checkpoints) == 0 {
+				return nil, fmt.Errorf("no checkpoints found for thread %s", threadID)
+			}
 
-		// Get the latest checkpoint (highest version)
-		checkpoint = checkpoints[0]
-		for _, cp := range checkpoints {
-			if cp.Version > checkpoint.Version {
-				checkpoint = cp
+			// Get the latest checkpoint (highest version)
+			checkpoint = checkpoints[0]
+			for _, cp := range checkpoints {
+				if cp.Version > checkpoint.Version {
+					checkpoint = cp
+				}
 			}
 		}
 	}

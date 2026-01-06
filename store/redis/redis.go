@@ -54,6 +54,10 @@ func (s *RedisCheckpointStore) executionKey(id string) string {
 	return fmt.Sprintf("%sexecution:%s:checkpoints", s.prefix, id)
 }
 
+func (s *RedisCheckpointStore) threadKey(id string) string {
+	return fmt.Sprintf("%sthread:%s:checkpoints", s.prefix, id)
+}
+
 // Save stores a checkpoint
 func (s *RedisCheckpointStore) Save(ctx context.Context, checkpoint *graph.Checkpoint) error {
 	data, err := json.Marshal(checkpoint)
@@ -66,12 +70,21 @@ func (s *RedisCheckpointStore) Save(ctx context.Context, checkpoint *graph.Check
 
 	pipe.Set(ctx, key, data, s.ttl)
 
-	// Index by execution ID if present
+	// Index by execution_id if present
 	if execID, ok := checkpoint.Metadata["execution_id"].(string); ok && execID != "" {
 		execKey := s.executionKey(execID)
 		pipe.SAdd(ctx, execKey, checkpoint.ID)
 		if s.ttl > 0 {
 			pipe.Expire(ctx, execKey, s.ttl)
+		}
+	}
+
+	// Index by thread_id if present
+	if threadID, ok := checkpoint.Metadata["thread_id"].(string); ok && threadID != "" {
+		threadKey := s.threadKey(threadID)
+		pipe.SAdd(ctx, threadKey, checkpoint.ID)
+		if s.ttl > 0 {
+			pipe.Expire(ctx, threadKey, s.ttl)
 		}
 	}
 
@@ -153,9 +166,75 @@ func (s *RedisCheckpointStore) List(ctx context.Context, executionID string) ([]
 	return checkpoints, nil
 }
 
+// ListByThread returns all checkpoints for a specific thread_id
+func (s *RedisCheckpointStore) ListByThread(ctx context.Context, threadID string) ([]*graph.Checkpoint, error) {
+	threadKey := s.threadKey(threadID)
+	checkpointIDs, err := s.client.SMembers(ctx, threadKey).Result()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list checkpoints for thread %s: %w", threadID, err)
+	}
+
+	if len(checkpointIDs) == 0 {
+		return []*graph.Checkpoint{}, nil
+	}
+
+	// Fetch all checkpoints
+	var keys []string
+	for _, id := range checkpointIDs {
+		keys = append(keys, s.checkpointKey(id))
+	}
+
+	results, err := s.client.MGet(ctx, keys...).Result()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch checkpoints: %w", err)
+	}
+
+	var checkpoints []*graph.Checkpoint
+	for _, result := range results {
+		if result == nil {
+			continue
+		}
+
+		strData, ok := result.(string)
+		if !ok {
+			continue
+		}
+
+		var checkpoint graph.Checkpoint
+		if err := json.Unmarshal([]byte(strData), &checkpoint); err != nil {
+			continue
+		}
+		checkpoints = append(checkpoints, &checkpoint)
+	}
+
+	return checkpoints, nil
+}
+
+// GetLatestByThread returns the latest checkpoint for a thread_id
+func (s *RedisCheckpointStore) GetLatestByThread(ctx context.Context, threadID string) (*graph.Checkpoint, error) {
+	checkpoints, err := s.ListByThread(ctx, threadID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(checkpoints) == 0 {
+		return nil, fmt.Errorf("no checkpoints found for thread: %s", threadID)
+	}
+
+	// Find the checkpoint with the highest version
+	var latest *graph.Checkpoint
+	for _, cp := range checkpoints {
+		if latest == nil || cp.Version > latest.Version {
+			latest = cp
+		}
+	}
+
+	return latest, nil
+}
+
 // Delete removes a checkpoint
 func (s *RedisCheckpointStore) Delete(ctx context.Context, checkpointID string) error {
-	// First load to get execution ID for cleanup
+	// First load to get execution ID and thread ID for cleanup
 	checkpoint, err := s.Load(ctx, checkpointID)
 	if err != nil {
 		return err // Or ignore if not found?
@@ -169,6 +248,11 @@ func (s *RedisCheckpointStore) Delete(ctx context.Context, checkpointID string) 
 	if execID, ok := checkpoint.Metadata["execution_id"].(string); ok && execID != "" {
 		execKey := s.executionKey(execID)
 		pipe.SRem(ctx, execKey, checkpointID)
+	}
+
+	if threadID, ok := checkpoint.Metadata["thread_id"].(string); ok && threadID != "" {
+		threadKey := s.threadKey(threadID)
+		pipe.SRem(ctx, threadKey, checkpointID)
 	}
 
 	_, err = pipe.Exec(ctx)
