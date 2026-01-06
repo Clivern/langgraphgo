@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/smallnest/langgraphgo/graph"
+	"github.com/smallnest/langgraphgo/store"
 )
 
 // --- Simple File-based Checkpoint Store for Demo ---
@@ -86,6 +87,46 @@ func (s *DiskStore) Clear(ctx context.Context, threadID string) error {
 		}
 	}
 	return s.saveAll(cps)
+}
+
+// ListByThread returns all checkpoints for a specific thread_id
+func (s *DiskStore) ListByThread(ctx context.Context, threadID string) ([]*store.Checkpoint, error) {
+	cps := s.loadAll()
+	var result []*store.Checkpoint
+	for _, cp := range cps {
+		// Check metadata for thread_id
+		if tid, ok := cp.Metadata["thread_id"].(string); ok && tid == threadID {
+			// Convert graph.Checkpoint to store.Checkpoint
+			result = append(result, &store.Checkpoint{
+				ID:        cp.ID,
+				NodeName:  cp.NodeName,
+				State:     cp.State,
+				Metadata:  cp.Metadata,
+				Timestamp: cp.Timestamp,
+				Version:   cp.Version,
+			})
+		}
+	}
+	// Sort by version ascending
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Version < result[j].Version
+	})
+	return result, nil
+}
+
+// GetLatestByThread returns the latest checkpoint for a thread_id
+func (s *DiskStore) GetLatestByThread(ctx context.Context, threadID string) (*store.Checkpoint, error) {
+	checkpoints, err := s.ListByThread(ctx, threadID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(checkpoints) == 0 {
+		return nil, fmt.Errorf("no checkpoints found for thread: %s", threadID)
+	}
+
+	// Return the last one (highest version due to sorting)
+	return checkpoints[len(checkpoints)-1], nil
 }
 
 // --- Main Logic ---

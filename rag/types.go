@@ -42,6 +42,21 @@ type Relationship struct {
 	CreatedAt  time.Time      `json:"created_at"`
 }
 
+// Community represents a community of entities in the knowledge graph
+type Community struct {
+	ID          string         `json:"id"`
+	Level       int            `json:"level"`
+	Title       string         `json:"title"`
+	Summary     string         `json:"summary"`
+	Entities    []string       `json:"entities"`
+	ParentID    string         `json:"parent_id,omitempty"`
+	Children    []string       `json:"children,omitempty"`
+	Properties  map[string]any `json:"properties,omitempty"`
+	Score       float64        `json:"score,omitempty"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+}
+
 // DocumentSearchResult represents a document search result with relevance score
 type DocumentSearchResult struct {
 	Document Document       `json:"document"`
@@ -115,10 +130,102 @@ type GraphRAGConfig struct {
 	ExtractionPrompt string              `json:"extraction_prompt"`
 }
 
+// LightRAGConfig represents configuration for LightRAG
+// LightRAG combines low-level semantic chunks with high-level graph structures
+type LightRAGConfig struct {
+	// Retrieval mode: "local", "global", "hybrid", or "naive"
+	Mode string `json:"mode"`
+
+	// Local retrieval configuration
+	LocalConfig LocalRetrievalConfig `json:"local_config"`
+
+	// Global retrieval configuration
+	GlobalConfig GlobalRetrievalConfig `json:"global_config"`
+
+	// Hybrid retrieval configuration
+	HybridConfig HybridRetrievalConfig `json:"hybrid_config"`
+
+	// Chunk size for text splitting
+	ChunkSize int `json:"chunk_size"`
+
+	// Chunk overlap for text splitting
+	ChunkOverlap int `json:"chunk_overlap"`
+
+	// Threshold for entity extraction
+	EntityExtractionThreshold float64 `json:"entity_extraction_threshold"`
+
+	// Maximum number of entities to extract per chunk
+	MaxEntitiesPerChunk int `json:"max_entities_per_chunk"`
+
+	// Enable community detection for global retrieval
+	EnableCommunityDetection bool `json:"enable_community_detection"`
+
+	// Community detection algorithm: "louvain", "leiden", or "label_propagation"
+	CommunityDetectionAlgorithm string `json:"community_detection_algorithm"`
+
+	// Number of communities to return in global retrieval
+	MaxCommunities int `json:"max_communities"`
+
+	// Temperature for LLM-based operations
+	Temperature float64 `json:"temperature"`
+
+	// Custom prompt templates
+	PromptTemplates map[string]string `json:"prompt_templates,omitempty"`
+}
+
+// LocalRetrievalConfig configures local mode retrieval
+// Local mode retrieves relevant entities and their relationships within a localized context
+type LocalRetrievalConfig struct {
+	// Maximum number of hops in the knowledge graph
+	MaxHops int `json:"max_hops"`
+
+	// Number of entities to retrieve
+	TopK int `json:"top_k"`
+
+	// Include entity descriptions
+	IncludeDescriptions bool `json:"include_descriptions"`
+
+	// Weight for entity relevance
+	EntityWeight float64 `json:"entity_weight"`
+}
+
+// GlobalRetrievalConfig configures global mode retrieval
+// Global mode retrieves information from community-level summaries
+type GlobalRetrievalConfig struct {
+	// Maximum number of communities to retrieve
+	MaxCommunities int `json:"max_communities"`
+
+	// Include community hierarchy
+	IncludeHierarchy bool `json:"include_hierarchy"`
+
+	// Weight for community relevance
+	CommunityWeight float64 `json:"community_weight"`
+
+	// Maximum hierarchy depth
+	MaxHierarchyDepth int `json:"max_hierarchy_depth"`
+}
+
+// HybridRetrievalConfig configures hybrid mode retrieval
+// Hybrid mode combines local and global retrieval results
+type HybridRetrievalConfig struct {
+	// Weight for local retrieval results (0-1)
+	LocalWeight float64 `json:"local_weight"`
+
+	// Weight for global retrieval results (0-1)
+	GlobalWeight float64 `json:"global_weight"`
+
+	// Fusion method: "rrf" (reciprocal rank fusion) or "weighted"
+	FusionMethod string `json:"fusion_method"`
+
+	// RRF parameter for rank fusion
+	RFFK int `json:"rrf_k"`
+}
+
 // Config is a generic RAG configuration
 type Config struct {
 	VectorRAG *VectorRAGConfig `json:"vector_rag,omitempty"`
 	GraphRAG  *GraphRAGConfig  `json:"graph_rag,omitempty"`
+	LightRAG  *LightRAGConfig  `json:"lightrag,omitempty"`
 }
 
 // RAGConfig represents the main RAG configuration

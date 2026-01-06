@@ -5,9 +5,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/smallnest/langgraphgo/graph"
+	"github.com/smallnest/langgraphgo/store"
 )
 
 // SqliteCheckpointStore implements graph.CheckpointStore using SQLite
@@ -53,6 +55,7 @@ func (s *SqliteCheckpointStore) InitSchema(ctx context.Context) error {
 		CREATE TABLE IF NOT EXISTS %s (
 			id TEXT PRIMARY KEY,
 			execution_id TEXT NOT NULL,
+			thread_id TEXT,
 			node_name TEXT NOT NULL,
 			state TEXT NOT NULL,
 			metadata TEXT,
@@ -60,7 +63,8 @@ func (s *SqliteCheckpointStore) InitSchema(ctx context.Context) error {
 			version INTEGER NOT NULL
 		);
 		CREATE INDEX IF NOT EXISTS idx_%s_execution_id ON %s (execution_id);
-	`, s.tableName, s.tableName, s.tableName)
+		CREATE INDEX IF NOT EXISTS idx_%s_thread_id ON %s (thread_id);
+	`, s.tableName, s.tableName, s.tableName, s.tableName, s.tableName)
 
 	_, err := s.db.ExecContext(ctx, query)
 	if err != nil {
@@ -91,12 +95,18 @@ func (s *SqliteCheckpointStore) Save(ctx context.Context, checkpoint *graph.Chec
 		executionID = id
 	}
 
+	threadID := ""
+	if id, ok := checkpoint.Metadata["thread_id"].(string); ok {
+		threadID = id
+	}
+
 	// nolint:gosec // G201: Table name cannot be parameterized, but all values use parameterized queries
 	query := fmt.Sprintf(`
-		INSERT INTO %s (id, execution_id, node_name, state, metadata, timestamp, version)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO %s (id, execution_id, thread_id, node_name, state, metadata, timestamp, version)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			execution_id = excluded.execution_id,
+			thread_id = excluded.thread_id,
 			node_name = excluded.node_name,
 			state = excluded.state,
 			metadata = excluded.metadata,
@@ -107,6 +117,7 @@ func (s *SqliteCheckpointStore) Save(ctx context.Context, checkpoint *graph.Chec
 	_, err = s.db.ExecContext(ctx, query,
 		checkpoint.ID,
 		executionID,
+		threadID,
 		checkpoint.NodeName,
 		string(stateJSON),
 		string(metadataJSON),
@@ -237,4 +248,78 @@ func (s *SqliteCheckpointStore) Clear(ctx context.Context, executionID string) e
 		return fmt.Errorf("failed to clear checkpoints: %w", err)
 	}
 	return nil
+}
+
+// ListByThread returns all checkpoints for a specific thread_id
+func (s *SqliteCheckpointStore) ListByThread(ctx context.Context, threadID string) ([]*store.Checkpoint, error) {
+	// nolint:gosec // G201: Table name cannot be parameterized, but all values use parameterized queries
+	query := fmt.Sprintf(`
+		SELECT id, node_name, state, metadata, timestamp, version
+		FROM %s
+		WHERE thread_id = ?
+		ORDER BY timestamp ASC
+	`, s.tableName)
+
+	rows, err := s.db.QueryContext(ctx, query, threadID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list checkpoints by thread: %w", err)
+	}
+	defer rows.Close()
+
+	var checkpoints []*store.Checkpoint
+	for rows.Next() {
+		var cp store.Checkpoint
+		var stateJSON string
+		var metadataJSON string
+
+		err := rows.Scan(
+			&cp.ID,
+			&cp.NodeName,
+			&stateJSON,
+			&metadataJSON,
+			&cp.Timestamp,
+			&cp.Version,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan checkpoint row: %w", err)
+		}
+
+		if err := json.Unmarshal([]byte(stateJSON), &cp.State); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal state: %w", err)
+		}
+
+		if len(metadataJSON) > 0 {
+			if err := json.Unmarshal([]byte(metadataJSON), &cp.Metadata); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal metadata: %w", err)
+			}
+		}
+
+		checkpoints = append(checkpoints, &cp)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating checkpoint rows: %w", err)
+	}
+
+	// Sort by version ascending
+	sort.Slice(checkpoints, func(i, j int) bool {
+		return checkpoints[i].Version < checkpoints[j].Version
+	})
+
+	return checkpoints, nil
+}
+
+// GetLatestByThread returns the latest checkpoint for a thread_id
+func (s *SqliteCheckpointStore) GetLatestByThread(ctx context.Context, threadID string) (*store.Checkpoint, error) {
+	checkpoints, err := s.ListByThread(ctx, threadID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(checkpoints) == 0 {
+		return nil, fmt.Errorf("no checkpoints found for thread: %s", threadID)
+	}
+
+	// Return the last one (highest version due to sorting)
+	return checkpoints[len(checkpoints)-1], nil
 }
