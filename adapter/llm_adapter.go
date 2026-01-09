@@ -61,11 +61,13 @@ type StreamingLLM struct {
 
 // GenerateContent implements the streaming generation with llms.Model interface
 func (s *StreamingLLM) GenerateContent(ctx context.Context, messages []llms.MessageContent, options ...llms.CallOption) (*llms.ContentResponse, error) {
+	if s.streamCallback == nil {
+		return s.Model.GenerateContent(ctx, messages, options...)
+	}
+
 	// Add streaming function to the options
 	options = append(options, llms.WithStreamingFunc(func(_ context.Context, chunk []byte) error {
-		if s.streamCallback != nil {
-			s.streamCallback(string(chunk))
-		}
+		s.streamCallback(string(chunk))
 		return nil
 	}))
 
