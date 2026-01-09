@@ -369,10 +369,10 @@ func parsePhasesFromPlan(planText string) []Phase {
 					currentPhase.Name = strings.TrimSpace(parts[1])
 				}
 			}
-		} else if strings.HasPrefix(line, "Description:") {
-			currentPhase.Description = strings.TrimSpace(strings.TrimPrefix(line, "Description:"))
-		} else if strings.HasPrefix(line, "Node:") {
-			currentPhase.NodeName = strings.TrimSpace(strings.TrimPrefix(line, "Node:"))
+		} else if after, ok := strings.CutPrefix(line, "Description:"); ok {
+			currentPhase.Description = strings.TrimSpace(after)
+		} else if after, ok := strings.CutPrefix(line, "Node:"); ok {
+			currentPhase.NodeName = strings.TrimSpace(after)
 		}
 	}
 

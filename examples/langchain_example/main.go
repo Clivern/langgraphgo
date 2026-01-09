@@ -11,7 +11,6 @@ import (
 
 	"github.com/smallnest/langgraphgo/graph"
 	"github.com/tmc/langchaingo/llms"
-	"github.com/tmc/langchaingo/llms/googleai"
 	"github.com/tmc/langchaingo/llms/openai"
 )
 
@@ -59,7 +58,6 @@ func OpenAIExample() {
 	result, err := runnable.Invoke(ctx, []llms.MessageContent{
 		llms.TextParts("human", "What are the benefits of using LangChain with Go?"),
 	})
-
 	if err != nil {
 		log.Printf("Execution failed: %v", err)
 		return
@@ -70,75 +68,6 @@ func OpenAIExample() {
 	for _, msg := range messages {
 		fmt.Printf("%s: %s\n", msg.Role, msg.Parts[0])
 	}
-}
-
-// Example 2: Using Google AI (Gemini) with LangChain
-func GoogleAIExample() {
-	fmt.Println("\n🌟 Google AI (Gemini) Example with LangChain")
-	fmt.Println("=============================================")
-
-	// Create Google AI LLM client using LangChain
-	ctx := context.Background()
-	model, err := googleai.New(ctx)
-	if err != nil {
-		log.Printf("Google AI initialization failed: %v", err)
-		return
-	}
-
-	// Create a streaming graph with Google AI
-	g := graph.NewListenableStateGraph[[]llms.MessageContent]()
-
-	node := g.AddNode("gemini", "gemini", func(ctx context.Context, messages []llms.MessageContent) ([]llms.MessageContent, error) {
-		// Use LangChain's GenerateContent with Google AI
-		response, err := model.GenerateContent(ctx, messages,
-			llms.WithTemperature(0.9),
-			llms.WithTopP(0.95),
-		)
-		if err != nil {
-			return nil, fmt.Errorf("Gemini generation failed: %w", err)
-		}
-
-		return append(messages,
-			llms.TextParts("ai", response.Choices[0].Content),
-		), nil
-	})
-
-	// Add a progress listener for streaming feedback
-	// Note: ProgressListener expects map[string]any state, but here we have []llms.MessageContent.
-	// We can't use the standard ProgressListener directly if it's strict.
-	// However, in my recent fix, I made ProgressListener implement NodeListener[map[string]any].
-	// This graph expects NodeListener[[]llms.MessageContent].
-	// So we can't use standard ProgressListener here directly.
-	// We will create a custom listener for this example.
-
-	listener := graph.NodeListenerFunc[[]llms.MessageContent](func(ctx context.Context, event graph.NodeEvent, nodeName string, state []llms.MessageContent, err error) {
-		if event == graph.NodeEventStart {
-			fmt.Printf("🤔 Thinking with Gemini... (Node: %s)\n", nodeName)
-		}
-	})
-	node.AddListener(listener)
-
-	g.AddEdge("gemini", graph.END)
-	g.SetEntryPoint("gemini")
-
-	runnable, err := g.CompileListenable()
-	if err != nil {
-		log.Fatalf("Failed to compile graph: %v", err)
-	}
-
-	// Execute with creative prompt
-	result, err := runnable.Invoke(ctx, []llms.MessageContent{
-		llms.TextParts("human", "Write a haiku about Go programming"),
-	})
-
-	if err != nil {
-		log.Printf("Execution failed: %v", err)
-		return
-	}
-
-	// Print the response
-	messages := result
-	fmt.Printf("\nGemini's Response:\n%s\n", messages[len(messages)-1].Parts[0])
 }
 
 // Example 3: Multi-step reasoning with LangChain
@@ -155,9 +84,6 @@ func MultiStepReasoningExample() {
 	if os.Getenv("OPENAI_API_KEY") != "" {
 		model, err = openai.New()
 		fmt.Println("Using OpenAI...")
-	} else if os.Getenv("GOOGLE_API_KEY") != "" {
-		model, err = googleai.New(ctx)
-		fmt.Println("Using Google AI...")
 	} else {
 		fmt.Println("No API keys found. Set OPENAI_API_KEY or GOOGLE_API_KEY")
 		return
@@ -277,12 +203,6 @@ func main() {
 		OpenAIExample()
 	} else {
 		fmt.Println("\n⚠️  OpenAI example skipped (OPENAI_API_KEY not set)")
-	}
-
-	if os.Getenv("GOOGLE_API_KEY") != "" {
-		GoogleAIExample()
-	} else {
-		fmt.Println("\n⚠️  Google AI example skipped (GOOGLE_API_KEY not set)")
 	}
 
 	// Multi-step example works with either API
