@@ -20,15 +20,8 @@ jobs:
     - name: Build
       run: go build -v ./...
 
-    - name: Install Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
-
-    - name: npm install, make test-coverage
-      run: |
-        npm install
-        make test-coverage
+    - name: Test-coverage
+      run: make test-coverage
 
     - name: Coveralls
       uses: coverallsapp/github-action@v2
