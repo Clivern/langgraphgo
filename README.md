@@ -3,7 +3,7 @@
 
 > Abbreviated as `lango`, 中文: `懒狗`
 
-[![License](https://img.shields.io/:license-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/smallnest/langgraphgo) [![github actions](https://github.com/smallnest/langgraphgo/actions/workflows/go.yaml/badge.svg)](https://github.com/smallnest/langgraphgo/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/smallnest/langgraphgo)](https://goreportcard.com/report/github.com/smallnest/langgraphgo) 
+[![License](https://img.shields.io/:license-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/smallnest/langgraphgo) [![github actions](https://github.com/smallnest/langgraphgo/actions/workflows/go.yaml/badge.svg)](https://github.com/smallnest/langgraphgo/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/smallnest/langgraphgo)](https://goreportcard.com/report/github.com/smallnest/langgraphgo) [![Coverage Status](https://coveralls.io/repos/github/smallnest/langgraphgo/badge.svg?branch=master)](https://coveralls.io/github/smallnest/langgraphgo?branch=master)
 
 [English](./README.md) | [简体中文](./README_CN.md)
 
@@ -23,8 +23,8 @@ Website: [http://lango.rpcx.io](http://lango.rpcx.io)
 Real-world applications built with LangGraphGo:
 
 | [Insight](https://insight.rpcx.io) | [NoteX](https://notex.rpcx.io) |
-|:---:|:---:|
-| ![](docs/insight.png) | ![](docs/notex.png) |
+| :--------------------------------: | :----------------------------: |
+|       ![](docs/insight.png)        |      ![](docs/notex.png)       |
 
 **Insight** - An AI-powered knowledge management and insight generation platform that uses LangGraphGo to build intelligent analysis workflows, helping users extract key insights from massive amounts of information.
 

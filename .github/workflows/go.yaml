@@ -32,16 +32,16 @@ jobs:
           go-version: 'stable'
 
       - name: Run tests with coverage
-        run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+        run: go test -race -coverprofile=coverage.out -covermode=atomic $(go list ./... | grep -v -e '/examples' -e '/showcases')
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4-beta
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: coverage.txt
+          file: coverage.out
 
       - name: Coveralls
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          file: coverage.txt
+          file: coverage.out

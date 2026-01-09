@@ -3,7 +3,7 @@
 
 > 简称 `lango`, 中文: `懒狗`。 logo是一个可爱的中华田园犬形象
 
-[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/smallnest/langgraphgo)
+[![License](https://img.shields.io/:license-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/smallnest/langgraphgo) [![github actions](https://github.com/smallnest/langgraphgo/actions/workflows/go.yaml/badge.svg)](https://github.com/smallnest/langgraphgo/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/smallnest/langgraphgo)](https://goreportcard.com/report/github.com/smallnest/langgraphgo) [![Coverage Status](https://coveralls.io/repos/github/smallnest/langgraphgo/badge.svg?branch=master)](https://coveralls.io/github/smallnest/langgraphgo?branch=master)
 
 [English](./README.md) | [简体中文](./README_CN.md)
 
@@ -22,8 +22,8 @@
 以下是使用 LangGraphGo 构建的实际应用案例：
 
 | [Insight](https://insight.rpcx.io) | [NoteX](https://notex.rpcx.io) |
-|:---:|:---:|
-| ![](docs/insight.png) | ![](docs/notex.png) |
+| :--------------------------------: | :----------------------------: |
+|       ![](docs/insight.png)        |      ![](docs/notex.png)       |
 
 **Insight** - AI 驱动的知识管理与洞察生成平台，通过 LangGraphGo 构建智能分析流程，帮助用户从海量信息中提取关键洞察。
 
