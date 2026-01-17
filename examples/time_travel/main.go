@@ -16,14 +16,16 @@ func main() {
 	// 1. Initial State Node
 	g.AddNode("A", "A", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		fmt.Println("Executing Node A")
-		return map[string]any{"trace": []string{"A"}}, nil
+		state["trace"] = []string{"A"}
+		return state, nil
 	})
 
 	// 2. Second Node
 	g.AddNode("B", "B", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		fmt.Println("Executing Node B")
 		trace := state["trace"].([]string)
-		return map[string]any{"trace": append(trace, "B")}, nil
+		state["trace"] = append(trace, "B")
+		return state, nil
 	})
 
 	g.SetEntryPoint("A")

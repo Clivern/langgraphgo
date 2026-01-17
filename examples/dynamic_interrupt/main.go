@@ -23,11 +23,9 @@ func main() {
 		}
 
 		// Use the answer
-		return map[string]any{
-				"name":    answer,
-				"message": fmt.Sprintf("Hello, %s!", answer),
-			},
-			nil
+		state["name"] = answer
+		state["message"] = fmt.Sprintf("Hello, %s!", answer)
+		return state, nil
 	})
 
 	g.SetEntryPoint("ask_name")

@@ -18,15 +18,18 @@ func main() {
 	g.SetSchema(schema)
 
 	g.AddNode("node_a", "node_a", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		return map[string]any{"steps": "A"}, nil
+		state["steps"] = "A"
+		return state, nil
 	})
 
 	g.AddNode("node_b", "node_b", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		return map[string]any{"steps": "B"}, nil
+		state["steps"] = "B"
+		return state, nil
 	})
 
 	g.AddNode("node_c", "node_c", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		return map[string]any{"steps": "C"}, nil
+		state["steps"] = "C"
+		return state, nil
 	})
 
 	// Linear chain

@@ -13,19 +13,22 @@ func main() {
 	g.AddNode("user_input", "user_input", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		// In a real app, this would get input from UI
 		// Here we simulate it from initial state or hardcode
-		return map[string]any{"user_query": "Hello"}, nil
+		state["user_query"] = "Hello"
+		return state, nil
 	})
 
 	g.AddNode("ai_response", "ai_response", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		query, _ := state["user_query"].(string)
 		// Simulate smart message generation
-		return map[string]any{"response": fmt.Sprintf("Echo: %s", query)}, nil
+		state["response"] = fmt.Sprintf("Echo: %s", query)
+		return state, nil
 	})
 
 	// Hypothetical "Smart Messages" logic where we might update previous messages in UI
 	// This usually involves state management where messages have IDs
 	g.AddNode("ai_update", "ai_update", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		return map[string]any{"response": "Updated: Echo Hello"}, nil
+		state["response"] = "Updated: Echo Hello"
+		return state, nil
 	})
 
 	g.SetEntryPoint("user_input")

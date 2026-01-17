@@ -17,20 +17,23 @@ func main() {
 	analyze := g.AddNode("analyze", "analyze", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		input := state["input"].(string)
 		time.Sleep(200 * time.Millisecond)
-		return map[string]any{"analysis": fmt.Sprintf("Length: %d", len(input))}, nil
+		state["analysis"] = fmt.Sprintf("Length: %d", len(input))
+		return state, nil
 	})
 
 	enhance := g.AddNode("enhance", "enhance", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		input := state["input"].(string)
 		time.Sleep(300 * time.Millisecond)
-		return map[string]any{"enhanced": strings.ToUpper(input)}, nil
+		state["enhanced"] = strings.ToUpper(input)
+		return state, nil
 	})
 
 	summarize := g.AddNode("summarize", "summarize", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		analysis := state["analysis"].(string)
 		enhanced := state["enhanced"].(string)
 		time.Sleep(200 * time.Millisecond)
-		return map[string]any{"summary": fmt.Sprintf("%s -> %s", analysis, enhanced)}, nil
+		state["summary"] = fmt.Sprintf("%s -> %s", analysis, enhanced)
+		return state, nil
 	})
 
 	// Add progress listeners to nodes

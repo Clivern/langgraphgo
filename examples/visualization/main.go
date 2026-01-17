@@ -13,31 +13,38 @@ func main() {
 
 	// 1. Define nodes
 	g.AddNode("validate_input", "validate_input", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		return map[string]any{"valid": true}, nil
+		state["valid"] = true
+		return state, nil
 	})
 
 	g.AddNode("fetch_data", "fetch_data", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		return map[string]any{"data": "raw"}, nil
+		state["data"] = "raw"
+		return state, nil
 	})
 
 	g.AddNode("transform", "transform", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		return map[string]any{"data": "transformed"}, nil
+		state["data"] = "transformed"
+		return state, nil
 	})
 
 	g.AddNode("enrich", "enrich", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		return map[string]any{"data": "enriched"}, nil
+		state["data"] = "enriched"
+		return state, nil
 	})
 
 	g.AddNode("validate_output", "validate_output", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		return map[string]any{"output_valid": true}, nil
+		state["output_valid"] = true
+		return state, nil
 	})
 
 	g.AddNode("save", "save", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		return map[string]any{"saved": true}, nil
+		state["saved"] = true
+		return state, nil
 	})
 
 	g.AddNode("notify", "notify", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		return map[string]any{"notified": true}, nil
+		state["notified"] = true
+		return state, nil
 	})
 
 	// 2. Define edges (complex structure)

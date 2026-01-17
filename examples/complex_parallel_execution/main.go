@@ -24,10 +24,8 @@ func main() {
 	g.AddNode("start", "start", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		fmt.Println("=== Complex Parallel Execution Start ===")
 		fmt.Println("[Start] Initiating fan-out to multiple branches...")
-		return map[string]any{
-				"timestamp": time.Now().Format("15:04:05.000"),
-			},
-			nil
+		state["timestamp"] = time.Now().Format("15:04:05.000")
+		return state, nil
 	})
 
 	// ==== Short Branch (1 node) ====
@@ -35,10 +33,8 @@ func main() {
 		fmt.Println("\n[Short Branch] Starting execution...")
 		time.Sleep(100 * time.Millisecond)
 		fmt.Println("[Short Branch] ✓ Completed (fast path)")
-		return map[string]any{
-				"results": []string{"Short branch result"},
-			},
-			nil
+		state["results"] = []string{"Short branch result"}
+		return state, nil
 	})
 
 	// ==== Medium Branch (2 nodes) ====
@@ -46,20 +42,16 @@ func main() {
 		fmt.Println("\n[Medium Branch - Step 1/2] Processing...")
 		time.Sleep(150 * time.Millisecond)
 		fmt.Println("[Medium Branch - Step 1/2] ✓ Completed")
-		return map[string]any{
-				"medium_temp": "intermediate_data",
-			},
-			nil
+		state["medium_temp"] = "intermediate_data"
+		return state, nil
 	})
 
 	g.AddNode("medium_branch_2", "medium_branch_2", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		fmt.Println("[Medium Branch - Step 2/2] Processing...")
 		time.Sleep(150 * time.Millisecond)
 		fmt.Println("[Medium Branch - Step 2/2] ✓ Completed")
-		return map[string]any{
-				"results": []string{"Medium branch result (2 steps)"},
-			},
-			nil
+		state["results"] = []string{"Medium branch result (2 steps)"}
+		return state, nil
 	})
 
 	// ==== Long Branch (3 nodes) ====
@@ -67,30 +59,24 @@ func main() {
 		fmt.Println("\n[Long Branch - Step 1/3] Initial processing...")
 		time.Sleep(200 * time.Millisecond)
 		fmt.Println("[Long Branch - Step 1/3] ✓ Completed")
-		return map[string]any{
-				"long_temp_1": "data_from_step1",
-			},
-			nil
+		state["long_temp_1"] = "data_from_step1"
+		return state, nil
 	})
 
 	g.AddNode("long_branch_2", "long_branch_2", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		fmt.Println("[Long Branch - Step 2/3] Advanced processing...")
 		time.Sleep(200 * time.Millisecond)
 		fmt.Println("[Long Branch - Step 2/3] ✓ Completed")
-		return map[string]any{
-				"long_temp_2": "data_from_step2",
-			},
-			nil
+		state["long_temp_2"] = "data_from_step2"
+		return state, nil
 	})
 
 	g.AddNode("long_branch_3", "long_branch_3", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		fmt.Println("[Long Branch - Step 3/3] Final processing...")
 		time.Sleep(200 * time.Millisecond)
 		fmt.Println("[Long Branch - Step 3/3] ✓ Completed")
-		return map[string]any{
-				"results": []string{"Long branch result (3 steps)"},
-			},
-			nil
+		state["results"] = []string{"Long branch result (3 steps)"}
+		return state, nil
 	})
 
 	// ==== Aggregator Node ====
@@ -122,12 +108,10 @@ func main() {
 			fmt.Printf("  %d. %s\n", i+1, result)
 		}
 
-		return map[string]any{
-				"status":        "all_branches_completed",
-				"total_results": len(resultsSlice),
-				"final_message": "Complex parallel execution finished successfully",
-			},
-			nil
+		state["status"] = "all_branches_completed"
+		state["total_results"] = len(resultsSlice)
+		state["final_message"] = "Complex parallel execution finished successfully"
+		return state, nil
 	})
 
 	// ==== Define Graph Structure ====

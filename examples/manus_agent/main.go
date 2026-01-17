@@ -131,9 +131,8 @@ func researchNode(ctx context.Context, state map[string]any) (map[string]any, er
 		Parts: []llms.ContentPart{llms.TextPart("Research complete: Found 15 relevant sources\n\nKey findings:\n- Type safety prevents runtime errors\n- Better IDE support with autocomplete\n- Easier refactoring with type checking\n- Improved code documentation\n- Better team collaboration")},
 	}
 
-	return map[string]any{
-		"messages": append(messages, msg),
-	}, nil
+	state["messages"] = append(messages, msg)
+	return state, nil
 }
 
 // compileNode compiles research findings
@@ -154,9 +153,8 @@ func compileNode(ctx context.Context, state map[string]any) (map[string]any, err
 		Parts: []llms.ContentPart{llms.TextPart("Findings compiled: Organized into 5 key benefit categories\n\n1. Type Safety\n2. Developer Experience\n3. Code Quality\n4. Team Productivity\n5. Long-term Maintainability")},
 	}
 
-	return map[string]any{
-		"messages": append(messages, msg),
-	}, nil
+	state["messages"] = append(messages, msg)
+	return state, nil
 }
 
 // writeNode writes the final deliverable
@@ -177,9 +175,8 @@ func writeNode(ctx context.Context, state map[string]any) (map[string]any, error
 		Parts: []llms.ContentPart{llms.TextPart("Summary written: 2000 word comprehensive TypeScript benefits document\n\nStructure:\n- Introduction to TypeScript\n- Detailed Benefits (5 sections)\n- Real-world Examples\n- Conclusion")},
 	}
 
-	return map[string]any{
-		"messages": append(messages, msg),
-	}, nil
+	state["messages"] = append(messages, msg)
+	return state, nil
 }
 
 // reviewNode validates the output
@@ -200,9 +197,8 @@ func reviewNode(ctx context.Context, state map[string]any) (map[string]any, erro
 		Parts: []llms.ContentPart{llms.TextPart("Review complete: Output validated successfully\n\nQuality Score: 9.5/10\n- All claims verified\n- Structure is logical\n- Examples are clear")},
 	}
 
-	return map[string]any{
-		"messages": append(messages, msg),
-	}, nil
+	state["messages"] = append(messages, msg)
+	return state, nil
 }
 
 // displayResults shows the generated files

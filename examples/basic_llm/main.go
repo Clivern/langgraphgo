@@ -29,7 +29,8 @@ func main() {
 			return nil, err
 		}
 
-		return map[string]any{"output": response}, nil
+		state["output"] = response
+		return state, nil
 	})
 
 	g.AddEdge("generate", graph.END)

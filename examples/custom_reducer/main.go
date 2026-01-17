@@ -18,15 +18,18 @@ func main() {
 	g.SetSchema(schema)
 
 	g.AddNode("start", "start", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		return map[string]any{"tags": []string{"initial"}}, nil
+		state["tags"] = []string{"initial"}
+		return state, nil
 	})
 
 	g.AddNode("tagger_a", "tagger_a", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		return map[string]any{"tags": []string{"A"}}, nil
+		state["tags"] = []string{"A"}
+		return state, nil
 	})
 
 	g.AddNode("tagger_b", "tagger_b", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		return map[string]any{"tags": []string{"B"}}, nil
+		state["tags"] = []string{"B"}
+		return state, nil
 	})
 
 	// Parallel execution for taggers

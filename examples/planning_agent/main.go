@@ -136,9 +136,8 @@ func fetchDataNode(ctx context.Context, state map[string]any) (map[string]any, e
 		Parts: []llms.ContentPart{llms.TextPart("Data fetched: 1000 user records retrieved")},
 	}
 
-	return map[string]any{
-		"messages": append(messages, msg),
-	}, nil
+	state["messages"] = append(messages, msg)
+	return state, nil
 }
 
 func validateDataNode(ctx context.Context, state map[string]any) (map[string]any, error) {
@@ -151,9 +150,8 @@ func validateDataNode(ctx context.Context, state map[string]any) (map[string]any
 		Parts: []llms.ContentPart{llms.TextPart("Data validation passed: all records valid")},
 	}
 
-	return map[string]any{
-		"messages": append(messages, msg),
-	}, nil
+	state["messages"] = append(messages, msg)
+	return state, nil
 }
 
 func transformDataNode(ctx context.Context, state map[string]any) (map[string]any, error) {
@@ -166,9 +164,8 @@ func transformDataNode(ctx context.Context, state map[string]any) (map[string]an
 		Parts: []llms.ContentPart{llms.TextPart("Data transformed to JSON format successfully")},
 	}
 
-	return map[string]any{
-		"messages": append(messages, msg),
-	}, nil
+	state["messages"] = append(messages, msg)
+	return state, nil
 }
 
 func analyzeDataNode(ctx context.Context, state map[string]any) (map[string]any, error) {
@@ -181,9 +178,8 @@ func analyzeDataNode(ctx context.Context, state map[string]any) (map[string]any,
 		Parts: []llms.ContentPart{llms.TextPart("Analysis complete: avg_age=32.5, total_users=1000, active_rate=78%")},
 	}
 
-	return map[string]any{
-		"messages": append(messages, msg),
-	}, nil
+	state["messages"] = append(messages, msg)
+	return state, nil
 }
 
 func saveResultsNode(ctx context.Context, state map[string]any) (map[string]any, error) {
@@ -196,9 +192,8 @@ func saveResultsNode(ctx context.Context, state map[string]any) (map[string]any,
 		Parts: []llms.ContentPart{llms.TextPart("Results saved to database successfully")},
 	}
 
-	return map[string]any{
-		"messages": append(messages, msg),
-	}, nil
+	state["messages"] = append(messages, msg)
+	return state, nil
 }
 
 func generateReportNode(ctx context.Context, state map[string]any) (map[string]any, error) {
@@ -211,7 +206,6 @@ func generateReportNode(ctx context.Context, state map[string]any) (map[string]a
 		Parts: []llms.ContentPart{llms.TextPart("Report generated: summary.pdf created with all analysis results")},
 	}
 
-	return map[string]any{
-		"messages": append(messages, msg),
-	}, nil
+	state["messages"] = append(messages, msg)
+	return state, nil
 }

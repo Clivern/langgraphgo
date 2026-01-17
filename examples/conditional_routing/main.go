@@ -23,15 +23,18 @@ func main() {
 	})
 
 	g.AddNode("urgent_handler", "urgent_handler", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		return map[string]any{"status": "handled_urgent"}, nil
+		state["status"] = "handled_urgent"
+		return state, nil
 	})
 
 	g.AddNode("normal_handler", "normal_handler", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		return map[string]any{"status": "handled_normal"}, nil
+		state["status"] = "handled_normal"
+		return state, nil
 	})
 
 	g.AddNode("batch_handler", "batch_handler", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		return map[string]any{"status": "handled_batch"}, nil
+		state["status"] = "handled_batch"
+		return state, nil
 	})
 
 	g.SetEntryPoint("router")

@@ -15,17 +15,20 @@ func main() {
 	// Define nodes
 	processNode := g.AddNode("process", "process", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		time.Sleep(100 * time.Millisecond)
-		return map[string]any{"processed": true}, nil
+		state["processed"] = true
+		return state, nil
 	})
 
 	analyzeNode := g.AddNode("analyze", "analyze", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		time.Sleep(100 * time.Millisecond)
-		return map[string]any{"analyzed": true}, nil
+		state["analyzed"] = true
+		return state, nil
 	})
 
 	reportNode := g.AddNode("report", "report", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		time.Sleep(100 * time.Millisecond)
-		return map[string]any{"reported": true}, nil
+		state["reported"] = true
+		return state, nil
 	})
 
 	// Add global listener (logs everything)

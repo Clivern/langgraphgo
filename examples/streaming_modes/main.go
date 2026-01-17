@@ -15,12 +15,14 @@ func main() {
 	// Define nodes
 	g.AddNode("step_1", "step_1", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		time.Sleep(500 * time.Millisecond)
-		return map[string]any{"step_1": "completed"}, nil
+		state["step_1"] = "completed"
+		return state, nil
 	})
 
 	g.AddNode("step_2", "step_2", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		time.Sleep(500 * time.Millisecond)
-		return map[string]any{"step_2": "completed"}, nil
+		state["step_2"] = "completed"
+		return state, nil
 	})
 
 	g.SetEntryPoint("step_1")

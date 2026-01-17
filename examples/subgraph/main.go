@@ -17,11 +17,13 @@ func main() {
 	validationSubgraph := graph.NewStateGraph[map[string]any]()
 	validationSubgraph.AddNode("check_format", "check_format", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		fmt.Println("[Validation] Checking format...")
-		return map[string]any{"format_ok": true}, nil
+		state["format_ok"] = true
+		return state, nil
 	})
 	validationSubgraph.AddNode("sanitize", "sanitize", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		fmt.Println("[Validation] Sanitizing input...")
-		return map[string]any{"sanitized": true}, nil
+		state["sanitized"] = true
+		return state, nil
 	})
 	validationSubgraph.SetEntryPoint("check_format")
 	validationSubgraph.AddEdge("check_format", "sanitize")
@@ -31,11 +33,13 @@ func main() {
 	processingSubgraph := graph.NewStateGraph[map[string]any]()
 	processingSubgraph.AddNode("transform", "transform", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		fmt.Println("[Processing] Transforming data...")
-		return map[string]any{"transformed": true}, nil
+		state["transformed"] = true
+		return state, nil
 	})
 	processingSubgraph.AddNode("enrich", "enrich", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		fmt.Println("[Processing] Enriching data...")
-		return map[string]any{"enriched": true}, nil
+		state["enriched"] = true
+		return state, nil
 	})
 	processingSubgraph.SetEntryPoint("transform")
 	processingSubgraph.AddEdge("transform", "enrich")
@@ -59,7 +63,8 @@ func main() {
 
 	main.AddNode("finalize", "finalize", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		fmt.Println("[Main] Finalizing response")
-		return map[string]any{"status": "completed"}, nil
+		state["status"] = "completed"
+		return state, nil
 	})
 
 	// 5. Connect Main Graph
@@ -88,10 +93,12 @@ func main() {
 	g2 := graph.NewStateGraph[map[string]any]()
 	graph.CreateSubgraph(g2, "dynamic_sub", func(sg *graph.StateGraph[map[string]any]) error {
 		sg.AddNode("step1", "step1", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-			return map[string]any{"dynamic_step1": true}, nil
+			state["dynamic_step1"] = true
+			return state, nil
 		})
 		sg.AddNode("step2", "step2", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-			return map[string]any{"dynamic_step2": true}, nil
+			state["dynamic_step2"] = true
+			return state, nil
 		})
 		sg.SetEntryPoint("step1")
 		sg.AddEdge("step1", "step2")

@@ -153,7 +153,8 @@ func main() {
 	g.AddNode("step_1", "step_1", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		fmt.Println("Executing Step 1...")
 		time.Sleep(500 * time.Millisecond)
-		return map[string]any{"steps": []string{"Step 1 Completed"}}, nil
+		state["steps"] = []string{"Step 1 Completed"}
+		return state, nil
 	})
 
 	// Step 2 (Simulate Crash)
@@ -168,14 +169,16 @@ func main() {
 			os.Exit(1)
 		}
 
-		return map[string]any{"steps": []string{"Step 2 Completed"}}, nil
+		state["steps"] = []string{"Step 2 Completed"}
+		return state, nil
 	})
 
 	// Step 3
 	g.AddNode("step_3", "step_3", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		fmt.Println("Executing Step 3...")
 		time.Sleep(500 * time.Millisecond)
-		return map[string]any{"steps": []string{"Step 3 Completed"}}, nil
+		state["steps"] = []string{"Step 3 Completed"}
+		return state, nil
 	})
 
 	g.SetEntryPoint("step_1")

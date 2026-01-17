@@ -21,31 +21,35 @@ func main() {
 	// Define Nodes
 	g.AddNode("start", "start", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		fmt.Println("Starting execution...")
-		return map[string]any{}, nil
+		return state, nil
 	})
 
 	g.AddNode("branch_a", "branch_a", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		time.Sleep(100 * time.Millisecond)
 		fmt.Println("Branch A executed")
-		return map[string]any{"results": "A"}, nil
+		state["results"] = "A"
+		return state, nil
 	})
 
 	g.AddNode("branch_b", "branch_b", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		time.Sleep(200 * time.Millisecond)
 		fmt.Println("Branch B executed")
-		return map[string]any{"results": "B"}, nil
+		state["results"] = "B"
+		return state, nil
 	})
 
 	g.AddNode("branch_c", "branch_c", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		time.Sleep(150 * time.Millisecond)
 		fmt.Println("Branch C executed")
-		return map[string]any{"results": "C"}, nil
+		state["results"] = "C"
+		return state, nil
 	})
 
 	g.AddNode("aggregator", "aggregator", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		results := state["results"]
 		fmt.Printf("Aggregated results: %v\n", results)
-		return map[string]any{"final": "done"}, nil
+		state["final"] = "done"
+		return state, nil
 	})
 
 	// Define Graph Structure
