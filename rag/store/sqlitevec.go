@@ -13,6 +13,11 @@ import (
 	"github.com/smallnest/langgraphgo/rag"
 )
 
+// SerializeFloat32 serializes a float32 vector to bytes for sqlite-vec
+func SerializeFloat32(vector []float32) ([]byte, error) {
+	return sqlitevec.SerializeFloat32(vector)
+}
+
 // SQLiteVecVectorStore is a vector store implementation using sqlite-vec
 // It provides persistent vector storage with SQLite backend using CGO
 type SQLiteVecVectorStore struct {
@@ -47,7 +52,12 @@ func NewSQLiteVecVectorStore(config SQLiteVecConfig) (*SQLiteVecVectorStore, err
 	var db *sql.DB
 	var err error
 
-	// Register sqlite-vec extension for all new connections
+	// Register sqlite-vec extension for all new connections.
+	// This uses CGO to compile sqlite-vec directly into the binary.
+	// Note: On macOS, you may see deprecation warnings about process-global
+	// auto extensions. These warnings can be safely ignored - the extension
+	// still works correctly. This is the intended way to use sqlite-vec-go-bindings
+	// with mattn/go-sqlite3.
 	sqlitevec.Auto()
 
 	dsn := config.DBPath
@@ -62,6 +72,7 @@ func NewSQLiteVecVectorStore(config SQLiteVecConfig) (*SQLiteVecVectorStore, err
 	}
 
 	if config.Embedder == nil {
+		db.Close()
 		return nil, fmt.Errorf("embedder is required")
 	}
 
@@ -76,6 +87,7 @@ func NewSQLiteVecVectorStore(config SQLiteVecConfig) (*SQLiteVecVectorStore, err
 	}
 
 	if dimension <= 0 {
+		db.Close()
 		return nil, fmt.Errorf("invalid dimension: %d", dimension)
 	}
 
@@ -90,7 +102,7 @@ func NewSQLiteVecVectorStore(config SQLiteVecConfig) (*SQLiteVecVectorStore, err
 	tableName := sanitizeTableName(collectionName)
 	s.tableName = tableName
 
-	if err := s.initSchema(ctxBackground()); err != nil {
+	if err := s.initSchema(context.Background()); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("failed to initialize schema: %w", err)
 	}
@@ -196,7 +208,7 @@ func (s *SQLiteVecVectorStore) Add(ctx context.Context, documents []rag.Document
 			metadataStr = string(metadataJSON)
 		}
 
-		// Serialize embedding
+		// Serialize embedding to binary for vec0
 		embeddingBlob, err := sqlitevec.SerializeFloat32(embedding)
 		if err != nil {
 			return fmt.Errorf("failed to serialize embedding for %s: %w", doc.ID, err)
@@ -242,100 +254,85 @@ func (s *SQLiteVecVectorStore) SearchWithFilter(ctx context.Context, query []flo
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	// Serialize query
+	// Serialize query to binary for vec0
 	queryBlob, err := sqlitevec.SerializeFloat32(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize query: %w", err)
 	}
 
-	// Build the SQL query for vector search using sqlite-vec
-	// Note: Filtering is done in-memory after vector search for simplicity
-	// sqlite-vec's vec0 table has limitations on filtering auxiliary columns
+	// Fetch more results initially to allow for metadata filtering
+	fetchK := k
+	if len(filter) > 0 {
+		fetchK = k * 10
+	}
+
+	// Prepare similarity search query
 	// #nosec G201 - table names are sanitized and not user input
-	querySQL := fmt.Sprintf(`
-		SELECT
-			id,
-			content,
-			metadata,
-			created_at,
-			updated_at,
-			distance
+	searchSQL := fmt.Sprintf(`
+		SELECT id, content, metadata, distance
 		FROM "%s"
 		WHERE embedding MATCH ?
 		ORDER BY distance
 		LIMIT ?
 	`, s.tableName)
 
-	args := []any{queryBlob, k * 10} // Get more results for filtering
-
-	rows, err := s.db.QueryContext(ctx, querySQL, args...)
+	rows, err := s.db.QueryContext(ctx, searchSQL, queryBlob, fetchK)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute search query: %w", err)
+		return nil, fmt.Errorf("failed to execute search: %w", err)
 	}
 	defer rows.Close()
 
+	// Collect results
 	var results []rag.DocumentSearchResult
-	for rows.Next() {
+	count := 0
+
+	for rows.Next() && count < k {
 		var id string
 		var content string
-		var metadataJSON sql.NullString
-		var createdAt int64
-		var updatedAt int64
+		var metadataStr string
 		var distance float64
 
-		if err := rows.Scan(&id, &content, &metadataJSON, &createdAt, &updatedAt, &distance); err != nil {
+		if err := rows.Scan(&id, &content, &metadataStr, &distance); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 
+		// Parse metadata
 		var metadata map[string]any
-		if metadataJSON.Valid && metadataJSON.String != "" {
-			if err := json.Unmarshal([]byte(metadataJSON.String), &metadata); err != nil {
+		if metadataStr != "" {
+			if err := json.Unmarshal([]byte(metadataStr), &metadata); err != nil {
 				return nil, fmt.Errorf("failed to unmarshal metadata for %s: %w", id, err)
 			}
 		}
 
-		// Apply metadata filter
+		// Apply metadata filter if provided
 		if len(filter) > 0 {
-			matches := true
-			for key, value := range filter {
-				if metadataValue, ok := metadata[key]; !ok || metadataValue != value {
-					matches = false
-					break
-				}
-			}
-			if !matches {
+			if !matchesMetadata(metadata, filter) {
 				continue
 			}
 		}
 
-		// Convert distance to similarity (cosine similarity = 1 - distance for normalized vectors)
-		similarity := 1.0 - distance
+		// Convert distance to score (lower distance = higher score)
+		score := 1.0 / (1.0 + distance)
 
 		results = append(results, rag.DocumentSearchResult{
 			Document: rag.Document{
-				ID:        id,
-				Content:   content,
-				Metadata:  metadata,
-				CreatedAt: time.Unix(createdAt, 0),
-				UpdatedAt: time.Unix(updatedAt, 0),
+				ID:       id,
+				Content:  content,
+				Metadata: metadata,
 			},
-			Score: similarity,
+			Score: score,
 		})
-
-		// Stop if we have enough results
-		if len(results) >= k {
-			break
-		}
+		count++
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating rows: %w", err)
+		return nil, fmt.Errorf("error iterating results: %w", err)
 	}
 
 	return results, nil
 }
 
-// Delete removes documents by their IDs
+// Delete removes documents from the store by their IDs
 func (s *SQLiteVecVectorStore) Delete(ctx context.Context, ids []string) error {
 	if len(ids) == 0 {
 		return nil
@@ -344,15 +341,10 @@ func (s *SQLiteVecVectorStore) Delete(ctx context.Context, ids []string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-
 	// #nosec G201 - table names are sanitized and not user input
-	deleteSQL := fmt.Sprintf("DELETE FROM \"%s\" WHERE id = ?", s.tableName)
-	stmt, err := tx.PrepareContext(ctx, deleteSQL)
+	deleteSQL := fmt.Sprintf(`DELETE FROM "%s" WHERE id = ?`, s.tableName)
+
+	stmt, err := s.db.PrepareContext(ctx, deleteSQL)
 	if err != nil {
 		return fmt.Errorf("failed to prepare delete: %w", err)
 	}
@@ -364,82 +356,112 @@ func (s *SQLiteVecVectorStore) Delete(ctx context.Context, ids []string) error {
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
 	return nil
 }
 
-// Update updates documents in the sqlite-vec vector store
+// Update updates documents in the vector store
 func (s *SQLiteVecVectorStore) Update(ctx context.Context, documents []rag.Document) error {
+	// For vec0 tables, we need to delete and re-insert
+	// First, collect IDs to update
+	ids := make([]string, len(documents))
+	for i, doc := range documents {
+		ids[i] = doc.ID
+	}
+
+	// Delete existing documents
+	if err := s.Delete(ctx, ids); err != nil {
+		return fmt.Errorf("failed to delete documents for update: %w", err)
+	}
+
+	// Add updated documents
 	return s.Add(ctx, documents)
 }
 
-// GetStats returns statistics about the sqlite-vec vector store
-func (s *SQLiteVecVectorStore) GetStats(ctx context.Context) (*rag.VectorStoreStats, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	// #nosec G201 - table names are sanitized and not user input
-	countSQL := fmt.Sprintf("SELECT COUNT(*) FROM \"%s\"", s.tableName)
-	var count int
-	if err := s.db.QueryRowContext(ctx, countSQL).Scan(&count); err != nil {
-		return nil, fmt.Errorf("failed to get document count: %w", err)
-	}
-
-	return &rag.VectorStoreStats{
-		TotalDocuments: count,
-		TotalVectors:   count,
-		Dimension:      s.dimension,
-		LastUpdated:    time.Now(),
-	}, nil
+// UpdateWithEmbedding updates a document with a specific embedding
+func (s *SQLiteVecVectorStore) UpdateWithEmbedding(ctx context.Context, doc rag.Document, embedding []float32) error {
+	doc.Embedding = embedding
+	return s.Update(ctx, []rag.Document{doc})
 }
 
-// Close closes the sqlite-vec vector store and releases resources
+// AddBatch adds documents with pre-computed embeddings
+func (s *SQLiteVecVectorStore) AddBatch(ctx context.Context, documents []rag.Document, embeddings [][]float32) error {
+	if len(documents) != len(embeddings) {
+		return fmt.Errorf("documents and embeddings must have same length")
+	}
+
+	for i := range documents {
+		documents[i].Embedding = embeddings[i]
+	}
+
+	return s.Add(ctx, documents)
+}
+
+// Close closes the database connection
 func (s *SQLiteVecVectorStore) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
 	if s.db != nil {
 		return s.db.Close()
 	}
 	return nil
 }
 
-// GetTableName returns the name of the table
-func (s *SQLiteVecVectorStore) GetTableName() string {
-	return s.tableName
+// GetStats returns statistics about the vector store
+func (s *SQLiteVecVectorStore) GetStats(ctx context.Context) (*rag.VectorStoreStats, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// #nosec G201 - table names are sanitized and not user input
+	countSQL := fmt.Sprintf(`SELECT COUNT(*) FROM "%s"`, s.tableName)
+
+	var count int64
+	if err := s.db.QueryRowContext(ctx, countSQL).Scan(&count); err != nil {
+		return nil, fmt.Errorf("failed to get count: %w", err)
+	}
+
+	return &rag.VectorStoreStats{
+		TotalDocuments: int(count),
+		TotalVectors:   int(count),
+		Dimension:      s.dimension,
+		LastUpdated:    time.Now(),
+	}, nil
 }
 
-// GetCollectionName returns the name of the collection
+// GetCollectionName returns the collection name
 func (s *SQLiteVecVectorStore) GetCollectionName() string {
 	return s.collectionName
 }
 
-// sanitizeTableName sanitizes the collection name for use as a table name
+// GetTableName returns the actual table name used
+func (s *SQLiteVecVectorStore) GetTableName() string {
+	return s.tableName
+}
+
+// matchesMetadata checks if the document metadata matches the filter criteria
+func matchesMetadata(metadata map[string]any, filter map[string]any) bool {
+	for key, value := range filter {
+		metadataValue, exists := metadata[key]
+		if !exists {
+			return false
+		}
+		if metadataValue != value {
+			return false
+		}
+	}
+	return true
+}
+
+// sanitizeTableName cleans the table name to prevent SQL injection
 func sanitizeTableName(name string) string {
-	// Replace any non-alphanumeric characters with underscores
+	// Replace non-alphanumeric characters with underscores
 	result := make([]byte, 0, len(name))
 	for i := 0; i < len(name); i++ {
 		c := name[i]
-		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' {
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') {
 			result = append(result, c)
 		} else {
 			result = append(result, '_')
 		}
 	}
-	// Ensure it starts with a letter
-	if len(result) > 0 && (result[0] >= '0' && result[0] <= '9') {
-		result = append([]byte{'t'}, result...)
-	}
-	if len(result) == 0 {
-		return "vec_store"
-	}
 	return string(result)
-}
-
-// ctxBackground returns a background context for initialization
-func ctxBackground() context.Context {
-	return context.Background()
 }
