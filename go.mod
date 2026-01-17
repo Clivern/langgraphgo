@@ -5,10 +5,12 @@ go 1.25.0
 require (
 	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/alicebob/miniredis/v2 v2.35.0
+	github.com/asg017/sqlite-vec-go-bindings v0.1.6
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/kataras/golog v0.1.15
 	github.com/mattn/go-sqlite3 v1.14.32
+	github.com/ncruces/go-sqlite3 v0.30.4
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pashagolub/pgxmock/v3 v3.4.0
 	github.com/philippgille/chromem-go v0.7.0
@@ -22,8 +24,6 @@ require (
 
 require (
 	github.com/AssemblyAI/assemblyai-go-sdk v1.3.0 // indirect
-	github.com/Masterminds/semver v1.5.0 // indirect
-	github.com/amikos-tech/chroma-go v0.1.4 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
@@ -45,12 +45,11 @@ require (
 	github.com/mattn/go-runewidth v0.0.19 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.26 // indirect
 	github.com/modelcontextprotocol/go-sdk v1.1.0 // indirect
-	github.com/oklog/ulid v1.3.1 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
+	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/pkoukk/tiktoken-go v0.1.6 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/tetratelabs/wazero v1.11.0 // indirect
 	github.com/volcengine/volc-sdk-golang v1.0.23 // indirect
-	github.com/yalue/onnxruntime_go v1.19.0 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181 // indirect
@@ -59,12 +58,12 @@ require (
 	gitlab.com/golang-commonmark/mdurl v0.0.0-20191124015652-932350d1cb84 // indirect
 	gitlab.com/golang-commonmark/puny v0.0.0-20191124015043-9f83538fa04f // indirect
 	go.starlark.net v0.0.0-20251109183026-be02852a5e1f // indirect
-	golang.org/x/crypto v0.44.0 // indirect
+	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sync v0.18.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
-	golang.org/x/text v0.31.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
+	golang.org/x/text v0.32.0 // indirect
 	google.golang.org/protobuf v1.36.3 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

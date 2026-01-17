@@ -15,10 +15,9 @@ require (
 
 require (
 	github.com/AssemblyAI/assemblyai-go-sdk v1.3.0 // indirect
-	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/PuerkitoBio/goquery v1.11.0 // indirect
-	github.com/amikos-tech/chroma-go v0.2.5 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
+	github.com/asg017/sqlite-vec-go-bindings v0.1.6 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -26,6 +25,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dlclark/regexp2 v1.10.0 // indirect
+	github.com/go-playground/validator/v10 v10.22.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/jsonschema-go v0.3.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -40,12 +40,9 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.32 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.26 // indirect
 	github.com/modelcontextprotocol/go-sdk v1.1.0 // indirect
-	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/philippgille/chromem-go v0.7.0 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkoukk/tiktoken-go v0.1.6 // indirect
-	github.com/yalue/onnxruntime_go v1.19.0 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181 // indirect
 	gitlab.com/golang-commonmark/linkify v0.0.0-20191026162114-a0c2df6c8f82 // indirect
@@ -53,12 +50,12 @@ require (
 	gitlab.com/golang-commonmark/mdurl v0.0.0-20191124015652-932350d1cb84 // indirect
 	gitlab.com/golang-commonmark/puny v0.0.0-20191124015043-9f83538fa04f // indirect
 	go.starlark.net v0.0.0-20251109183026-be02852a5e1f // indirect
-	golang.org/x/crypto v0.44.0 // indirect
+	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sync v0.18.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
-	golang.org/x/text v0.31.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
+	golang.org/x/text v0.32.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )
