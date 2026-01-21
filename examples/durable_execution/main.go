@@ -151,10 +151,8 @@ func main() {
 
 	// Step 1
 	g.AddNode("step_1", "step_1", func(ctx context.Context, state map[string]any) (map[string]any, error) {
-		fmt.Println("Executing Step 1...")
-		time.Sleep(500 * time.Millisecond)
-		state["steps"] = []string{"Step 1 Completed"}
-		return state, nil
+		// Return only the updated field (delta pattern)
+		return map[string]any{"steps": []string{"Step 1 Completed"}}, nil
 	})
 
 	// Step 2 (Simulate Crash)
@@ -169,16 +167,17 @@ func main() {
 			os.Exit(1)
 		}
 
-		state["steps"] = []string{"Step 2 Completed"}
-		return state, nil
+		// Return only the updated field (delta pattern)
+		return map[string]any{"steps": []string{"Step 2 Completed"}}, nil
 	})
 
 	// Step 3
 	g.AddNode("step_3", "step_3", func(ctx context.Context, state map[string]any) (map[string]any, error) {
 		fmt.Println("Executing Step 3...")
 		time.Sleep(500 * time.Millisecond)
-		state["steps"] = []string{"Step 3 Completed"}
-		return state, nil
+
+		// Return only the updated field (delta pattern)
+		return map[string]any{"steps": []string{"Step 3 Completed"}}, nil
 	})
 
 	g.SetEntryPoint("step_1")

@@ -22,7 +22,7 @@ type StateSchema[S any] interface {
 //
 //	type MyState struct {
 //	    Count int
-//	    Logs  []string
+//	    Logs []string
 //	}
 //
 //	schema := graph.NewStructSchema(
@@ -37,7 +37,7 @@ type StateSchema[S any] interface {
 //	)
 type StructSchema[S any] struct {
 	InitialValue S
-	MergeFunc    func(current, new S) (S, error)
+	MergeFunc    func(S, S) (S, error)
 }
 
 // NewStructSchema creates a new StructSchema with the given initial value and merge function.
@@ -58,7 +58,7 @@ func (s *StructSchema[S]) Init() S {
 }
 
 // Update merges the new state into the current state using the merge function.
-func (s *StructSchema[S]) Update(current, new S) (S, error) {
+func (s *StructSchema[S]) Update(current S, new S) (S, error) {
 	if s.MergeFunc != nil {
 		return s.MergeFunc(current, new)
 	}
@@ -69,10 +69,10 @@ func (s *StructSchema[S]) Update(current, new S) (S, error) {
 // DefaultStructMerge provides a default merge function for struct states.
 // It uses reflection to merge non-zero fields from new into current.
 // This is a sensible default for most struct types.
-func DefaultStructMerge[S any](current, new S) (S, error) {
+func DefaultStructMerge[S any](current S, new S) (S, error) {
 	// Use reflection to merge non-zero fields from new into current
-	currentVal := reflect.ValueOf(&current).Elem()
-	newVal := reflect.ValueOf(new)
+	currentVal := reflect.ValueOf(&current)
+	newVal := reflect.ValueOf(&new)
 
 	// Check if S is a struct
 	if currentVal.Kind() != reflect.Struct {
@@ -83,9 +83,9 @@ func DefaultStructMerge[S any](current, new S) (S, error) {
 	for i := 0; i < newVal.NumField(); i++ {
 		fieldNew := newVal.Field(i)
 		if !fieldNew.IsZero() {
-			currentField := currentVal.Field(i)
-			if currentField.CanSet() {
-				currentField.Set(fieldNew)
+			fieldCurrent := currentVal.Field(i)
+			if fieldCurrent.CanSet() {
+				fieldCurrent.Set(fieldNew)
 			}
 		}
 	}
@@ -93,7 +93,7 @@ func DefaultStructMerge[S any](current, new S) (S, error) {
 }
 
 // OverwriteStructMerge is a merge function that completely replaces the current state with the new state.
-func OverwriteStructMerge[S any](current, new S) (S, error) {
+func OverwriteStructMerge[S any](current S, new S) (S, error) {
 	return new, nil
 }
 
@@ -122,9 +122,9 @@ func (fm *FieldMerger[S]) Init() S {
 }
 
 // Update merges the new state into the current state using registered field merge functions.
-func (fm *FieldMerger[S]) Update(current, new S) (S, error) {
-	currentVal := reflect.ValueOf(&current).Elem()
-	newVal := reflect.ValueOf(new)
+func (fm *FieldMerger[S]) Update(current S, new S) (S, error) {
+	currentVal := reflect.ValueOf(&current)
+	newVal := reflect.ValueOf(&new)
 
 	if currentVal.Kind() != reflect.Struct {
 		return new, fmt.Errorf("FieldMerger only works with struct types")
@@ -205,7 +205,7 @@ func MinIntMerge(current, new reflect.Value) reflect.Value {
 }
 
 // Reducer defines how a state value should be updated.
-// It takes the current value and the new value, and returns the merged value.
+// It takes the current value and the new value, and returns a merged value.
 type Reducer func(current, new any) (any, error)
 
 // MapSchema implements StateSchema for map[string]any.
@@ -231,6 +231,44 @@ func (s *MapSchema) Init() map[string]any {
 	return make(map[string]any)
 }
 
+// sameValue returns true if a and b point to the same underlying object.
+// This is needed because when a node modifies its input state and returns it,
+// values in current and new maps may point to the same objects (e.g., slices).
+func sameValue(a, b any) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+
+	// Use reflect to compare pointers for reference types
+	va := reflect.ValueOf(a)
+	vb := reflect.ValueOf(b)
+
+	// For slices, check if they point to the same underlying array
+	if va.Kind() == reflect.Slice && vb.Kind() == reflect.Slice {
+		// Get data pointer using reflect.Value.Pointer()
+		// For slices, Pointer() returns address of first element
+		dataPtrA := va.Pointer()
+		dataPtrB := vb.Pointer()
+		// Also check lengths - if lengths differ, they're definitely different
+		if va.Len() != vb.Len() {
+			return false
+		}
+		return dataPtrA == dataPtrB
+	}
+
+	// For maps, check if they point to the same underlying hash table
+	if va.Kind() == reflect.Map && vb.Kind() == reflect.Map {
+		// For maps, Pointer() returns hash table address
+		return va.Pointer() == vb.Pointer()
+	}
+
+	// For other types, just compare values
+	return reflect.DeepEqual(a, b)
+}
+
 // Update merges the new map into the current map using registered reducers.
 func (s *MapSchema) Update(current, new map[string]any) (map[string]any, error) {
 	if current == nil {
@@ -245,11 +283,25 @@ func (s *MapSchema) Update(current, new map[string]any) (map[string]any, error) 
 		if reducer, ok := s.Reducers[k]; ok {
 			// Use reducer
 			currVal := result[k]
-			mergedVal, err := reducer(currVal, v)
-			if err != nil {
-				return nil, fmt.Errorf("failed to reduce key %s: %w", k, err)
+			// Check if current and new values are the same reference
+			// This can happen when a node modifies its input state and returns it
+			if sameValue(currVal, v) {
+				// They're the same object - this means that current and new maps
+				// point to the same underlying hash table (node modified state in-place)
+				// Even if data is shared, we need to merge if contents differ
+				// to preserve previous steps
+				mergedVal, err := reducer(currVal, v)
+				if err != nil {
+					return nil, fmt.Errorf("failed to reduce key %s: %w", k, err)
+				}
+				result[k] = mergedVal
+			} else {
+				mergedVal, err := reducer(currVal, v)
+				if err != nil {
+					return nil, fmt.Errorf("failed to reduce key %s: %w", k, err)
+				}
+				result[k] = mergedVal
 			}
-			result[k] = mergedVal
 		} else {
 			// Default: Overwrite
 			result[k] = v

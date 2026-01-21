@@ -1,41 +1,6 @@
 {
-  "checkpoint_1765202207890465000": {
-    "id": "checkpoint_1765202207890465000",
-    "node_name": "step_1",
-    "state": {
-      "steps": [
-        "Start",
-        "Step 1 Completed"
-      ]
-    },
-    "metadata": {
-      "event": "step",
-      "execution_id": "exec_1765202207388969000",
-      "thread_id": "durable-job-1"
-    },
-    "timestamp": "2025-12-08T21:56:47.890494+08:00",
-    "version": 1
-  },
-  "checkpoint_1765202215094411000": {
-    "id": "checkpoint_1765202215094411000",
-    "node_name": "step_2",
-    "state": {
-      "steps": [
-        "Start",
-        "Step 1 Completed",
-        "Step 2 Completed"
-      ]
-    },
-    "metadata": {
-      "event": "step",
-      "execution_id": "exec_1765202214592424000",
-      "thread_id": "durable-job-1"
-    },
-    "timestamp": "2025-12-08T21:56:55.094423+08:00",
-    "version": 1
-  },
-  "checkpoint_1765202215596488000": {
-    "id": "checkpoint_1765202215596488000",
+  "checkpoint_1185d1cd-f42d-4265-b19b-62a11afb2264": {
+    "id": "checkpoint_1185d1cd-f42d-4265-b19b-62a11afb2264",
     "node_name": "step_3",
     "state": {
       "steps": [
@@ -47,10 +12,45 @@
     },
     "metadata": {
       "event": "step",
-      "execution_id": "exec_1765202214592424000",
+      "execution_id": "exec_1768959253585150000",
       "thread_id": "durable-job-1"
     },
-    "timestamp": "2025-12-08T21:56:55.596497+08:00",
+    "timestamp": "2026-01-21T09:34:14.588646+08:00",
+    "version": 1
+  },
+  "checkpoint_643e9d36-5313-4606-9076-2cc2ea92d899": {
+    "id": "checkpoint_643e9d36-5313-4606-9076-2cc2ea92d899",
+    "node_name": "step_1",
+    "state": {
+      "steps": [
+        "Start",
+        "Step 1 Completed"
+      ]
+    },
+    "metadata": {
+      "event": "step",
+      "execution_id": "exec_1768959253585150000",
+      "thread_id": "durable-job-1"
+    },
+    "timestamp": "2026-01-21T09:34:13.585545+08:00",
+    "version": 1
+  },
+  "checkpoint_654bcbf1-b3cb-49f9-9c6b-6a483d88d933": {
+    "id": "checkpoint_654bcbf1-b3cb-49f9-9c6b-6a483d88d933",
+    "node_name": "step_2",
+    "state": {
+      "steps": [
+        "Start",
+        "Step 1 Completed",
+        "Step 2 Completed"
+      ]
+    },
+    "metadata": {
+      "event": "step",
+      "execution_id": "exec_1768959253585150000",
+      "thread_id": "durable-job-1"
+    },
+    "timestamp": "2026-01-21T09:34:14.087085+08:00",
     "version": 1
   }
 }

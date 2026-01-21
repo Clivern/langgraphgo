@@ -4,8 +4,6 @@ go 1.25.0
 
 replace github.com/smallnest/langgraphgo => ../
 
-replace github.com/tmc/langchaingo => ../../langchaingo
-
 require (
 	github.com/kataras/golog v0.1.15
 	github.com/milvus-io/milvus/client/v2 v2.6.0
