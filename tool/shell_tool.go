@@ -55,3 +55,21 @@ func RunShellScript(scriptPath string, args []string) (string, error) {
 
 	return stdout.String() + stderr.String(), nil
 }
+
+// RunTypeScriptScript executes a TypeScript/JavaScript file using npx tsx.
+func RunTypeScriptScript(scriptPath string, args []string) (string, error) {
+	// nolint:gosec // G204: This is the intended functionality of the tool
+	cmdArgs := append([]string{"tsx", scriptPath}, args...)
+	cmd := exec.Command("npx", cmdArgs...)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("failed to run typescript script '%s': %w\nStdout: %s\nStderr: %s", scriptPath, err, stdout.String(), stderr.String())
+	}
+
+	return stdout.String() + stderr.String(), nil
+}

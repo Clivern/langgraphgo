@@ -9,7 +9,8 @@ import (
 	"strings"
 
 	"github.com/smallnest/goskills"
-	"github.com/smallnest/goskills/tool"
+	goskillstool "github.com/smallnest/goskills/tool"
+	langgraphtool "github.com/smallnest/langgraphgo/tool"
 	"github.com/tmc/langchaingo/tools"
 )
 
@@ -53,7 +54,7 @@ func (t *SkillTool) Call(ctx context.Context, input string) (string, error) {
 		if err := json.Unmarshal([]byte(input), &params); err != nil {
 			return "", fmt.Errorf("failed to unmarshal run_shell_code arguments: %w", err)
 		}
-		shellTool := tool.ShellTool{}
+		shellTool := goskillstool.ShellTool{}
 		return shellTool.Run(params.Args, params.Code)
 
 	case "run_shell_script":
@@ -64,7 +65,7 @@ func (t *SkillTool) Call(ctx context.Context, input string) (string, error) {
 		if err := json.Unmarshal([]byte(input), &params); err != nil {
 			return "", fmt.Errorf("failed to unmarshal run_shell_script arguments: %w", err)
 		}
-		return tool.RunShellScript(params.ScriptPath, params.Args)
+		return langgraphtool.RunShellScript(params.ScriptPath, params.Args)
 
 	case "run_python_code":
 		var params struct {
@@ -74,7 +75,7 @@ func (t *SkillTool) Call(ctx context.Context, input string) (string, error) {
 		if err := json.Unmarshal([]byte(input), &params); err != nil {
 			return "", fmt.Errorf("failed to unmarshal run_python_code arguments: %w", err)
 		}
-		pythonTool := tool.PythonTool{}
+		pythonTool := goskillstool.PythonTool{}
 		return pythonTool.Run(params.Args, params.Code)
 
 	case "run_python_script":
@@ -85,7 +86,7 @@ func (t *SkillTool) Call(ctx context.Context, input string) (string, error) {
 		if err := json.Unmarshal([]byte(input), &params); err != nil {
 			return "", fmt.Errorf("failed to unmarshal run_python_script arguments: %w", err)
 		}
-		return tool.RunPythonScript(params.ScriptPath, params.Args)
+		return goskillstool.RunPythonScript(params.ScriptPath, params.Args)
 
 	case "read_file":
 		var params struct {
@@ -101,7 +102,7 @@ func (t *SkillTool) Call(ctx context.Context, input string) (string, error) {
 				path = resolvedPath
 			}
 		}
-		return tool.ReadFile(path)
+		return goskillstool.ReadFile(path)
 
 	case "write_file":
 		var params struct {
@@ -111,7 +112,7 @@ func (t *SkillTool) Call(ctx context.Context, input string) (string, error) {
 		if err := json.Unmarshal([]byte(input), &params); err != nil {
 			return "", fmt.Errorf("failed to unmarshal write_file arguments: %w", err)
 		}
-		err := tool.WriteFile(params.FilePath, params.Content)
+		err := goskillstool.WriteFile(params.FilePath, params.Content)
 		if err == nil {
 			return fmt.Sprintf("Successfully wrote to file: %s", params.FilePath), nil
 		}
@@ -124,7 +125,7 @@ func (t *SkillTool) Call(ctx context.Context, input string) (string, error) {
 		if err := json.Unmarshal([]byte(input), &params); err != nil {
 			return "", fmt.Errorf("failed to unmarshal wikipedia_search arguments: %w", err)
 		}
-		return tool.WikipediaSearch(params.Query)
+		return goskillstool.WikipediaSearch(params.Query)
 
 	case "tavily_search":
 		var params struct {
@@ -133,7 +134,7 @@ func (t *SkillTool) Call(ctx context.Context, input string) (string, error) {
 		if err := json.Unmarshal([]byte(input), &params); err != nil {
 			return "", fmt.Errorf("failed to unmarshal tavily_search arguments: %w", err)
 		}
-		return tool.TavilySearch(params.Query)
+		return goskillstool.TavilySearch(params.Query)
 
 	case "web_fetch":
 		var params struct {
@@ -142,7 +143,7 @@ func (t *SkillTool) Call(ctx context.Context, input string) (string, error) {
 		if err := json.Unmarshal([]byte(input), &params); err != nil {
 			return "", fmt.Errorf("failed to unmarshal web_fetch arguments: %w", err)
 		}
-		return tool.WebFetch(params.URL)
+		return goskillstool.WebFetch(params.URL)
 
 	default:
 		if scriptPath, ok := t.scriptMap[t.name]; ok {
@@ -155,9 +156,11 @@ func (t *SkillTool) Call(ctx context.Context, input string) (string, error) {
 				}
 			}
 			if strings.HasSuffix(scriptPath, ".py") {
-				return tool.RunPythonScript(scriptPath, params.Args)
+				return goskillstool.RunPythonScript(scriptPath, params.Args)
+			} else if strings.HasSuffix(scriptPath, ".ts") || strings.HasSuffix(scriptPath, ".js") {
+				return langgraphtool.RunTypeScriptScript(scriptPath, params.Args)
 			} else {
-				return tool.RunShellScript(scriptPath, params.Args)
+				return langgraphtool.RunShellScript(scriptPath, params.Args)
 			}
 		}
 		return "", fmt.Errorf("unknown tool: %s", t.name)

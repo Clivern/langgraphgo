@@ -8,7 +8,8 @@ deerflow
 langmanus
 !langmanus/
 
-
+node_modules
+package-lock.json
 
 .claude
 .qoder
@@ -18,3 +19,6 @@ langmanus
 
 example_results.txt
 example_summary.txt
+
+# Comic generation output
+examples/comic_skill_example/comic/

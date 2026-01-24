@@ -129,15 +129,20 @@ func CreateAgentMap(model llms.Model, inputTools []tools.Tool, maxIterations int
 
 		var toolDefs []llms.Tool
 		for _, t := range allTools {
+			toolSchema := getToolSchema(t)
 			toolDefs = append(toolDefs, llms.Tool{
 				Type: "function",
 				Function: &llms.FunctionDefinition{
 					Name:        t.Name(),
 					Description: t.Description(),
-					Parameters:  getToolSchema(t),
+					Parameters:  toolSchema,
 				},
 			})
+			// Debug logging
+			fmt.Printf("[DEBUG] Tool: %s, Schema: %+v\n", t.Name(), toolSchema)
 		}
+
+		fmt.Printf("[DEBUG] Total tools passed to LLM: %d\n", len(toolDefs))
 
 		msgsToSend := messages
 		if options.SystemMessage != "" {
@@ -147,9 +152,15 @@ func CreateAgentMap(model llms.Model, inputTools []tools.Tool, maxIterations int
 			msgsToSend = options.StateModifier(msgsToSend)
 		}
 
-		resp, err := model.GenerateContent(ctx, msgsToSend, llms.WithTools(toolDefs))
+		resp, err := model.GenerateContent(ctx, msgsToSend, llms.WithTools(toolDefs), llms.WithToolChoice("auto"))
 		if err != nil {
 			return nil, err
+		}
+
+		// Debug: check for tool calls in response
+		fmt.Printf("[DEBUG] LLM Response - Content: %s, ToolCalls: %d\n", resp.Choices[0].Content, len(resp.Choices[0].ToolCalls))
+		for i, tc := range resp.Choices[0].ToolCalls {
+			fmt.Printf("[DEBUG]   ToolCall %d: %s (%s)\n", i, tc.FunctionCall.Name, tc.FunctionCall.Arguments)
 		}
 
 		choice := resp.Choices[0]
