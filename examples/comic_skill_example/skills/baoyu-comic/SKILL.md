@@ -1,6 +1,35 @@
 ---
 name: baoyu-comic
 description: Knowledge comic creator supporting multiple styles (Logicomix/Ligne Claire, Ohmsha manga guide). Creates original educational comics with detailed panel layouts and sequential image generation. Use when user asks to create "知识漫画", "教育漫画", "biography comic", "tutorial comic", or "Logicomix-style comic".
+tools:
+  - name: generate_comic_storyboard
+    script: scripts/generate-comic.ts
+    description: 创建完整的漫画分镜脚本和提示词
+    parameters:
+      topic:
+        type: string
+        description: 要创作的漫画主题
+        required: true
+      style:
+        type: string
+        description: 视觉风格（如：warm 温暖、classic 经典、dramatic 戏剧性）
+        required: false
+      pages:
+        type: integer
+        description: 要生成的页数
+        required: false
+      aspect:
+        type: string
+        description: 宽高比（如：3:4、4:3、16:9）
+        required: false
+  - name: merge_comic_to_pdf
+    script: scripts/merge-to-pdf.ts
+    description: 将漫画图像合并成 PDF
+    parameters:
+      directory:
+        type: string
+        description: 漫画目录路径
+        required: true
 ---
 
 # Knowledge Comic Creator

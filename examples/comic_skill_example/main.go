@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -16,100 +15,18 @@ import (
 	"github.com/tmc/langchaingo/tools"
 )
 
-// Ensure comicToolWrapper implements prebuilt.ToolWithSchema
-var _ prebuilt.ToolWithSchema = (*comicToolWrapper)(nil)
-
-// comicToolWrapper wraps a tool with a more friendly name and description
-type comicToolWrapper struct {
-	tool      tools.Tool
-	newName   string
-	newDesc   string
-	schema    map[string]any
-	toolType  string // "generate_comic_storyboard", "generate_comic_image", or "merge_comic_to_pdf"
-}
-
-func (w *comicToolWrapper) Name() string        { return w.newName }
-func (w *comicToolWrapper) Description() string { return w.newDesc }
-func (w *comicToolWrapper) Call(ctx context.Context, input string) (string, error) {
-	// Convert JSON input to command-line args format
-	if w.toolType == "generate_comic_storyboard" {
-		var params struct {
-			Topic string `json:"topic"`
-			Style string `json:"style"`
-			Pages int    `json:"pages"`
-		}
-		if err := json.Unmarshal([]byte(input), &params); err == nil {
-			// Convert to command-line args
-			args := []string{"--topic", params.Topic}
-			if params.Style != "" {
-				args = append(args, "--style", params.Style)
-			}
-			if params.Pages > 0 {
-				args = append(args, "--pages", fmt.Sprintf("%d", params.Pages))
-			}
-			argsJSON, _ := json.Marshal(map[string]any{"args": args})
-			return w.tool.Call(ctx, string(argsJSON))
-		}
-	} else if w.toolType == "generate_comic_image" {
-		var params struct {
-			Prompt string `json:"prompt"`
-			Path   string `json:"path"`
-		}
-		if err := json.Unmarshal([]byte(input), &params); err == nil {
-			args := []string{"--prompt", params.Prompt, "--image", params.Path}
-			argsJSON, _ := json.Marshal(map[string]any{"args": args})
-			return w.tool.Call(ctx, string(argsJSON))
-		}
-	} else if w.toolType == "merge_comic_to_pdf" {
-		var params struct {
-			Directory string `json:"directory"`
-		}
-		if err := json.Unmarshal([]byte(input), &params); err == nil {
-			argsJSON, _ := json.Marshal(map[string]any{"args": []string{params.Directory}})
-			return w.tool.Call(ctx, string(argsJSON))
-		}
-	}
-	// Fallback to original input
-	return w.tool.Call(ctx, input)
-}
-
-// Schema returns a custom JSON schema for this tool
-func (w *comicToolWrapper) Schema() map[string]any {
-	if w.schema != nil {
-		return w.schema
-	}
-	return nil
-}
-
 func main() {
-	// 1. Initialize LLM
-	if os.Getenv("OPENAI_API_KEY") == "" {
-		log.Fatal("OPENAI_API_KEY is not set")
-	}
-
-	// Configure LLM with support for custom base URL (e.g., Baidu Qianfan)
-	model := os.Getenv("OPENAI_API_MODEL")
-	if model == "" {
-		model = os.Getenv("OPENAI_MODEL")
-	}
-	if model == "" {
-		model = "gpt-4o"
-	}
-
-	var opts []openai.Option
-	opts = append(opts, openai.WithModel(model))
-
-	// Support for custom OpenAI-compatible APIs (e.g., Baidu Qianfan)
-	if baseURL := os.Getenv("OPENAI_API_BASE"); baseURL != "" {
-		opts = append(opts, openai.WithBaseURL(baseURL))
-	}
-
-	llm, err := openai.New(opts...)
+	// 1. 初始化 LLM
+	// 推荐使用 ERNIE 5.0 Thinking Preview，工具调用更稳定
+	// 如需使用，设置环境变量：
+	//   export OPENAI_API_KEY=your-ernie-api-key
+	//   export OPENAI_BASE_URL=https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/ernie-5.0-thinking-preview
+	llm, err := openai.New()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// 2. Load Skills from the skills directory
+	// 2. 从 skills 目录加载技能包
 	skillsDir := "./skills"
 	if _, err := os.Stat(skillsDir); os.IsNotExist(err) {
 		skillsDir = "comic_skill_example/skills"
@@ -117,120 +34,53 @@ func main() {
 
 	packages, err := goskills.ParseSkillPackages(skillsDir)
 	if err != nil {
-		log.Fatalf("Failed to parse skill packages: %v", err)
+		log.Fatalf("解析技能包失败: %v", err)
 	}
 
 	if len(packages) == 0 {
-		log.Fatal("No skills found in " + skillsDir)
+		log.Fatal("在 " + skillsDir + " 中未找到任何技能")
 	}
 
-	// 3. Convert Skills to Tools
+	// 3. 将技能转换为工具（工具配置会从 SKILL.md 自动读取）
 	var allTools []tools.Tool
 	var allSystemMessages strings.Builder
 
-	// Tool name remapping for better LLM understanding
-	toolNameMap := map[string]string{
-		"run_scripts_generate_comic_ts": "generate_comic_storyboard",
-		"run_scripts_main_ts":            "generate_comic_image",
-		"run_scripts_merge_to_pdf_ts":    "merge_comic_to_pdf",
-	}
-
-	// Tool schemas for better LLM understanding
-	// Use a simpler format that's more compatible with OpenAI's function calling
-	toolSchemas := map[string]map[string]any{
-		"generate_comic_storyboard": {
-			"type": "object",
-			"properties": map[string]any{
-				"topic": map[string]any{
-					"type":        "string",
-					"description": "The topic of the comic to create",
-				},
-				"style": map[string]any{
-					"type":        "string",
-					"description": "Visual style (e.g., warm, classic, dramatic)",
-				},
-				"pages": map[string]any{
-					"type":        "integer",
-					"description": "Number of pages to generate",
-				},
-			},
-			"required": []string{"topic"},
-		},
-		"generate_comic_image": {
-			"type": "object",
-			"properties": map[string]any{
-				"prompt": map[string]any{
-					"type":        "string",
-					"description": "Image generation prompt",
-				},
-				"path": map[string]any{
-					"type":        "string",
-					"description": "Output file path",
-				},
-			},
-			"required": []string{"prompt", "path"},
-		},
-		"merge_comic_to_pdf": {
-			"type": "object",
-			"properties": map[string]any{
-				"directory": map[string]any{
-					"type":        "string",
-					"description": "Path to the comic directory",
-				},
-			},
-			"required": []string{"directory"},
-		},
-	}
-
-	allSystemMessages.WriteString("You are a helpful assistant with access to tools. When users ask to create a comic, you MUST call the generate_comic_storyboard function.\n\n")
-	allSystemMessages.WriteString("Available functions:\n")
-	allSystemMessages.WriteString("- generate_comic_storyboard: Creates a complete comic storyboard with prompts\n")
-	allSystemMessages.WriteString("- generate_comic_image: Generates a single comic image (requires prompt and path)\n")
-	allSystemMessages.WriteString("- merge_comic_to_pdf: Merges comic images into a PDF\n\n")
-	allSystemMessages.WriteString("Workflow:\n")
-	allSystemMessages.WriteString("1. Call generate_comic_storyboard to create the comic storyboard\n")
-	allSystemMessages.WriteString("2. If the output shows '=== IMAGE_GENERATION_REQUIRED ===', call generate_comic_image for each page\n")
-	allSystemMessages.WriteString("3. Call merge_comic_to_pdf to merge all images into a PDF\n\n")
-	allSystemMessages.WriteString("CRITICAL: Always call functions instead of providing text descriptions.\n")
+	allSystemMessages.WriteString("你是一个有用的助手，可以访问工具来创作漫画。当用户要求创建漫画时，你必须调用 generate_comic_storyboard 函数。\n\n")
+	allSystemMessages.WriteString("可用函数：\n")
+	allSystemMessages.WriteString("- generate_comic_storyboard: 创建完整的漫画分镜脚本和提示词\n")
+	allSystemMessages.WriteString("- generate_comic_image: 生成单张漫画图像（需要提示词和路径）\n")
+	allSystemMessages.WriteString("- merge_comic_to_pdf: 将漫画图像合并成 PDF\n\n")
+	allSystemMessages.WriteString("工作流程：\n")
+	allSystemMessages.WriteString("1. 调用 generate_comic_storyboard 创建漫画分镜\n")
+	allSystemMessages.WriteString("2. 如果输出显示 '=== IMAGE_GENERATION_REQUIRED ==='，则为每一页调用 generate_comic_image\n")
+	allSystemMessages.WriteString("3. 调用 merge_comic_to_pdf 将所有图像合并成 PDF\n\n")
+	allSystemMessages.WriteString("重要提示：始终调用函数，而不是提供文字描述。\n")
 
 	for _, skill := range packages {
-		fmt.Printf("Loading skill: %s - %s\n", skill.Meta.Name, skill.Meta.Description)
+		fmt.Printf("正在加载技能: %s - %s\n", skill.Meta.Name, skill.Meta.Description)
 
+		// 工具配置会从 SKILL.md 的 tools 字段自动读取
+		// 如果需要覆盖，可以传入 ToolConfig
 		skillTools, err := adapter.SkillsToTools(skill)
 		if err != nil {
-			log.Printf("Failed to convert skill %s to tools: %v", skill.Meta.Name, err)
+			log.Printf("转换技能 %s 为工具失败: %v", skill.Meta.Name, err)
 			continue
 		}
 
+		allTools = append(allTools, skillTools...)
+
 		for _, t := range skillTools {
-			// Wrap tool with better name if in remap
-			if newName, exists := toolNameMap[t.Name()]; exists {
-				// Create a wrapper tool with the better name
-				schema := toolSchemas[newName]
-				wrappedTool := &comicToolWrapper{
-					tool:     t,
-					newName:  newName,
-					newDesc:  t.Description(),
-					schema:   schema,
-					toolType: newName,
-				}
-				allTools = append(allTools, wrappedTool)
-				fmt.Printf("  - Tool: %s (was: %s)\n", newName, t.Name())
-			} else {
-				allTools = append(allTools, t)
-				fmt.Printf("  - Tool: %s\n", t.Name())
-			}
+			fmt.Printf("  - 工具: %s\n", t.Name())
 		}
 	}
 
 	if len(allTools) == 0 {
-		log.Fatal("No tools found from skills")
+		log.Fatal("未从技能中找到任何工具")
 	}
 
-	fmt.Printf("\nTotal tools loaded: %d\n\n", len(allTools))
+	fmt.Printf("\n总共加载了 %d 个工具\n\n", len(allTools))
 
-	// 4. Create Agent with all skills
-	// For debugging, let's filter to only use the comic generation tool
+	// 4. 筛选出漫画相关工具
 	var comicTools []tools.Tool
 	for _, t := range allTools {
 		if t.Name() == "generate_comic_storyboard" || t.Name() == "generate_comic_image" || t.Name() == "merge_comic_to_pdf" {
@@ -239,49 +89,54 @@ func main() {
 	}
 
 	if len(comicTools) == 0 {
-		log.Fatal("Comic tools not found")
+		log.Fatal("未找到漫画工具")
 	}
 
-	fmt.Printf("Using %d comic tools\n", len(comicTools))
+	fmt.Printf("使用 %d 个漫画工具\n", len(comicTools))
 
-	// Debug: print tool definitions
-	fmt.Println("\n=== Tool Definitions ===")
+	// 5. 调试：打印工具定义
+	fmt.Println("\n=== 工具定义 ===")
 	for _, t := range comicTools {
-		fmt.Printf("Tool: %s\n", t.Name())
-		fmt.Printf("  Description: %s\n", t.Description())
-		// Check if tool implements Schema
+		fmt.Printf("工具: %s\n", t.Name())
+		fmt.Printf("  描述: %s\n", t.Description())
+		// 检查工具是否实现了 Schema
 		if st, ok := t.(interface{ Schema() map[string]any }); ok {
 			if schema := st.Schema(); schema != nil {
-				fmt.Printf("  Has Schema: YES\n")
+				fmt.Printf("  包含 Schema: 是\n")
 			} else {
-				fmt.Printf("  Has Schema: NO (nil)\n")
+				fmt.Printf("  包含 Schema: 否（为 nil）\n")
 			}
 		} else {
-			fmt.Printf("  Has Schema: NO (interface mismatch)\n")
+			fmt.Printf("  包含 Schema: 否（接口不匹配）\n")
 		}
 	}
-	fmt.Println("=== End Tool Definitions ===\n")
+	fmt.Println("=== 工具定义结束 ===\n")
 
-	// The agent will use the LLM to decide which tools to call and in what order
-	// Increase maxIterations to allow for multiple tool calls (generate_comic -> multiple image gens -> merge)
+	// 6. 创建 Agent
 	systemMsgStr := allSystemMessages.String()
-	fmt.Printf("\n=== System Message ===\n%s\n=== End System Message ===\n\n", systemMsgStr)
+	fmt.Printf("\n=== 系统消息 ===\n%s\n=== 系统消息结束 ===\n\n", systemMsgStr)
+
+	// 设置是否禁用模型调用
+	// 如果设置为 true，Agent 将跳过 LLM 调用，直接返回空响应
+	// 这对于测试或仅执行工具调用时很有用
+	disableModelInvocation := false
 
 	agent, err := prebuilt.CreateAgentMap(llm, comicTools, 20,
 		prebuilt.WithSystemMessage(systemMsgStr),
+		prebuilt.WithDisableModelInvocation(disableModelInvocation),
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// 5. Parse command line arguments
+	// 7. 解析命令行参数
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: go run main.go <comic description>")
+		fmt.Println("用法: go run main.go <漫画描述>")
 		fmt.Println()
-		fmt.Println("Example:")
-		fmt.Println("  go run main.go \"Create a comic about a little girl picking mushrooms in the forest\"")
+		fmt.Println("示例:")
+		fmt.Println("  go run main.go \"创作一个关于小姑娘在森林里采蘑菇的漫画\"")
 		fmt.Println()
-		fmt.Println("Available skills:")
+		fmt.Println("可用技能:")
 		for _, skill := range packages {
 			fmt.Printf("  - %s: %s\n", skill.Meta.Name, skill.Meta.Description)
 		}
@@ -290,9 +145,9 @@ func main() {
 
 	input := strings.Join(os.Args[1:], " ")
 
-	// 6. Run Agent
-	fmt.Printf("🎨 Creating comic with agent...\n")
-	fmt.Printf("📝 Request: %s\n\n", input)
+	// 8. 运行 Agent
+	fmt.Printf("🎨 正在使用 Agent 创建漫画...\n")
+	fmt.Printf("📝 请求: %s\n\n", input)
 
 	ctx := context.Background()
 	resp, err := agent.Invoke(ctx, map[string]any{
@@ -304,33 +159,33 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// 7. Print result
+	// 9. 打印结果
 	fmt.Println("\n===========================================")
-	fmt.Println("Agent Response:")
+	fmt.Println("Agent 响应:")
 	fmt.Println("===========================================")
 
 	if messages, ok := resp["messages"].([]llms.MessageContent); ok && len(messages) > 0 {
 		for i, msg := range messages {
-			fmt.Printf("\n[Message %d - Role: %s]\n", i+1, msg.Role)
+			fmt.Printf("\n[消息 %d - 角色: %s]\n", i+1, msg.Role)
 			for j, part := range msg.Parts {
 				switch p := part.(type) {
 				case llms.TextContent:
-					fmt.Printf("  [Part %d - Text]: %s\n", j+1, string(p.Text))
+					fmt.Printf("  [部分 %d - 文本]: %s\n", j+1, string(p.Text))
 				case llms.ToolCall:
-					fmt.Printf("  [Part %d - ToolCall]: %s\n", j+1, p.FunctionCall.Name)
-					fmt.Printf("    Arguments: %s\n", p.FunctionCall.Arguments)
+					fmt.Printf("  [部分 %d - 工具调用]: %s\n", j+1, p.FunctionCall.Name)
+					fmt.Printf("    参数: %s\n", p.FunctionCall.Arguments)
 				case llms.ToolCallResponse:
-					fmt.Printf("  [Part %d - ToolResponse]: %s\n", j+1, p)
+					fmt.Printf("  [部分 %d - 工具响应]: %s\n", j+1, p)
 				default:
-					fmt.Printf("  [Part %d - Unknown]: %v\n", j+1, part)
+					fmt.Printf("  [部分 %d - 未知类型]: %v\n", j+1, part)
 				}
 			}
 		}
 	} else {
-		fmt.Printf("Response: %v\n", resp)
+		fmt.Printf("响应: %v\n", resp)
 	}
 
 	fmt.Println("\n===========================================")
-	fmt.Println("Done!")
+	fmt.Println("完成!")
 	fmt.Println("===========================================")
 }

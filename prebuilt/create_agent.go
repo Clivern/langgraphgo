@@ -15,11 +15,12 @@ import (
 
 // CreateAgentOptions contains options for creating an agent
 type CreateAgentOptions struct {
-	skillDir      string
-	Verbose       bool
-	SystemMessage string
-	StateModifier func(messages []llms.MessageContent) []llms.MessageContent
-	MaxIterations int
+	skillDir               string
+	Verbose                bool
+	SystemMessage          string
+	StateModifier          func(messages []llms.MessageContent) []llms.MessageContent
+	MaxIterations          int
+	DisableModelInvocation bool
 }
 
 type CreateAgentOption func(*CreateAgentOptions)
@@ -42,6 +43,10 @@ func WithVerbose(verbose bool) CreateAgentOption {
 
 func WithMaxIterations(maxIterations int) CreateAgentOption {
 	return func(o *CreateAgentOptions) { o.MaxIterations = maxIterations }
+}
+
+func WithDisableModelInvocation(disable bool) CreateAgentOption {
+	return func(o *CreateAgentOptions) { o.DisableModelInvocation = disable }
 }
 
 // CreateAgentMap creates a new agent graph with map[string]any state
@@ -139,10 +144,14 @@ func CreateAgentMap(model llms.Model, inputTools []tools.Tool, maxIterations int
 				},
 			})
 			// Debug logging
-			fmt.Printf("[DEBUG] Tool: %s, Schema: %+v\n", t.Name(), toolSchema)
+			if options.Verbose {
+				fmt.Printf("[DEBUG] Tool: %s, Schema: %+v\n", t.Name(), toolSchema)
+			}
 		}
 
-		fmt.Printf("[DEBUG] Total tools passed to LLM: %d\n", len(toolDefs))
+		if options.Verbose {
+			fmt.Printf("[DEBUG] Total tools passed to LLM: %d\n", len(toolDefs))
+		}
 
 		msgsToSend := messages
 		if options.SystemMessage != "" {
@@ -152,15 +161,32 @@ func CreateAgentMap(model llms.Model, inputTools []tools.Tool, maxIterations int
 			msgsToSend = options.StateModifier(msgsToSend)
 		}
 
-		resp, err := model.GenerateContent(ctx, msgsToSend, llms.WithTools(toolDefs), llms.WithToolChoice("auto"))
-		if err != nil {
-			return nil, err
+		var resp *llms.ContentResponse
+		var err error
+
+		if options.DisableModelInvocation {
+			// Skip model invocation, create a dummy response
+			resp = &llms.ContentResponse{
+				Choices: []*llms.ContentChoice{
+					{
+						Content:   "",
+						ToolCalls: []llms.ToolCall{},
+					},
+				},
+			}
+		} else {
+			resp, err = model.GenerateContent(ctx, msgsToSend, llms.WithTools(toolDefs), llms.WithToolChoice("auto"))
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		// Debug: check for tool calls in response
-		fmt.Printf("[DEBUG] LLM Response - Content: %s, ToolCalls: %d\n", resp.Choices[0].Content, len(resp.Choices[0].ToolCalls))
-		for i, tc := range resp.Choices[0].ToolCalls {
-			fmt.Printf("[DEBUG]   ToolCall %d: %s (%s)\n", i, tc.FunctionCall.Name, tc.FunctionCall.Arguments)
+		if options.Verbose {
+			fmt.Printf("[DEBUG] LLM Response - Content: %s, ToolCalls: %d\n", resp.Choices[0].Content, len(resp.Choices[0].ToolCalls))
+			for i, tc := range resp.Choices[0].ToolCalls {
+				fmt.Printf("[DEBUG]   ToolCall %d: %s (%s)\n", i, tc.FunctionCall.Name, tc.FunctionCall.Arguments)
+			}
 		}
 
 		choice := resp.Choices[0]
@@ -291,9 +317,24 @@ func CreateAgent[S any](
 			msgsToSend = options.StateModifier(msgsToSend)
 		}
 
-		resp, err := model.GenerateContent(ctx, msgsToSend, llms.WithTools(toolDefs))
-		if err != nil {
-			return state, err
+		var resp *llms.ContentResponse
+		var err error
+
+		if options.DisableModelInvocation {
+			// Skip model invocation, create a dummy response
+			resp = &llms.ContentResponse{
+				Choices: []*llms.ContentChoice{
+					{
+						Content:   "",
+						ToolCalls: []llms.ToolCall{},
+					},
+				},
+			}
+		} else {
+			resp, err = model.GenerateContent(ctx, msgsToSend, llms.WithTools(toolDefs))
+			if err != nil {
+				return state, err
+			}
 		}
 
 		choice := resp.Choices[0]

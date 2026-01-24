@@ -14,22 +14,126 @@ import (
 	"github.com/tmc/langchaingo/tools"
 )
 
+// ToolConfig 定义工具的配置，可以从 SKILL.md 或单独的配置文件中读取
+// 注意：如果 SKILL.md 中已经定义了 tools 字段，此配置将被用作补充覆盖
+type ToolConfig struct {
+	// NameMapping 定义工具名称映射，从脚本名称到更友好的名称
+	NameMapping map[string]string `json:"nameMapping"`
+
+	// SchemaOverrides 定义工具 schema 的覆盖
+	SchemaOverrides map[string]map[string]any `json:"schemaOverrides"`
+
+	// DescriptionOverrides 定义工具描述的覆盖
+	DescriptionOverrides map[string]string `json:"descriptionOverrides"`
+}
+
+// buildToolConfigFromSkill 从 SKILL.md 中的工具定义自动构建 ToolConfig
+func buildToolConfigFromSkill(skill *goskills.SkillPackage) *ToolConfig {
+	if len(skill.Meta.Tools) == 0 {
+		return nil
+	}
+
+	config := &ToolConfig{
+		NameMapping:          make(map[string]string),
+		DescriptionOverrides: make(map[string]string),
+		SchemaOverrides:      make(map[string]map[string]any),
+	}
+
+	for _, toolDef := range skill.Meta.Tools {
+		// 构建名称映射：从工具名到工具名（保持一致）
+		config.NameMapping[toolDef.Name] = toolDef.Name
+
+		// 设置描述
+		if toolDef.Description != "" {
+			config.DescriptionOverrides[toolDef.Name] = toolDef.Description
+		}
+
+		// 构建 schema
+		schema := map[string]any{
+			"type":       "object",
+			"properties": make(map[string]any),
+		}
+
+		if len(toolDef.Parameters) > 0 {
+			var required []string
+			for paramName, param := range toolDef.Parameters {
+				prop := map[string]any{
+					"type": param.Type,
+				}
+				if param.Description != "" {
+					prop["description"] = param.Description
+				}
+				schema["properties"].(map[string]any)[paramName] = prop
+				if param.Required {
+					required = append(required, paramName)
+				}
+			}
+			if len(required) > 0 {
+				schema["required"] = required
+			}
+		} else {
+			// 默认参数: args 数组
+			schema["properties"] = map[string]any{
+				"args": map[string]any{
+					"type":        "array",
+					"description": "Arguments to pass to the script.",
+					"items": map[string]any{
+						"type": "string",
+					},
+				},
+			}
+		}
+
+		schema["additionalProperties"] = false
+		config.SchemaOverrides[toolDef.Name] = schema
+	}
+
+	return config
+}
+
 // SkillTool implements tools.Tool for goskills.
 type SkillTool struct {
 	name        string
 	description string
 	scriptMap   map[string]string
 	skillPath   string
+	config      *ToolConfig    // 工具配置
+	schema      map[string]any // 工具的 JSON schema
 }
 
 var _ tools.Tool = &SkillTool{}
+var _ interface{ Schema() map[string]any } = &SkillTool{}
 
 func (t *SkillTool) Name() string {
+	// 如果配置中有名称映射，使用映射后的名称
+	if t.config != nil && t.config.NameMapping != nil {
+		if newName, ok := t.config.NameMapping[t.name]; ok {
+			return newName
+		}
+	}
 	return t.name
 }
 
 func (t *SkillTool) Description() string {
+	// 使用映射后的名称获取覆盖的描述
+	if t.config != nil && t.config.DescriptionOverrides != nil {
+		mappedName := t.Name()
+		if desc, ok := t.config.DescriptionOverrides[mappedName]; ok {
+			return desc
+		}
+	}
 	return t.description
+}
+
+func (t *SkillTool) Schema() map[string]any {
+	// 如果配置中有 schema 覆盖，使用覆盖的 schema
+	if t.config != nil && t.config.SchemaOverrides != nil {
+		mappedName := t.Name()
+		if schema, ok := t.config.SchemaOverrides[mappedName]; ok {
+			return schema
+		}
+	}
+	return t.schema
 }
 
 func (t *SkillTool) MarshalJSON() ([]byte, error) {
@@ -38,14 +142,15 @@ func (t *SkillTool) MarshalJSON() ([]byte, error) {
 		"description": t.description,
 		"skillPath":   t.skillPath,
 		"scriptMap":   t.scriptMap,
+		"mappedName":  t.Name(), // 映射后的名称
 	})
 }
 
 func (t *SkillTool) Call(ctx context.Context, input string) (string, error) {
-	// input is the JSON string of arguments
-	// We need to parse it based on the tool name, similar to goskills runner.go
+	// 使用原始名称进行路由，因为脚本路径是用原始名称存储的
+	originalName := t.name
 
-	switch t.name {
+	switch originalName {
 	case "run_shell_code":
 		var params struct {
 			Code string         `json:"code"`
@@ -146,7 +251,50 @@ func (t *SkillTool) Call(ctx context.Context, input string) (string, error) {
 		return goskillstool.WebFetch(params.URL)
 
 	default:
-		if scriptPath, ok := t.scriptMap[t.name]; ok {
+		if scriptPath, ok := t.scriptMap[originalName]; ok {
+			// 尝试解析为命名参数格式（来自 SKILL.md 工具定义）
+			var namedParams map[string]any
+			err := json.Unmarshal([]byte(input), &namedParams)
+
+			if err == nil && len(namedParams) > 0 {
+				// 成功解析为命名参数，转换为命令行参数
+				var args []string
+
+				// 参数映射：将 SKILL.md 中的参数名转换为脚本参数名
+				paramMapping := map[string]string{
+					"topic":     "--topic",
+					"style":     "--style",
+					"pages":     "--pages",
+					"aspect":    "--aspect",
+					"path":      "--image",
+					"prompt":    "--prompt",
+					"ar":        "--ar",
+					"quality":   "--quality",
+					"directory": "--directory",
+				}
+
+				// 按照已知的顺序处理参数（或者按字母顺序保持一致性）
+				paramOrder := []string{"topic", "style", "pages", "aspect", "path", "prompt", "ar", "quality", "directory"}
+
+				for _, key := range paramOrder {
+					if value, ok := namedParams[key]; ok && value != nil {
+						if flag, ok := paramMapping[key]; ok {
+							args = append(args, flag)
+							args = append(args, fmt.Sprintf("%v", value))
+						}
+					}
+				}
+
+				if strings.HasSuffix(scriptPath, ".py") {
+					return goskillstool.RunPythonScript(scriptPath, args)
+				} else if strings.HasSuffix(scriptPath, ".ts") || strings.HasSuffix(scriptPath, ".js") {
+					return langgraphtool.RunTypeScriptScript(scriptPath, args)
+				} else {
+					return langgraphtool.RunShellScript(scriptPath, args)
+				}
+			}
+
+			// 回退到旧的 args 数组格式
 			var params struct {
 				Args []string `json:"args"`
 			}
@@ -163,12 +311,53 @@ func (t *SkillTool) Call(ctx context.Context, input string) (string, error) {
 				return langgraphtool.RunShellScript(scriptPath, params.Args)
 			}
 		}
-		return "", fmt.Errorf("unknown tool: %s", t.name)
+		return "", fmt.Errorf("unknown tool: %s", originalName)
 	}
 }
 
+// SkillsToToolsOptions 定义转换选项
+type SkillsToToolsOptions struct {
+	// ToolConfig 提供工具配置（名称映射、schema 覆盖等）
+	// 注意：如果 SKILL.md 中已经定义了 tools，会自动生成配置，
+	//      此配置仅用于覆盖或补充 SKILL.md 中的定义
+	ToolConfig *ToolConfig
+}
+
 // SkillsToTools converts a goskills.SkillPackage to a slice of tools.Tool.
-func SkillsToTools(skill *goskills.SkillPackage) ([]tools.Tool, error) {
+// 自动从 SKILL.md 读取工具定义，如果没有定义则自动生成。
+// 支持通过 ToolConfig 覆盖或补充 SKILL.md 中的定义。
+func SkillsToTools(skill *goskills.SkillPackage, opts ...SkillsToToolsOptions) ([]tools.Tool, error) {
+	var config *ToolConfig
+
+	// 1. 首先尝试从 SKILL.md 自动构建配置
+	skillConfig := buildToolConfigFromSkill(skill)
+	if skillConfig != nil {
+		config = skillConfig
+	}
+
+	// 2. 如果用户提供了配置，合并覆盖
+	if len(opts) > 0 && opts[0].ToolConfig != nil {
+		if config == nil {
+			config = &ToolConfig{
+				NameMapping:          make(map[string]string),
+				DescriptionOverrides: make(map[string]string),
+				SchemaOverrides:      make(map[string]map[string]any),
+			}
+		}
+		// 合并 NameMapping
+		for k, v := range opts[0].ToolConfig.NameMapping {
+			config.NameMapping[k] = v
+		}
+		// 合并 DescriptionOverrides
+		for k, v := range opts[0].ToolConfig.DescriptionOverrides {
+			config.DescriptionOverrides[k] = v
+		}
+		// 合并 SchemaOverrides
+		for k, v := range opts[0].ToolConfig.SchemaOverrides {
+			config.SchemaOverrides[k] = v
+		}
+	}
+
 	availableTools, scriptMap := goskills.GenerateToolDefinitions(skill)
 	var result []tools.Tool
 
@@ -177,20 +366,30 @@ func SkillsToTools(skill *goskills.SkillPackage) ([]tools.Tool, error) {
 			continue
 		}
 
-		// Create a description that includes the arguments schema if possible,
-		// but langchaingo tools usually just have a text description.
-		// We can append the JSON schema of parameters to the description to help the LLM.
+		// 创建描述，如果可用的话包含参数 schema
 		desc := t.Function.Description
-		// Note: Parameters schema is available via t.Function.Parameters if needed,
-		// but langchaingo's tools.Tool interface doesn't have a Schema method.
-		// The schema would need to be handled separately if function calling support is required.
-		_ = t.Function.Parameters // Acknowledge parameters exist but aren't used here
+
+		// 从函数参数构建默认 schema
+		var schema map[string]any
+		if t.Function.Parameters != nil {
+			// 尝试类型断言为 map[string]any
+			if params, ok := t.Function.Parameters.(map[string]any); ok {
+				// Parameters 是一个完整的 schema 对象，包含 type, properties, required 等
+				// 直接使用它作为 schema，但确保包含 additionalProperties
+				schema = params
+				if _, exists := schema["additionalProperties"]; !exists {
+					schema["additionalProperties"] = false
+				}
+			}
+		}
 
 		result = append(result, &SkillTool{
 			name:        t.Function.Name,
 			description: desc,
 			scriptMap:   scriptMap,
 			skillPath:   skill.Path,
+			config:      config,
+			schema:      schema,
 		})
 	}
 

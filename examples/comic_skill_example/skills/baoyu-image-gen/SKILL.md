@@ -1,6 +1,27 @@
 ---
 name: baoyu-image-gen
 description: AI SDK-based image generation using official OpenAI and Google APIs. Supports text-to-image, reference images, aspect ratios, and quality presets.
+tools:
+  - name: generate_comic_image
+    script: scripts/main.ts
+    description: 生成单张漫画图像（需要提示词和路径）
+    parameters:
+      prompt:
+        type: string
+        description: 图像生成提示词
+        required: true
+      path:
+        type: string
+        description: 输出文件路径
+        required: true
+      ar:
+        type: string
+        description: 宽高比
+        required: false
+      quality:
+        type: string
+        description: 质量预设
+        required: false
 ---
 
 # Image Generation (AI SDK)

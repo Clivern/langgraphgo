@@ -220,7 +220,7 @@ func TestSkillsToTools(t *testing.T) {
 
 	t.Run("function_signature", func(t *testing.T) {
 		// Verify the function exists by checking its type
-		var _ func(*goskills.SkillPackage) ([]tools.Tool, error) = SkillsToTools
+		var _ func(*goskills.SkillPackage, ...SkillsToToolsOptions) ([]tools.Tool, error) = SkillsToTools
 		// This will compile if the function exists with the correct signature
 	})
 }

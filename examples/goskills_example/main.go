@@ -34,6 +34,10 @@ func main() {
 
 	skillsDir := "goskills_example/skills"
 	if _, err := os.Stat(skillsDir); os.IsNotExist(err) {
+		skillsDir = "skills"
+	}
+
+	if _, err := os.Stat(skillsDir); os.IsNotExist(err) {
 		// Create a dummy skill for demonstration
 		err = createDummySkill(skillsDir)
 		if err != nil {
