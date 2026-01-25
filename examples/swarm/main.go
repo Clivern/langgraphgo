@@ -24,40 +24,28 @@ func main() {
 	// Define the graph with typed State
 	workflow := graph.NewStateGraph[State]()
 
-	// Schema: shared state with field merger
-	// Use FieldMerger to handle specific merge logic (like append for History)
-	schema := graph.NewFieldMerger[State](State{})
-	schema.RegisterFieldMerge("History", graph.AppendSliceMerge)
-	workflow.SetSchema(schema)
-
 	// Agent 1: Triage
 	workflow.AddNode("Triage", "Triage", func(ctx context.Context, state State) (State, error) {
 		fmt.Println("[Triage] analyzing request...")
-		return State{
-				History: []string{"Triage reviewed request"},
-				Intent:  "research", // Simplified logic: always determine research needed
-			},
-			nil
+		state.History = append(state.History, "Triage reviewed request")
+		state.Intent = "research" // Simplified logic: always determine research needed
+		return state, nil
 	})
 
 	// Agent 2: Researcher
 	workflow.AddNode("Researcher", "Researcher", func(ctx context.Context, state State) (State, error) {
 		fmt.Println("[Researcher] conducting research...")
-		return State{
-				History: []string{"Researcher gathered data"},
-				Data:    "Some facts found",
-			},
-			nil
+		state.History = append(state.History, "Researcher gathered data")
+		state.Data = "Some facts found"
+		return state, nil
 	})
 
 	// Agent 3: Writer
 	workflow.AddNode("Writer", "Writer", func(ctx context.Context, state State) (State, error) {
 		fmt.Println("[Writer] writing report...")
-		return State{
-				History: []string{"Writer created report"},
-				Report:  fmt.Sprintf("Report based on %s", state.Data),
-			},
-			nil
+		state.History = append(state.History, "Writer created report")
+		state.Report = fmt.Sprintf("Report based on %s", state.Data)
+		return state, nil
 	})
 
 	// Define Handoffs (Edges)
