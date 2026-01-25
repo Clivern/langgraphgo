@@ -1,6 +1,70 @@
 # Changelog
 
-## [0.8.0] - 2025-01-17
+## [0.8.0] - 2026-01-25
+
+### RAG Enhancements
+- **BM25 Support**: Added BM25 retrieval algorithm implementation (#86)
+  - Classic TF-IDF based retrieval with document length normalization
+  - Configurable parameters (k1, b) for fine-tuning
+  - Pure Go implementation with no external dependencies
+  - Custom tokenizer support with stopword filtering
+  - High performance for keyword-based retrieval scenarios
+- **Hybrid RAG**: Implemented hybrid retrieval combining vector and BM25 (#86)
+  - RRF (Reciprocal Rank Fusion) algorithm for result merging
+  - Configurable weights for vector and BM25 retrieval
+  - Automatic deduplication and re-ranking
+  - Optimal for knowledge-intensive Q&A and document retrieval
+- **BM25 Examples**: Added comprehensive BM25 and hybrid RAG examples
+  - `bm25_demo`: Complete BM25 retrieval demonstration
+  - `hybrid_rag_demo`: Hybrid retrieval with multiple strategies
+  - Bilingual documentation (English & Chinese)
+
+### GoSkills Enhancements
+- **Skill Framework**: Enhanced GoSkills skill system with improved type safety
+  - Better error handling and validation
+  - Improved skill loading and execution
+  - Enhanced TypeScript integration
+- **New Skills**:
+  - **baoyu-image-gen**: Image generation skill supporting OpenAI and Google APIs
+    - 611 lines of TypeScript implementation
+    - Flexible configuration for image generation
+    - Support for multiple image sizes and quality settings
+  - **baoyu-comic**: Comic generation skill with multiple layouts and styles
+    - 553 lines of comic generation script
+    - Support for 6 layouts (cinematic, dense, mixed, splash, standard, webtoon)
+    - Support for 10 styles (chalkboard, classic, dramatic, ohmsha, realistic, sepia, shoujo, vibrant, warm, wuxia)
+    - PDF export functionality (131 lines)
+- **Comic Skill Example**: Added comprehensive comic generation example
+  - 684 lines of example code and documentation
+  - Demonstrates skill system capabilities
+
+### Multi-Agent Improvements
+- **Dexter Implementation**: Implemented virattt/dexter multi-agent system (#89)
+  - Refactored swarm example to use typed State struct
+  - Demonstrates best practices for type-safe multi-agent systems
+  - Supervisor pattern with dynamic task routing
+  - In-place state updates following Go idioms
+  - Reduced code from 79 to 57 lines while improving clarity
+
+### Bug Fixes
+- **Struct Merging**: Fixed struct value handling in DefaultStructMerge and FieldMerger (#87)
+  - Proper handling of struct values in state merging
+  - Improved state accumulation logic
+- **Durable Execution**: Fixed accumulate logic in durable_execution examples
+  - Correct state accumulation for parallel execution scenarios
+  - Fixed checkpoint state persistence
+- **Checkpoint Optimization**: Improved checkpoint saving logic with thread_id
+  - Distinguished checkpoint saving logic for threaded vs non-threaded scenarios
+  - Better data isolation for concurrent executions
+
+### Documentation
+- Added BM25 integration guide (366 lines)
+- Added BM25 summary documentation (173 lines)
+- Added hybrid RAG documentation (690 lines)
+- Updated GoSkills skill documentation
+- Improved state management examples
+
+## [0.7.0] - 2026-01-17
 
 ### Vector Stores & RAG Enhancements
 - **Milvus Support**: Added Milvus vector store integration (#59)
