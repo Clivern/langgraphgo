@@ -1,5 +1,5 @@
 linters:
-  # Only enable essential linters that catch real bugs and issues
+  # Only enable lessential linters that catch real bugs and issues
   enable:
     # Critical bug detection
     - errcheck      # Check for unchecked errors
